@@ -1,0 +1,251 @@
+I want you to help me build Prototype 1 of a web-first language-learning app.
+
+This prototype is NOT the full app. It is meant to prove the core engine.
+
+CORE PRODUCT IDEA
+This app is built around a measurable word bank. The word is the core unit. Users practice words through four foundational lanes:
+- reading
+- listening
+- writing
+- speaking
+
+Words become usable in a broader “Use” area by lane. A word can become ready for Use in writing without needing to be ready in speaking yet.
+
+The app should feel like language learning is countable, orienting, and buildable.
+
+TOP-LEVEL PROTOTYPE 1 STRUCTURE
+For Prototype 1, the app should only have:
+- Word Bank
+- Use
+- Settings
+
+Do NOT build the rest of the larger vision yet:
+- no Friend
+- no Modules
+- no Outward
+- no Quick Translate
+- no personalization system
+- no advanced onboarding
+- no social features
+
+PROTOTYPE 1 GOAL
+Prove that:
+1. a user can add words to a word bank
+2. the user can practice a word through the four lanes
+3. lane progress is tracked per word
+4. a word becomes Use-ready by lane
+5. the user can do simple broader practice in the Use area using only words that are ready in that lane
+
+LANGUAGE SCOPE
+Prototype 1 should allow:
+- English → Hebrew
+- Hebrew → English
+- English → English
+- Hebrew → Hebrew
+
+This is partly to help test the system without language-barrier confusion.
+
+ONBOARDING
+Keep onboarding very light:
+- base language
+- target language
+- starting level
+
+For Prototype 1, only support:
+- starting from the beginning
+- know a little
+
+Add a small help affordance if needed, but do not overcomplicate.
+
+WORD BANK
+The user should be able to:
+- manually add a word
+- see all words in the bank
+- open a Word Profile
+- optionally mark a word as known
+
+USER-FACING CATEGORY FILTERS
+Keep the visible categories simple:
+- All Words
+- Verbs
+- Nouns
+- Adjectives
+- Core Words
+
+IMPORTANT:
+The app may know richer classifications internally, but the user-facing categories should stay simple in Prototype 1.
+
+RICHER INTERNAL CATEGORY MODEL
+Internally, the lexical system should support richer grammatical categories such as:
+- noun
+- verb
+- adjective
+- pronoun
+- question_word
+- connector
+- negation_word
+- preposition
+- article
+- particle_or_helper
+
+And also support expandable:
+- semantic tags
+- situational tags
+- functional role tags
+
+The schema must be designed so stable identity is separate from expandable metadata.
+
+WORD ARCHITECTURE
+The app should be built around a “base word” concept.
+
+A base word is the main profile word the user ultimately lands on.
+
+Examples:
+- want = base word
+- house = base word
+- good = base word
+
+The schema should leave room for later linked relationships like:
+- inflected forms
+- plural variants
+- related comparison words
+
+But Prototype 1 does NOT need the full UI or full behavior for that yet.
+
+FOUR LANES ARE FOUNDATIONAL SYSTEM PRIMITIVES
+The four lanes are NOT just UI buttons. They are reusable interaction types across the app.
+
+Canonical lane meanings:
+- Reading = app provides written language, learner demonstrates comprehension
+- Listening = app provides audio, learner demonstrates comprehension
+- Writing = learner produces written language
+- Speaking = learner produces spoken language
+
+Claude should build them as core reusable concepts, not ad hoc per screen.
+
+TRACKING MODEL
+For each word and each lane, the app should internally track:
+- app exposure count
+- user attempt count
+- user success count
+
+Do NOT show giant lifetime counts to the user.
+
+USER-FACING PROGRESS
+The user should see a simpler interpretation such as:
+- recent confidence / recent success feeling
+- lane readiness state
+- whether the word is ready for Use in that lane
+
+Use simple progress bars, confidence labels, or readiness badges rather than giant raw counters.
+
+USE-READINESS RULE
+A word becomes ready for Use by lane, not all at once.
+
+Prototype 1 first-pass rule:
+- after roughly 5 successful interactions in a lane, the word becomes Use-ready in that lane
+
+Example:
+- 5 reading successes → usable in Use/Reading
+- 5 writing successes → usable in Use/Writing
+
+WORD PROFILE
+Each word should open into a Word Profile showing:
+- word
+- translation
+- grammatical category
+- lane progress
+- readiness for Use by lane
+- buttons to practice each lane
+
+Keep it focused and not overly technical.
+
+WORD BANK PRACTICE
+The user should be able to practice a selected word through each lane.
+
+Prototype 1 lane exercise examples:
+- Reading: see word, choose correct meaning
+- Listening: hear word, choose correct meaning
+- Writing: see meaning, type word
+- Speaking: see meaning, say word
+
+Use the simplest viable version of each lane.
+
+For speaking, basic speech-to-text checking is enough if feasible. Do not build advanced pronunciation analysis.
+
+USE AREA
+The Use area should only include general practice for Prototype 1.
+
+Inside Use, the user chooses:
+- Reading
+- Listening
+- Writing
+- Speaking
+
+The app should generate simple broader practice using ONLY words that are Use-ready in that lane.
+
+Examples:
+- Use/Reading: short sentence using only reading-ready words
+- Use/Listening: short audio phrase using only listening-ready words
+- Use/Writing: simple prompt requiring writing-ready words
+- Use/Speaking: simple prompt requiring speaking-ready words
+
+IMPORTANT:
+The generated material must remain bank-constrained and lane-constrained.
+
+EVENT-LOG-FIRST TRACKING
+Because the app tracks many things, use an event-log-first approach.
+
+That means:
+- log granular lane events during a session
+- then update aggregate tracking fields in batched or derived form
+
+Do not rely only on constant direct mutation of summary counters if it can be avoided.
+
+This should make the system easier to debug and evolve.
+
+SCHEMA DESIGN PRINCIPLE
+Design the lexical schema so that:
+- core grammatical identity is stable
+- semantic classifications, situational tags, functional roles, and metadata are extensible
+- future additions do not break the app
+
+For example:
+house will always be a noun, but may gain richer tags later like place, building, home, environment.
+
+STARTER LEXICAL FOUNDATION
+Build the prototype so it can ingest or work with a small starter lexical set structured around:
+- base word
+- grammatical category
+- semantic tags
+- situational tags
+- functional role tags
+- usage notes
+- tracking behavior notes
+
+You do not need to fully populate the whole language yet, but the architecture should assume such a lexical foundation exists.
+
+SETTINGS
+Prototype 1 should include a small Settings area with at least:
+- base language
+- target language
+- reset / test data controls if useful
+- microphone/audio permission visibility if relevant
+
+WHAT NOT TO DO
+Do not overbuild.
+Do not add the full world vision yet.
+Do not add Friend, Modules, Outward, Quick Translate, or advanced systems.
+Do not fake complexity that is not implemented.
+Focus on making the core word bank + lane + Use relationship real.
+
+WHAT I WANT FROM YOU
+Please do the following in order:
+1. Propose the best practical tech stack for this prototype
+2. Propose the core app architecture
+3. Propose the data model / schema
+4. Propose the route structure / screens
+5. Propose the event logging + aggregate tracking approach
+6. Propose the simplest viable implementation of the four lanes
+7. Break the build into implementation phases
+8. Then generate the initial scaffold for Phase 1

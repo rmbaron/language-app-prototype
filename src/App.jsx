@@ -1,0 +1,112 @@
+import { useState, useEffect } from 'react'
+import Hub from './Hub'
+import WordBank from './WordBank'
+import WorldSphere from './WorldSphere'
+import SlotPractice from './SlotPractice'
+import WordProfile from './WordProfile'
+import WordPractice from './WordPractice'
+import DevPanel from './DevPanel'
+import ContentManager from './ContentManager'
+import DiscoverWords from './DiscoverWords'
+import Onboarding from './Onboarding'
+import { loadState, getWordBank, ACTIVE_LIMIT } from './userStore'
+import { getDepthLevel, recordSession } from './learnerProfile'
+import FlashcardMode from './FlashcardMode'
+import words from './wordData'
+
+export default function App() {
+  const [view, setView] = useState('hub')
+  const [selected, setSelected] = useState(null)
+  const [practicing, setPracticing] = useState(false)
+  const [storeData, setStoreData] = useState(loadState)
+  const [devOpen, setDevOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [discoverOpen, setDiscoverOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [flashcardOpen, setFlashcardOpen] = useState(false)
+  const [activeCappedAlert, setActiveCappedAlert] = useState(false)
+
+  useEffect(() => {
+    recordSession()
+  }, [])
+
+  function refreshStore(result) {
+    setStoreData(loadState())
+    if (result?.activeCapped) setActiveCappedAlert(true)
+  }
+
+  if (adminOpen) {
+    return <ContentManager onClose={() => setAdminOpen(false)} />
+  }
+
+  if (discoverOpen) {
+    return <DiscoverWords onBack={() => setDiscoverOpen(false)} onWordAdded={refreshStore} />
+  }
+
+  if (onboardingOpen) {
+    return <Onboarding onComplete={() => setOnboardingOpen(false)} />
+  }
+
+  if (flashcardOpen) {
+    const bankWords = words.filter(w => getWordBank().includes(w.id))
+    return <FlashcardMode bankWords={bankWords} onExit={() => setFlashcardOpen(false)} />
+  }
+
+  return (
+    <>
+      {view === 'hub' ? (
+        <Hub onNavigate={id => { setSelected(null); setPracticing(false); setView(id) }} />
+      ) : view === 'worldSphere' ? (
+        <WorldSphere onBack={() => setView('hub')} onNavigate={id => setView(id)} />
+      ) : view === 'practice' ? (
+        <SlotPractice onBack={() => setView('worldSphere')} />
+      ) : selected && practicing ? (
+        <WordPractice
+          word={selected}
+          onBack={() => setPracticing(false)}
+          onStoreChange={refreshStore}
+          depthLevel={getDepthLevel()}
+        />
+      ) : selected ? (
+        <WordProfile
+          word={selected}
+          onBack={() => setSelected(null)}
+          onPractice={() => setPracticing(true)}
+          storeData={storeData}
+          onStoreChange={refreshStore}
+        />
+      ) : (
+        <WordBank onSelectWord={setSelected} onBack={() => setView('hub')} />
+      )}
+
+      <div className="dev-controls">
+        <button className="dev-toggle" onClick={() => setAdminOpen(true)}>
+          Admin
+        </button>
+        <button className="dev-toggle" onClick={() => setDiscoverOpen(true)}>
+          Discover
+        </button>
+        <button className="dev-toggle" onClick={() => setOnboardingOpen(true)}>
+          Onboarding
+        </button>
+        <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
+          Flashcards
+        </button>
+        <button className="dev-toggle" onClick={() => setDevOpen(d => !d)}>
+          {devOpen ? '✕ Dev' : 'Dev'}
+        </button>
+      </div>
+
+      {devOpen && <DevPanel onReset={refreshStore} />}
+
+      {activeCappedAlert && (
+        <div className="alert-overlay">
+          <div className="alert-box">
+            <p className="alert-message">Your active word limit ({ACTIVE_LIMIT}) is full. Complete some words before taking on more.</p>
+            <button className="alert-ok" onClick={() => setActiveCappedAlert(false)}>OK</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
