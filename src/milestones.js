@@ -21,6 +21,7 @@
 export const MILESTONE_TYPES = {
   COUNT:      'count',
   CAPABILITY: 'capability',
+  GRAMMAR:    'grammar',   // triggered when a grammar node is graduated in grammarStore
 }
 
 const MILESTONES = [
@@ -105,10 +106,87 @@ const MILESTONES = [
     condition: state => state.wordBank.length >= 2000,
   },
 
-  // ── Capability milestones (stubs) ─────────────────────────────
+  // ── Grammar capability milestones ────────────────────────────
+  // Triggered when the learner graduates a grammar function node via slot practice.
+  // condition receives (state, grammarState) — state is userStore, grammarState is grammarStore.
+  // grammarNode ties this milestone to a node in grammarProgression.en.js.
+  // Adding a new grammar node to the tree + a matching entry here is all that's needed.
+  {
+    id: 'grammar_pointing',
+    label: 'This and that',
+    description: 'You can point at the world. Near and far — things have reference.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'pointing',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('pointing'),
+  },
+  {
+    id: 'grammar_state_being',
+    label: 'I am / you are',
+    description: 'You can link subjects to states, qualities, and identities.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'state_being',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('state_being'),
+  },
+  {
+    id: 'grammar_action_verb',
+    label: 'First action',
+    description: 'You can express someone doing something. The foundation of every sentence.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'action_verb',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('action_verb'),
+  },
+  {
+    id: 'grammar_second_person',
+    label: 'You and me',
+    description: 'You can speak directly to another person and talk about them.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'second_person',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('second_person'),
+  },
+  {
+    id: 'grammar_basic_adjective',
+    label: 'Describing words',
+    description: 'You can give qualities to things and people.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'basic_adjective',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('basic_adjective'),
+  },
+  {
+    id: 'grammar_negation',
+    label: 'Negation',
+    description: 'You can say what is not so. I don\'t want. I don\'t know.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'negation',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('negation'),
+  },
+  {
+    id: 'grammar_question_function',
+    label: 'First questions',
+    description: 'You can ask. What and where open every conversation.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'question_function',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('question_function'),
+  },
+  {
+    id: 'grammar_possession',
+    label: 'Mine and yours',
+    description: 'You can assign ownership. My house, your friend.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'possession',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('possession'),
+  },
+  {
+    id: 'grammar_third_person_conjugation',
+    label: 'He and she do things',
+    description: 'Verbs change form with he, she, and it. The full subject range is open.',
+    type: MILESTONE_TYPES.GRAMMAR,
+    grammarNode: 'third_person_conjugation',
+    condition: (state, grammarState) => (grammarState.graduatedNodes ?? []).includes('third_person_conjugation'),
+  },
+
+  // ── World Sphere capability milestones (stubs) ────────────────
   // These will be filled in when World Sphere modules are defined.
   // Each requires specific words to be in the user's wordBank.
-  // requiredWords lists word IDs from wordData / wordReference.
   //
   // {
   //   id: 'cafe_module',
@@ -121,25 +199,35 @@ const MILESTONES = [
 ]
 
 // ── Public API ────────────────────────────────────────────────
+//
+// All functions accept (state, grammarState = {}) where:
+//   state        — userStore state (wordBank, pools, etc.)
+//   grammarState — grammarStore state (graduatedNodes, etc.) — optional, defaults to empty
+//
+// Passing grammarState is required for grammar milestones to evaluate correctly.
+// Count and capability milestones ignore grammarState entirely.
 
 // Returns all milestones with their current completion status.
-export function getMilestoneStatus(state) {
+export function getMilestoneStatus(state, grammarState = {}) {
   return MILESTONES.map(m => ({
     ...m,
-    achieved: m.condition(state),
+    achieved: m.condition(state, grammarState),
   }))
 }
 
 // Returns the next unachieved milestone and how close the user is.
 // For count milestones: wordsToGo = target - wordBank.length
 // For capability milestones: wordsToGo = number of required words not yet in bank
-export function getNextMilestone(state) {
-  const next = MILESTONES.find(m => !m.condition(state))
+// For grammar milestones: wordsToGo = 0 (binary — graduated or not)
+export function getNextMilestone(state, grammarState = {}) {
+  const next = MILESTONES.find(m => !m.condition(state, grammarState))
   if (!next) return null
 
   let wordsToGo
   if (next.type === MILESTONE_TYPES.COUNT) {
     wordsToGo = next.target - state.wordBank.length
+  } else if (next.type === MILESTONE_TYPES.GRAMMAR) {
+    wordsToGo = 0
   } else {
     wordsToGo = (next.requiredWords ?? []).filter(w => !state.wordBank.includes(w)).length
   }
@@ -148,19 +236,19 @@ export function getNextMilestone(state) {
 }
 
 // Returns the most recently achieved milestone, or null if none.
-export function getLatestAchieved(state) {
-  const achieved = MILESTONES.filter(m => m.condition(state))
+export function getLatestAchieved(state, grammarState = {}) {
+  const achieved = MILESTONES.filter(m => m.condition(state, grammarState))
   return achieved.length > 0 ? achieved[achieved.length - 1] : null
 }
 
 // Returns the N most recently achieved milestones.
-export function getRecentAchievements(state, count = 3) {
-  return MILESTONES.filter(m => m.condition(state)).slice(-count).reverse()
+export function getRecentAchievements(state, grammarState = {}, count = 3) {
+  return MILESTONES.filter(m => m.condition(state, grammarState)).slice(-count).reverse()
 }
 
 // Returns the next N unachieved milestones *after* the immediate next one.
 // These are "on the horizon" — visible when the user opts in, but not pushed.
-export function getUpcomingMilestones(state, count = 3) {
-  const unachieved = MILESTONES.filter(m => !m.condition(state))
+export function getUpcomingMilestones(state, grammarState = {}, count = 3) {
+  const unachieved = MILESTONES.filter(m => !m.condition(state, grammarState))
   return unachieved.slice(1, 1 + count)
 }

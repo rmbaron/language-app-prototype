@@ -1,59 +1,15 @@
 import { useState, useEffect } from 'react'
-import { setStable, setPreference } from './learnerProfile'
+import { setStable, setPreference, applyCefrFromSelfReport, getInterfaceLanguage } from './learnerProfile'
+import { getStrings } from './uiStrings'
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'he', label: 'עברית' },
 ]
 
-const LEVELS = [
-  {
-    id: 'beginner',
-    label: "I'm just starting out",
-    tooltip: "Choose this if you've never studied this language, or only recognize a handful of words.",
-  },
-  {
-    id: 'elementary',
-    label: "I know a little",
-    tooltip: "Choose this if you know some common words and basic phrases but can't yet form sentences on your own.",
-  },
-  {
-    id: 'intermediate',
-    label: "I know a fair amount",
-    tooltip: "Choose this if you can handle simple everyday conversations with some effort and occasional gaps.",
-  },
-  {
-    id: 'upper_intermediate',
-    label: "I know a good amount",
-    tooltip: "Choose this if you're comfortable in most everyday situations but still actively building vocabulary.",
-  },
-]
-
-const GOALS = [
-  { id: 'fluency',  label: 'Full fluency' },
-  { id: 'trip',     label: 'A short trip' },
-  { id: 'work',     label: 'Work or professional use' },
-  { id: 'phrases',  label: 'Just a few useful phrases' },
-  { id: 'course',   label: "Match a course I'm already taking" },
-]
-
-const PERSONALIZATION = [
-  {
-    id: 'general',
-    label: 'Keep it general',
-    description: 'Standard practice content — not tailored to you personally.',
-  },
-  {
-    id: 'blended',
-    label: 'Mix it in',
-    description: 'Occasionally weave your interests and context into practice.',
-  },
-  {
-    id: 'personal',
-    label: 'Make it mine',
-    description: 'Everything reflects your world — topics, style, and context.',
-  },
-]
+const LEVEL_IDS         = ['beginner', 'elementary', 'intermediate', 'upper_intermediate']
+const GOAL_IDS          = ['fluency', 'trip', 'work', 'phrases', 'course']
+const PERSONALIZATION_IDS = ['general', 'blended', 'personal']
 
 const TOTAL_STEPS = 5
 
@@ -66,8 +22,12 @@ export default function Onboarding({ onComplete }) {
   const [personalization, setPersonalization] = useState(null)
   const [openTooltip, setOpenTooltip] = useState(null)
 
+  const s = getStrings(getInterfaceLanguage())
+
   useEffect(() => {
-    // Silently detect and save native language from device/browser
+    // Silently detect and save native language from device/browser.
+    // interfaceLanguage and supportLanguage derive from nativeLanguage
+    // automatically via their getters — no need to set them explicitly here.
     const raw = navigator.language || navigator.languages?.[0] || 'en'
     const code = raw.split('-')[0].toLowerCase()
     setStable({ nativeLanguage: code })
@@ -83,7 +43,7 @@ export default function Onboarding({ onComplete }) {
 
   function handleContinue() {
     if (step === 2) setStable({ targetLanguage })
-    if (step === 3) setStable({ selfReportedLevel: level })
+    if (step === 3) { setStable({ selfReportedLevel: level }); applyCefrFromSelfReport(level) }
     if (step === 4) setStable({ learningGoal: goal, learningGoalNote: goalNote.trim() || null })
     if (step === 5) {
       setPreference('personalizationLevel', personalization)
@@ -103,7 +63,9 @@ export default function Onboarding({ onComplete }) {
     <div className="onboarding">
       <div className="onboarding-inner">
 
-        <button className="onboarding-back" onClick={step === 1 ? onComplete : handleBack}>← Back</button>
+        <button className="onboarding-back" onClick={step === 1 ? onComplete : handleBack}>
+          {s.common.back}
+        </button>
 
         <div className="onboarding-progress">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
@@ -117,21 +79,16 @@ export default function Onboarding({ onComplete }) {
         {/* ── Step 1: Welcome ── */}
         {step === 1 && (
           <div className="onboarding-screen">
-            <h1 className="onboarding-title">Welcome.</h1>
-            <p className="onboarding-body">
-              This app helps you build a real working vocabulary — one word at a time,
-              practiced across reading, listening, writing, and speaking.
-            </p>
-            <p className="onboarding-body">
-              It'll take about a minute to set things up.
-            </p>
+            <h1 className="onboarding-title">{s.onboarding.welcome.title}</h1>
+            <p className="onboarding-body">{s.onboarding.welcome.body1}</p>
+            <p className="onboarding-body">{s.onboarding.welcome.body2}</p>
           </div>
         )}
 
         {/* ── Step 2: Target language ── */}
         {step === 2 && (
           <div className="onboarding-screen">
-            <h2 className="onboarding-title">What language are you learning?</h2>
+            <h2 className="onboarding-title">{s.onboarding.targetLanguage.title}</h2>
             <div className="onboarding-options">
               {LANGUAGES.map(lang => (
                 <button
@@ -149,28 +106,31 @@ export default function Onboarding({ onComplete }) {
         {/* ── Step 3: Level ── */}
         {step === 3 && (
           <div className="onboarding-screen">
-            <h2 className="onboarding-title">How much do you already know?</h2>
+            <h2 className="onboarding-title">{s.onboarding.level.title}</h2>
             <div className="onboarding-options">
-              {LEVELS.map(l => (
-                <div key={l.id} className="onboarding-level-row">
-                  <button
-                    className={`onboarding-option onboarding-option--level ${level === l.id ? 'onboarding-option--selected' : ''}`}
-                    onClick={() => setLevel(l.id)}
-                  >
-                    {l.label}
-                  </button>
-                  <button
-                    className={`onboarding-tooltip-btn ${openTooltip === l.id ? 'onboarding-tooltip-btn--open' : ''}`}
-                    onClick={() => setOpenTooltip(openTooltip === l.id ? null : l.id)}
-                    aria-label="More info"
-                  >
-                    ?
-                  </button>
-                  {openTooltip === l.id && (
-                    <p className="onboarding-tooltip-text">{l.tooltip}</p>
-                  )}
-                </div>
-              ))}
+              {LEVEL_IDS.map(id => {
+                const opt = s.onboarding.level.options[id]
+                return (
+                  <div key={id} className="onboarding-level-row">
+                    <button
+                      className={`onboarding-option onboarding-option--level ${level === id ? 'onboarding-option--selected' : ''}`}
+                      onClick={() => setLevel(id)}
+                    >
+                      {opt.label}
+                    </button>
+                    <button
+                      className={`onboarding-tooltip-btn ${openTooltip === id ? 'onboarding-tooltip-btn--open' : ''}`}
+                      onClick={() => setOpenTooltip(openTooltip === id ? null : id)}
+                      aria-label="More info"
+                    >
+                      ?
+                    </button>
+                    {openTooltip === id && (
+                      <p className="onboarding-tooltip-text">{opt.tooltip}</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -178,25 +138,25 @@ export default function Onboarding({ onComplete }) {
         {/* ── Step 4: Goal ── */}
         {step === 4 && (
           <div className="onboarding-screen">
-            <h2 className="onboarding-title">What's your goal?</h2>
+            <h2 className="onboarding-title">{s.onboarding.goal.title}</h2>
             <div className="onboarding-options">
-              {GOALS.map(g => (
+              {GOAL_IDS.map(id => (
                 <button
-                  key={g.id}
-                  className={`onboarding-option ${goal === g.id ? 'onboarding-option--selected' : ''}`}
-                  onClick={() => setGoal(g.id)}
+                  key={id}
+                  className={`onboarding-option ${goal === id ? 'onboarding-option--selected' : ''}`}
+                  onClick={() => setGoal(id)}
                 >
-                  {g.label}
+                  {s.onboarding.goal.options[id]}
                 </button>
               ))}
             </div>
             <div className="onboarding-note-wrap">
               <label className="onboarding-note-label">
-                Want to say more? (optional)
+                {s.onboarding.goal.noteLabel}
               </label>
               <textarea
                 className="onboarding-note-input"
-                placeholder="In your own words, why are you learning..."
+                placeholder={s.onboarding.goal.notePlaceholder}
                 value={goalNote}
                 onChange={e => setGoalNote(e.target.value)}
                 rows={3}
@@ -208,21 +168,22 @@ export default function Onboarding({ onComplete }) {
         {/* ── Step 5: Personalization ── */}
         {step === 5 && (
           <div className="onboarding-screen">
-            <h2 className="onboarding-title">How personal do you want it?</h2>
-            <p className="onboarding-subtitle">
-              This shapes how practice content is tailored to you.
-            </p>
+            <h2 className="onboarding-title">{s.onboarding.personalization.title}</h2>
+            <p className="onboarding-subtitle">{s.onboarding.personalization.subtitle}</p>
             <div className="onboarding-options">
-              {PERSONALIZATION.map(p => (
-                <button
-                  key={p.id}
-                  className={`onboarding-option onboarding-option--card ${personalization === p.id ? 'onboarding-option--selected' : ''}`}
-                  onClick={() => setPersonalization(p.id)}
-                >
-                  <span className="onboarding-card-label">{p.label}</span>
-                  <span className="onboarding-card-desc">{p.description}</span>
-                </button>
-              ))}
+              {PERSONALIZATION_IDS.map(id => {
+                const opt = s.onboarding.personalization.options[id]
+                return (
+                  <button
+                    key={id}
+                    className={`onboarding-option onboarding-option--card ${personalization === id ? 'onboarding-option--selected' : ''}`}
+                    onClick={() => setPersonalization(id)}
+                  >
+                    <span className="onboarding-card-label">{opt.label}</span>
+                    <span className="onboarding-card-desc">{opt.description}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -232,7 +193,7 @@ export default function Onboarding({ onComplete }) {
           onClick={handleContinue}
           disabled={!canAdvance()}
         >
-          {step === TOTAL_STEPS ? 'Get started' : 'Continue'}
+          {step === TOTAL_STEPS ? s.onboarding.getStarted : s.onboarding.continue}
         </button>
 
       </div>

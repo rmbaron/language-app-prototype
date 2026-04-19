@@ -4,6 +4,7 @@
 // To add a new language: create progressionConfig.xx.js and add it to the map.
 
 import { STAGES as enStages } from './progressionConfig.en'
+import { getGrammarNodes } from './grammarProgression'
 
 const configs = {
   en: enStages,
@@ -22,50 +23,29 @@ export function getAvailableFrames(stages, unlockedStageIds) {
     .flatMap(s => s.frames)
 }
 
-// Returns which stages are currently unlocked given graduated word IDs and
-// the full word list (needed to check grammatical categories).
-export function getUnlockedStages(stages, graduatedIds, allWords) {
-  const graduatedSet = new Set(graduatedIds)
-
-  function gatesMet(gate) {
-    const { requiredWords = [], requiredCategories = [] } = gate
-
-    const wordsMet = requiredWords.every(id => graduatedSet.has(id))
-
-    const categoriesMet = requiredCategories.every(({ category, min }) => {
-      const count = allWords.filter(
-        w => graduatedSet.has(w.id) && w.classifications.grammaticalCategory === category
-      ).length
-      return count >= min
-    })
-
-    return wordsMet && categoriesMet
-  }
-
-  return stages.filter(s => gatesMet(s.gate)).map(s => s.id)
+// Returns which stages are currently unlocked given the set of unlocked grammar node IDs.
+// Gate: all requiresNodes must be in unlockedNodeIds.
+export function getUnlockedStages(stages, unlockedNodeIds) {
+  const unlockedSet = new Set(unlockedNodeIds)
+  return stages
+    .filter(s => (s.gate.requiresNodes ?? []).every(id => unlockedSet.has(id)))
+    .map(s => s.id)
 }
 
-// Returns what is needed to unlock the next locked stage, for display purposes.
-export function getNextGate(stages, unlockedStageIds, graduatedIds, allWords) {
-  const graduatedSet = new Set(graduatedIds)
+// Returns what is needed to unlock the next locked stage, for the locked-state display.
+// Shows grammar function names (from the grammar tree) rather than raw word IDs.
+export function getNextGate(stages, unlockedStageIds, unlockedNodeIds) {
+  const unlockedSet = new Set(unlockedNodeIds)
   const nextStage = stages.find(s => !unlockedStageIds.includes(s.id))
   if (!nextStage) return null
 
-  const { requiredWords = [], requiredCategories = [] } = nextStage.gate
-
-  const missingWords = requiredWords
-    .filter(id => !graduatedSet.has(id))
-    .map(id => allWords.find(w => w.id === id)?.baseForm ?? id)
-
-  const missingCategories = requiredCategories
-    .map(({ category, min }) => {
-      const have = allWords.filter(
-        w => graduatedSet.has(w.id) && w.classifications.grammaticalCategory === category
-      ).length
-      const need = min - have
-      return need > 0 ? { category, need } : null
+  const grammarNodes = getGrammarNodes()
+  const missingNodes = (nextStage.gate.requiresNodes ?? [])
+    .filter(id => !unlockedSet.has(id))
+    .map(id => {
+      const node = grammarNodes.find(n => n.id === id)
+      return node ? { id, name: node.name, description: node.description } : { id, name: id, description: '' }
     })
-    .filter(Boolean)
 
-  return { stageName: nextStage.name, missingWords, missingCategories }
+  return { stageName: nextStage.name, missingNodes }
 }

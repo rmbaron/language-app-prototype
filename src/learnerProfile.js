@@ -45,10 +45,19 @@ function defaults() {
       // Rarely changes once set
       stable: {
         nativeLanguage: null,
+        targetLanguage: 'en',     // the language the user is learning
+        interfaceLanguage: null,  // the language the app UI appears in
+                                  // defaults to nativeLanguage → 'en' if not set
+                                  // set this explicitly when the user wants a different UI language
+        supportLanguage: null,    // the language used for definitions, translations, learner explanations
+                                  // defaults to nativeLanguage → 'en' if not set
+                                  // needed from day one: definitions must be in a language the learner knows
         learningGoal: null,       // e.g. "trip", "work", "fluency"
         learningGoalNote: null,   // optional free-text: why they're learning, in their own words
-        targetLanguage: 'en',
         selfReportedLevel: null,  // beginner / elementary / intermediate / upper_intermediate
+        cefrLevel: null,          // CEFR level ID: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+                                  // Set at onboarding and updated as the learner progresses.
+                                  // Not shown directly to the user — used internally by all systems.
       },
 
       // Evolving preferences — gathered through practice interactions
@@ -117,6 +126,26 @@ export function getActiveLanguage() {
   return profile.expressed.stable.targetLanguage ?? 'en'
 }
 
+// The language the app UI appears in.
+// Falls back through: interfaceLanguage → nativeLanguage → 'en'
+export function getInterfaceLanguage() {
+  const profile = loadProfile()
+  return profile.expressed.stable.interfaceLanguage
+    ?? profile.expressed.stable.nativeLanguage
+    ?? 'en'
+}
+
+// The language used for word definitions, translations, and learner explanations.
+// Falls back through: supportLanguage → nativeLanguage → 'en'
+// Needed from day one — a learner cannot be expected to read definitions
+// in the language they are still learning.
+export function getSupportLanguage() {
+  const profile = loadProfile()
+  return profile.expressed.stable.supportLanguage
+    ?? profile.expressed.stable.nativeLanguage
+    ?? 'en'
+}
+
 export function setActiveLanguage(langId) {
   const profile = loadProfile()
   profile.expressed.stable.targetLanguage = langId
@@ -127,6 +156,38 @@ export function setStable(fields) {
   const profile = loadProfile()
   Object.assign(profile.expressed.stable, fields)
   save(profile)
+}
+
+// ── CEFR level ───────────────────────────────────────────────
+//
+// Maps the four onboarding self-report options to starting CEFR levels.
+// These are conservative starting points — the system may adjust upward
+// as it observes actual performance.
+const SELF_REPORT_TO_CEFR = {
+  beginner:           'A1',
+  elementary:         'A2',
+  intermediate:       'B1',
+  upper_intermediate: 'B2',
+}
+
+// Returns the active CEFR level ID, or null if not yet set.
+export function getCefrLevel() {
+  const profile = loadProfile()
+  return profile.expressed.stable.cefrLevel ?? null
+}
+
+// Set CEFR level directly (e.g. from dev tools or future progression logic).
+export function setCefrLevel(levelId) {
+  const profile = loadProfile()
+  profile.expressed.stable.cefrLevel = levelId
+  save(profile)
+}
+
+// Derive and store a CEFR level from a selfReportedLevel string.
+// Called during onboarding when selfReportedLevel is set.
+export function applyCefrFromSelfReport(selfReportedLevel) {
+  const mapped = SELF_REPORT_TO_CEFR[selfReportedLevel]
+  if (mapped) setCefrLevel(mapped)
 }
 
 // ── Expressed: preferences ────────────────────────────────────

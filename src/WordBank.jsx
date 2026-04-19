@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { getStrings } from './uiStrings'
+import { getInterfaceLanguage } from './learnerProfile'
 import words from './wordData'
 import WordCard from './WordCard'
-import { getWordBank, loadState, THRESHOLD, getWordStatuses, ACTIVE_LIMIT } from './userStore'
+import { getWordBank, loadState, THRESHOLD, getWordStatuses, ACTIVE_LIMIT, removeFromWordBank } from './userStore'
 import { getWordProgress } from './wordProgress'
 import { LANES } from './lanes'
 import { getNextMilestone, getRecentAchievements, getUpcomingMilestones } from './milestones'
+import { loadGrammarState } from './grammarStore'
 import {
   GRAMMATICAL_GROUPS,
   BROAD_THEMES,
@@ -30,23 +33,29 @@ function matchesFilter(word, filter) {
   return theme === filter
 }
 
-export default function WordBank({ onSelectWord, onBack }) {
+export default function WordBank({ onSelectWord, onBack, onAddWord }) {
+  const s = getStrings(getInterfaceLanguage())
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('az')
   const [achievedOpen, setAchievedOpen] = useState(false)
   const [upcomingOpen, setUpcomingOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [devSelectMode, setDevSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds]     = useState(new Set())
+  const [refreshKey, setRefreshKey]       = useState(0)
 
-  const bankIds = getWordBank()
-  const state = loadState()
+  // refreshKey increments after dev removals, forcing a re-read of bank state
+  const bankIds   = getWordBank()              // eslint-disable-line react-hooks/exhaustive-deps
+  const state     = loadState()                // eslint-disable-line react-hooks/exhaustive-deps
   const { attempts } = state
   const bankWords = words.filter(w => bankIds.includes(w.id))
 
 
-  const nextMilestone = getNextMilestone(state)
-  const recentAchievements = getRecentAchievements(state)
-  const upcomingMilestones = getUpcomingMilestones(state, 3)
+  const grammarState = loadGrammarState()
+  const nextMilestone = getNextMilestone(state, grammarState)
+  const recentAchievements = getRecentAchievements(state, grammarState)
+  const upcomingMilestones = getUpcomingMilestones(state, grammarState, 3)
 
   const thematicTier = getThematicTier(bankWords.length)
   const wordStatuses = getWordStatuses()
@@ -101,10 +110,51 @@ export default function WordBank({ onSelectWord, onBack }) {
     setSearch('')
   }
 
+  // ── Dev: bulk remove ──────────────────────────────────────────
+
+  function devToggleSelect(wordId) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(wordId) ? next.delete(wordId) : next.add(wordId)
+      return next
+    })
+  }
+
+  function devSelectAll() {
+    setSelectedIds(new Set(visibleWords.map(w => w.id)))
+  }
+
+  function devRemoveSelected() {
+    for (const id of selectedIds) removeFromWordBank(id)
+    setSelectedIds(new Set())
+    setDevSelectMode(false)
+    setRefreshKey(k => k + 1)
+  }
+
+  function devExitSelectMode() {
+    setDevSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
   return (
     <div className="word-bank">
-      {onBack && <button className="profile-back" onClick={onBack}>← Back</button>}
-      <h1 className="word-bank-title">Word Bank</h1>
+      {onBack && <button className="profile-back" onClick={onBack}>{s.common.back}</button>}
+      <div className="word-bank-title-row">
+        <h1 className="word-bank-title">{s.wordBank.title}</h1>
+        {onAddWord && (
+          <button className="word-bank-add-btn" onClick={onAddWord}>
+            {s.wordBank.addWord}
+          </button>
+        )}
+        {bankWords.length > 0 && (
+          <button
+            className={`word-bank-dev-select-btn ${devSelectMode ? 'word-bank-dev-select-btn--active' : ''}`}
+            onClick={() => devSelectMode ? devExitSelectMode() : setDevSelectMode(true)}
+          >
+            {devSelectMode ? 'cancel' : '[dev] select'}
+          </button>
+        )}
+      </div>
 
       <div className="word-bank-layout">
       <div className="word-bank-left">
@@ -112,7 +162,7 @@ export default function WordBank({ onSelectWord, onBack }) {
         <input
           className="word-bank-search"
           type="text"
-          placeholder="Search..."
+          placeholder={s.wordBank.searchPlaceholder}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -166,56 +216,83 @@ export default function WordBank({ onSelectWord, onBack }) {
         )}
 
         <div className="word-bank-sort">
-          {[['az', 'A–Z'], ['za', 'Z–A'], ['strongest', 'Strongest'], ['weakest', 'Weakest']].map(([val, label]) => (
+          {(['az', 'za', 'strongest', 'weakest']).map(val => (
             <button
               key={val}
               className={`word-bank-sort-btn ${sort === val ? 'word-bank-sort-btn--active' : ''}`}
               onClick={() => setSort(val)}
             >
-              {label}
+              {s.wordBank.sort[val]}
             </button>
           ))}
         </div>
       </div>
 
       <div className="word-bank-status-bar">
-        {[
-          ['all',       `all (${bankWords.length})`],
-          ['active',    `active (${statusCounts.active})`],
-          ['banked',    `banked (${statusCounts.banked})`],
-          ['completed', `completed (${statusCounts.completed})`],
-        ].map(([val, label]) => (
+        {(['all', 'active', 'banked', 'completed']).map(val => (
           <button
             key={val}
             className={`word-bank-status-tab word-bank-status-tab--${val} ${statusFilter === val ? 'word-bank-status-tab--active' : ''}`}
             onClick={() => setStatusFilter(val)}
           >
-            {label}
+            {s.wordBank.status[val](statusCounts[val] ?? bankWords.length)}
           </button>
         ))}
       </div>
 
       <div className="word-bank-list">
         {visibleWords.length === 0
-          ? <p className="word-bank-empty">No words match.</p>
+          ? <p className="word-bank-empty">{s.wordBank.empty}</p>
           : visibleWords.map(word => (
-              <WordCard
-                key={word.id}
-                word={word}
-                wordProgress={getWordProgress(word.id, state)}
-                status={wordStatuses[word.id] ?? 'banked'}
-                onSelect={() => onSelectWord(word)}
-              />
+              devSelectMode ? (
+                <div
+                  key={word.id}
+                  className={`word-bank-selectable ${selectedIds.has(word.id) ? 'word-bank-selectable--selected' : ''}`}
+                  onClick={() => devToggleSelect(word.id)}
+                >
+                  <span className="word-bank-selectable-check">{selectedIds.has(word.id) ? '✓' : ''}</span>
+                  <WordCard
+                    word={word}
+                    wordProgress={getWordProgress(word.id, state)}
+                    status={wordStatuses[word.id] ?? 'banked'}
+                    onSelect={() => {}}
+                  />
+                </div>
+              ) : (
+                <WordCard
+                  key={word.id}
+                  word={word}
+                  wordProgress={getWordProgress(word.id, state)}
+                  status={wordStatuses[word.id] ?? 'banked'}
+                  onSelect={() => onSelectWord(word)}
+                />
+              )
             ))
         }
       </div>
+
+      {devSelectMode && (
+        <div className="word-bank-selection-bar">
+          <button className="word-bank-selection-all" onClick={devSelectAll}>
+            select all ({visibleWords.length})
+          </button>
+          <span className="word-bank-selection-count">{selectedIds.size} selected</span>
+          <button
+            className="word-bank-selection-remove"
+            onClick={devRemoveSelected}
+            disabled={selectedIds.size === 0}
+          >
+            remove selected
+          </button>
+        </div>
+      )}
       </div>{/* end word-bank-left */}
 
       <div className="word-bank-right">
         {nextMilestone && (
           <div className="milestone-next">
             <p className="milestone-next-count">
-              {nextMilestone.wordsToGo} word{nextMilestone.wordsToGo !== 1 ? 's' : ''} to go
+              {s.wordBank.milestones.wordsToGo(nextMilestone.wordsToGo)}
             </p>
             <p className="milestone-next-desc">{nextMilestone.description}</p>
 
@@ -225,7 +302,7 @@ export default function WordBank({ onSelectWord, onBack }) {
                   className="milestone-toggle-btn"
                   onClick={() => setUpcomingOpen(o => !o)}
                 >
-                  {upcomingOpen ? 'hide what\'s ahead' : 'see what\'s ahead'}
+                  {upcomingOpen ? s.wordBank.milestones.hideAhead : s.wordBank.milestones.seeAhead}
                 </button>
                 {upcomingOpen && (
                   <div className="milestone-upcoming-list">
@@ -248,7 +325,7 @@ export default function WordBank({ onSelectWord, onBack }) {
               className="milestone-toggle-btn milestone-achieved-heading"
               onClick={() => setAchievedOpen(o => !o)}
             >
-              Achieved ({recentAchievements.length}) {achievedOpen ? '▴' : '▾'}
+              {s.wordBank.milestones.achieved(recentAchievements.length)} {achievedOpen ? '▴' : '▾'}
             </button>
             {achievedOpen && recentAchievements.map(m => (
               <div key={m.id} className="milestone-achieved-item">

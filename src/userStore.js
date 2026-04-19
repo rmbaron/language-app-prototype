@@ -2,24 +2,52 @@
 // In production this would be per-user in a database.
 // Currently persisted to localStorage for prototype purposes.
 //
-// Three tiers of word progression:
-//   wordBank   — words the user has added. Master list. Does not imply any practice.
+// Word progression tiers:
+//
+//   [trial]    — word is being attempted in a lane (from the Recommender) but has not
+//                yet earned bank entry. Not explicitly tracked yet — will be added when
+//                the trial UI is built. For now, words in this state have attempts but
+//                no wordBank entry.
+//
+//   wordBank   — word has earned entry. Entry condition is controlled by BANK_ENTRY_REQUIREMENT.
 //                The recommender excludes these. The Word Bank view renders from this.
-//   wbPools    — subset of wordBank. Word enters after 1 successful attempt per lane.
-//                Represents demonstrated familiarity. Used by practice content and
-//                distractors — so only words the learner has actually earned appear
-//                in other users' practice material.
-//   worldPools — subset of wbPools. Word enters after THRESHOLD successful attempts.
+//                Under 'full_lane' mode: word enters the bank with one lane already complete.
+//
+//   wbPools    — per-lane pool. Word enters after 1 successful attempt in that lane.
+//                Represents demonstrated familiarity — only these words appear as
+//                distractors or context in other learners' practice material.
+//                Note: under 'full_lane' mode a word enters wbPools (and worldPools)
+//                before it enters wordBank. The trial phase runs outside the bank.
+//
+//   worldPools — per-lane pool. Word enters after THRESHOLD successful attempts in a lane.
 //                Used by the World Sphere to generate prompts.
+//                Under 'full_lane' mode: graduating a lane also banks the word.
 
 import { LANES } from './lanes'
 import { recordLaneAttempt } from './learnerProfile'
 import { notifyAttemptRecorded } from './sessionEvents'
+import { clearWordAttributeCache } from './wordAttributes'
 
 const THRESHOLD = 3
 const STORAGE_KEY = 'lapp-user-v2'
 
 export const ACTIVE_LIMIT = 100   // max words in Active status — adjust freely
+
+// ── Bank entry requirement ────────────────────────────────────
+//
+// Controls when a word is added to the Word Bank.
+//
+//   'direct'       — user taps "+ Add" in the Recommender; no practice required.
+//                    Dev/prototype shortcut only.
+//   'one_success'  — word banks automatically on the first successful lane attempt.
+//   'full_lane'    — word banks automatically when a lane is fully graduated
+//                    (THRESHOLD successes). Word enters the bank with one lane
+//                    already complete — Word Bank UI shows 3 remaining locks.
+//
+// Changing this constant is the only thing needed to switch modes.
+// The trial UI (not yet built) will replace the 'direct' dev shortcut.
+
+export const BANK_ENTRY_REQUIREMENT = 'full_lane'
 
 function emptyLanes() {
   return Object.fromEntries(LANES.map(l => [l.id, []]))
@@ -56,16 +84,22 @@ function save(state) {
 
 // ── Word Bank membership ──────────────────────────────────────
 
-// Add a word to the user's Word Bank (user-driven intake).
-// Does not imply any practice — just that the word has been added.
+// Internal: mutates state in place without saving. Shared by addToWordBank and recordAttempt.
+function _bankWord(state, wordId) {
+  if (state.wordBank.includes(wordId)) return
+  state.wordBank.push(wordId)
+  const activeCount = Object.values(state.wordStatuses).filter(s => s === 'active').length
+  state.wordStatuses[wordId] = activeCount < ACTIVE_LIMIT ? 'active' : 'banked'
+}
+
+// Direct bank addition — only appropriate for BANK_ENTRY_REQUIREMENT === 'direct'
+// and for dev/prototype use while the trial UI is not yet built.
+// Under 'one_success' and 'full_lane' modes, banking happens automatically inside
+// recordAttempt — this function should not be called from UI buttons.
 export function addToWordBank(wordId) {
   const state = loadState()
-  if (!state.wordBank.includes(wordId)) {
-    state.wordBank.push(wordId)
-    const activeCount = Object.values(state.wordStatuses).filter(s => s === 'active').length
-    state.wordStatuses[wordId] = activeCount < ACTIVE_LIMIT ? 'active' : 'banked'
-    save(state)
-  }
+  _bankWord(state, wordId)
+  save(state)
 }
 
 export function isInWordBank(wordId) {
@@ -112,6 +146,16 @@ export function recordAttempt(wordId, lane) {
   if (count >= THRESHOLD && !alreadyInWorld) {
     state.worldPools[lane].push(wordId)
     graduated = true
+  }
+
+  // Auto-bank based on BANK_ENTRY_REQUIREMENT
+  // 'direct'      — banking is handled externally (addToWordBank), not here
+  // 'one_success' — bank on the very first attempt in any lane
+  // 'full_lane'   — bank when a lane is fully graduated (THRESHOLD successes)
+  if (BANK_ENTRY_REQUIREMENT === 'one_success' && count === 1) {
+    _bankWord(state, wordId)
+  } else if (BANK_ENTRY_REQUIREMENT === 'full_lane' && graduated) {
+    _bankWord(state, wordId)
   }
 
   save(state)
@@ -235,6 +279,7 @@ export function resetAllProgress() {
 // Full wipe including wordBank — back to a completely fresh state.
 export function resetAll() {
   localStorage.removeItem(STORAGE_KEY)
+  clearWordAttributeCache()
 }
 
 export { THRESHOLD }

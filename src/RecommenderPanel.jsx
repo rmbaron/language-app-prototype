@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { getRecommendations, getAIRecommendedCount } from './wordRecommender'
-import { getWordMeta } from './wordMeta'
 import { loadState } from './userStore'
 import { loadProfile } from './learnerProfile'
 
@@ -62,7 +61,6 @@ export default function RecommenderPanel() {
       ) : (
         <div className="rec-list">
           {recommendations.map(word => {
-            const meta = getWordMeta(word.id)
             return (
               <div key={word.id} className="rec-item">
                 <div className="rec-item-top">
@@ -70,14 +68,6 @@ export default function RecommenderPanel() {
                   <span className="rec-item-category">{word.classifications.grammaticalCategory}</span>
                 </div>
                 <p className="rec-item-meaning">{word.meaning}</p>
-                {meta && (
-                  <div className="rec-item-scores">
-                    <span className="rec-score">freq {meta.frequencyTier}</span>
-                    <span className="rec-score">func {meta.functionalWeight}</span>
-                    <span className="rec-score">comb {meta.combinabilityScore}</span>
-                    <span className="rec-score">unlock {meta.unlockValue}</span>
-                  </div>
-                )}
               </div>
             )
           })}

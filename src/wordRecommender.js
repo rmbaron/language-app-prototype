@@ -93,11 +93,11 @@ function selectFromPool(pool, count) {
 // count:  how many recommendations to return (default 5)
 // useAI:  whether to invoke the AI refinement layer in the candidate pool
 
-export async function getRecommendations(count = 5, useAI = false) {
-  const state = loadState()
+export async function getRecommendations(count = 5, useAI = false, steeringParams = {}) {
+  const state   = loadState()
   const profile = loadProfile()
 
-  const pool = await buildCandidatePool(state, profile, useAI)
+  const pool = await buildCandidatePool(state, profile, useAI, steeringParams)
   return selectFromPool(pool, count)
 }
 

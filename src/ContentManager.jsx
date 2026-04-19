@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import words from './wordData'
 import { LANES } from './lanes'
-import { getContent, addContent, updateContent, removeContent, getPronunciation, setPronunciation } from './contentStore'
+import { getContent, addContent, updateContent, removeContent, getPronunciation, setPronunciation, getContentIndex } from './contentStore'
 import { GRAMMATICAL_GROUPS, getGrammaticalGroup } from './classifications'
 
 const isAudio = lane => lane.medium === 'audio'
@@ -313,6 +313,8 @@ export default function ContentManager({ onClose }) {
   const [search, setSearch] = useState('')
   const word = words.find(w => w.id === selectedWord)
 
+  const contentIndex = getContentIndex()
+
   const categoryCounts = words.reduce((acc, w) => {
     const group = getGrammaticalGroup(w.classifications.grammaticalCategory)
     acc[group] = (acc[group] ?? 0) + 1
@@ -376,6 +378,7 @@ export default function ContentManager({ onClose }) {
             onClick={() => setSelectedWord(w.id)}
           >
             {w.baseForm}
+            <span className={`cm-coverage-dot ${Object.keys(contentIndex[w.id] ?? {}).length > 0 ? 'cm-coverage-dot--has-content' : ''}`} />
           </button>
         ))}
       </div>

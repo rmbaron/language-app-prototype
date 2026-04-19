@@ -3,6 +3,8 @@ import { markKnown, removeFromWordBank, THRESHOLD } from './userStore'
 import { LANES, LANE } from './lanes'
 import { getWordProgress } from './wordProgress'
 import LaneLock from './LaneLock'
+import { getStrings } from './uiStrings'
+import { getInterfaceLanguage } from './learnerProfile'
 
 function Section({ label, isOpen, onToggle, children }) {
   return (
@@ -17,6 +19,7 @@ function Section({ label, isOpen, onToggle, children }) {
 }
 
 export default function WordProfile({ word, onBack, onPractice, storeData, onStoreChange }) {
+  const s = getStrings(getInterfaceLanguage())
   const [open, setOpen] = useState({})
 
   const progress = getWordProgress(word.id, storeData)
@@ -38,11 +41,11 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
 
   return (
     <div className="profile">
-      <button className="profile-back" onClick={onBack}>← Back</button>
+      <button className="profile-back" onClick={onBack}>{s.common.back}</button>
 
       <div className="profile-header">
         <span className="profile-category-bubble">
-          {word.classifications.grammaticalCategory}
+          {s.common.categories[word.classifications.grammaticalCategory] ?? word.classifications.grammaticalCategory}
         </span>
         <h1 className="profile-base">{word.baseForm}</h1>
         <p className="profile-meaning">{word.meaning}</p>
@@ -63,7 +66,7 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
 
       <div className="mastery-section">
         <div className="mastery-label">
-          <span>Word mastery</span>
+          <span>{s.wordProfile.mastery}</span>
           <span className="mastery-pct">{progress.mastery}%</span>
         </div>
         <div className="mastery-track">
@@ -72,11 +75,11 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
       </div>
 
       <div className="profile-sections">
-        <Section label="Fuller meaning" isOpen={open.fuller} onToggle={() => toggle('fuller')}>
+        <Section label={s.wordProfile.sections.fullerMeaning} isOpen={open.fuller} onToggle={() => toggle('fuller')}>
           <p className="section-text">{word.fullMeaning}</p>
         </Section>
 
-        <Section label="Other forms" isOpen={open.forms} onToggle={() => toggle('forms')}>
+        <Section label={s.wordProfile.sections.otherForms} isOpen={open.forms} onToggle={() => toggle('forms')}>
           <div className="forms-list">
             {word.forms.map(f => (
               <span key={f.form} className="form-chip">
@@ -86,34 +89,34 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
           </div>
         </Section>
 
-        <Section label="Stats" isOpen={open.stats} onToggle={() => toggle('stats')}>
+        <Section label={s.wordProfile.sections.stats} isOpen={open.stats} onToggle={() => toggle('stats')}>
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-value">24</span>
-              <span className="stat-label">Times seen</span>
+              <span className="stat-label">{s.wordProfile.stats.timesSeen}</span>
             </div>
             <div className="stat-item">
               <span className="stat-value">7</span>
-              <span className="stat-label">Day streak</span>
+              <span className="stat-label">{s.wordProfile.stats.dayStreak}</span>
             </div>
             <div className="stat-item">
               <span className="stat-value">2d</span>
-              <span className="stat-label">Last practiced</span>
+              <span className="stat-label">{s.wordProfile.stats.lastPracticed}</span>
             </div>
             <div className="stat-item">
               <span className="stat-value">B1</span>
-              <span className="stat-label">Level</span>
+              <span className="stat-label">{s.wordProfile.stats.level}</span>
             </div>
           </div>
         </Section>
       </div>
 
       <button className="practice-btn" onClick={onPractice}>
-        Practice It
+        {s.wordProfile.practice}
       </button>
 
       <button className="remove-word-btn" onClick={handleRemove}>
-        Remove from Word Bank
+        {s.wordProfile.remove}
       </button>
     </div>
   )

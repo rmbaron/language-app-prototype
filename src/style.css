@@ -158,6 +158,108 @@ body {
 }
 
 
+.word-bank-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.word-bank-add-btn {
+  margin-left: auto;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.word-bank-add-btn:hover {
+  background: #2a2a2a;
+  color: #fff;
+  border-color: #888;
+}
+
+.word-bank-dev-select-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  background: transparent;
+  color: #666;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.word-bank-dev-select-btn:hover { opacity: 1; color: #aaa; }
+.word-bank-dev-select-btn--active { color: #f97316; border-color: #f97316; opacity: 1; }
+
+.word-bank-selectable {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 2px;
+  transition: background 0.1s;
+}
+.word-bank-selectable:hover { background: rgba(255,255,255,0.04); }
+.word-bank-selectable--selected { background: rgba(249,115,22,0.12); }
+.word-bank-selectable--selected:hover { background: rgba(249,115,22,0.18); }
+
+.word-bank-selectable-check {
+  width: 20px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #f97316;
+  text-align: center;
+}
+
+.word-bank-selectable > .word-card { flex: 1; pointer-events: none; }
+
+.word-bank-selection-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  margin-top: 8px;
+}
+.word-bank-selection-all {
+  font-size: 0.8rem;
+  color: #aaa;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.word-bank-selection-all:hover { color: #fff; border-color: #666; }
+.word-bank-selection-count {
+  font-size: 0.8rem;
+  color: #666;
+  margin-right: auto;
+}
+.word-bank-selection-remove {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f97316;
+  background: transparent;
+  border: 1px solid #f97316;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.word-bank-selection-remove:hover { background: #f97316; color: #111; }
+.word-bank-selection-remove:disabled { opacity: 0.3; cursor: default; }
+
 .word-bank-title {
   font-size: 1rem;
   font-weight: 600;
@@ -710,6 +812,89 @@ body {
   color: #555;
 }
 
+.slot-locked-desc {
+  color: #888;
+  font-weight: 400;
+}
+
+/* Pass progress — pips + counter */
+.slot-pass-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.slot-pass-pips {
+  display: flex;
+  gap: 6px;
+}
+
+.slot-pass-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: background 0.2s;
+}
+
+.slot-pass-pip--done {
+  background: #1a1a1a;
+}
+
+.slot-pass-label {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.slot-pass-counter {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-left: auto;
+}
+
+/* Graduation states */
+.slot-graduated-badge {
+  font-size: 0.78rem;
+  color: #16a34a;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.slot-graduated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+  text-align: center;
+}
+
+.slot-graduated-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.slot-graduated-sentence {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.slot-graduated-name {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.slot-graduated-sub {
+  font-size: 0.85rem;
+  color: #888;
+  max-width: 280px;
+}
+
 /* ── World Sphere ── */
 
 .world-sphere {
@@ -786,6 +971,115 @@ body {
   margin-top: 6px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* ── Practice Hub ── */
+
+.practice-hub {
+  padding: 24px 20px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.practice-hub-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.practice-hub-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.practice-hub-btn {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s;
+}
+
+.practice-hub-btn:hover:not(:disabled) {
+  border-color: #555;
+}
+
+.practice-hub-btn--soon {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.practice-hub-btn-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.practice-hub-btn-desc {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* Sub-level slot viewer — dev tool */
+.practice-sublevel-panel {
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #111;
+}
+
+.practice-sublevel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.practice-sublevel-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #555;
+}
+
+.practice-sublevel-select {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.practice-sublevel-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.practice-sublevel-slot {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #222;
+  color: #777;
+  border: 1px solid #333;
+}
+
+.practice-sublevel-slot--new {
+  color: #e0e0e0;
+  border-color: #555;
+  background: #2a2a2a;
 }
 
 /* ── Hub ── */
@@ -1625,7 +1919,12 @@ body {
   border: 1px solid #eee;
   border-radius: 12px;
   padding: 16px;
+  cursor: pointer;
   transition: border-color 0.15s;
+}
+
+.discover-item:hover {
+  border-color: #bbb;
 }
 
 .discover-item--added {
@@ -1642,6 +1941,25 @@ body {
   align-items: baseline;
   gap: 8px;
   margin-bottom: 4px;
+}
+
+.dev-quick-bank-btn {
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.dev-quick-bank-btn:hover {
+  opacity: 1;
+  color: #7effa0;
+  border-color: #7effa0;
 }
 
 .discover-item-word {
@@ -1920,6 +2238,57 @@ body {
   margin-bottom: 16px;
 }
 
+.dev-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 8px;
+}
+
+.dev-tab {
+  background: none;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #666;
+  font-family: monospace;
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dev-tab:hover {
+  color: #aaa;
+  border-color: #555;
+}
+
+.dev-tab--active {
+  background: #222;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+.dev-collapse-title {
+  background: none;
+  border: none;
+  color: #555;
+  font-family: monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.dev-collapse-title:hover {
+  color: #888;
+}
+
 .dev-section {
   margin-bottom: 20px;
 }
@@ -1998,6 +2367,72 @@ body {
 
 .dev-reset-btn--danger:hover {
   background: #a00;
+}
+
+/* Grammar tier rows */
+.dev-tier-row {
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-tier-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-tier-num {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ccc;
+  min-width: 52px;
+}
+
+.dev-tier-count {
+  font-size: 0.72rem;
+  color: #666;
+  flex: 1;
+}
+
+.dev-tier-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.dev-tier-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.dev-tier-node {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: #222;
+  color: #555;
+  border: 1px solid #2a2a2a;
+}
+
+.dev-tier-node--unlocked {
+  color: #aaa;
+  border-color: #444;
+}
+
+.dev-tier-node--grad {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: #0d2016;
+}
+
+.dev-tier-node--stub {
+  color: #444;
+  font-style: italic;
 }
 
 .dev-reset-word-btn {
@@ -2241,6 +2676,24 @@ body {
   background: #1a1a1a;
   border-color: #1a1a1a;
   color: #fff;
+}
+
+.cm-word-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cm-coverage-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d0d0d0;
+  flex-shrink: 0;
+}
+
+.cm-coverage-dot--has-content {
+  background: #4caf50;
 }
 
 .cm-body {
@@ -3074,6 +3527,222 @@ body {
   margin-top: 16px;
 }
 
+/* ── DiscoverWords slot context ───────────────────────────── */
+
+.discover-cefr-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: #e8f0fe;
+  color: #3a6bc4;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+
+.discover-slot-reason {
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+.discover-slot-reason--fills_missing {
+  background: #fff3cd;
+  color: #8a6000;
+}
+
+.discover-slot-reason--deepens {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* ── Sentence Lab ──────────────────────────────────────────── */
+
+.sentence-lab {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sentence-lab-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sentence-lab-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sentence-lab-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  margin: 0;
+}
+
+.sentence-lab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sentence-lab-chip {
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #ddd;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.sentence-lab-chip--active {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.sentence-lab-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sentence-lab-tier {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #e0e0e0;
+  background: #fafafa;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.12s ease;
+}
+
+.sentence-lab-tier--active {
+  border-color: #1a1a1a;
+  background: #fff;
+}
+
+.sentence-lab-tier-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #aaa;
+  grid-row: 1;
+  grid-column: 1;
+  padding-top: 2px;
+}
+
+.sentence-lab-tier--active .sentence-lab-tier-num {
+  color: #1a1a1a;
+}
+
+.sentence-lab-tier-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #333;
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.sentence-lab-tier-pattern {
+  font-size: 0.75rem;
+  color: #999;
+  grid-row: 2;
+  grid-column: 2;
+  margin-top: 2px;
+}
+
+.sentence-lab-generate {
+  align-self: flex-start;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.sentence-lab-generate:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sentence-lab-output {
+  background: #f5f5f5;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sentence-lab-output-tier {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin: 0;
+}
+
+.sentence-lab-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sentence-lab-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.sentence-lab-word-form {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.sentence-lab-word-label {
+  font-size: 0.65rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sentence-lab-output-sentence {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: #333;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 12px;
+  margin: 0;
+}
+
 /* ── Alert dialog ──────────────────────────────────────────── */
 
 .alert-overlay {
@@ -3118,3 +3787,336 @@ body {
 }
 
 .alert-ok:hover { opacity: 0.8; }
+
+/* ── Discover: steering buttons ─────────────────────────────── */
+
+.discover-steering {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.discover-steering-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.discover-steer-btn {
+  padding: 5px 12px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.discover-steer-btn:hover {
+  border-color: #aaa;
+  color: #1a1a1a;
+}
+
+.discover-steer-btn--active {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.discover-steer-btn--interest {
+  border-style: dashed;
+}
+
+.discover-steer-btn--interest.discover-steer-btn--active {
+  background: #555;
+  border-color: #555;
+  border-style: solid;
+}
+
+.discover-steer-btn--add {
+  border-style: dashed;
+  color: #aaa;
+  border-color: #ddd;
+}
+
+.discover-steer-btn--add:hover {
+  color: #555;
+  border-color: #aaa;
+}
+
+.discover-topic-input {
+  padding: 4px 10px;
+  border: 1px dashed #aaa;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: #1a1a1a;
+  outline: none;
+  width: 130px;
+}
+
+.discover-topic-input:focus {
+  border-color: #555;
+  border-style: solid;
+}
+
+/* Intent input — freeform steering placeholder */
+
+.discover-intent-row {
+  margin-top: 4px;
+}
+
+.discover-intent-input {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #aaa;
+  background: #fafafa;
+  cursor: not-allowed;
+  outline: none;
+}
+
+/* ── Word Trial (Discover → practice flow) ─────────────────── */
+
+/* Detail screen: word info + lane picker */
+
+.trial-detail {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.trial-detail-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.trial-detail-word {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-detail-category {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.trial-detail-meaning {
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.trial-lane-prompt {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.trial-lane-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.trial-lane-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px;
+  border: 2px solid var(--lane-color);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.trial-lane-btn:hover {
+  background: color-mix(in srgb, var(--lane-color) 8%, #fff);
+}
+
+.trial-lane-btn-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--lane-color);
+}
+
+.trial-lane-btn-prev {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+/* Flashcard practice screen */
+
+.trial-lane-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.trial-lane-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  letter-spacing: 0.04em;
+}
+
+.trial-lane-progress {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #888;
+}
+
+.trial-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  transition: border-color 0.15s;
+}
+
+.trial-card:hover {
+  border-color: #bbb;
+}
+
+.trial-card-front,
+.trial-card-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.trial-card-word {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-card-hint {
+  font-size: 0.8rem;
+  color: #bbb;
+  letter-spacing: 0.04em;
+}
+
+.trial-card-category {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.trial-card-meaning {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.trial-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.trial-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.trial-btn:hover { opacity: 0.85; }
+
+.trial-btn--correct {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.trial-btn--incorrect {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.trial-remaining {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-align: center;
+}
+
+/* Back button shared with trial flow */
+
+.trial-back-btn {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.trial-back-btn:hover {
+  border-color: #aaa;
+}
+
+/* Success screen */
+
+.trial-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.trial-success-check {
+  font-size: 2.5rem;
+  color: #4caf50;
+}
+
+.trial-success-word {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-success-msg {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 8px;
+}

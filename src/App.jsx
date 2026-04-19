@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react'
 import Hub from './Hub'
 import WordBank from './WordBank'
 import WorldSphere from './WorldSphere'
-import SlotPractice from './SlotPractice'
+import PracticeHub from './PracticeHub'
 import WordProfile from './WordProfile'
 import WordPractice from './WordPractice'
 import DevPanel from './DevPanel'
 import ContentManager from './ContentManager'
 import DiscoverWords from './DiscoverWords'
+import AddWord from './AddWord'
 import Onboarding from './Onboarding'
 import { loadState, getWordBank, ACTIVE_LIMIT } from './userStore'
 import { getDepthLevel, recordSession } from './learnerProfile'
 import FlashcardMode from './FlashcardMode'
+import SentenceLab from './SentenceLab'
 import words from './wordData'
 
 export default function App() {
@@ -22,6 +24,7 @@ export default function App() {
   const [devOpen, setDevOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [discoverOpen, setDiscoverOpen] = useState(false)
+  const [addWordOpen, setAddWordOpen]   = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [flashcardOpen, setFlashcardOpen] = useState(false)
   const [activeCappedAlert, setActiveCappedAlert] = useState(false)
@@ -43,6 +46,10 @@ export default function App() {
     return <DiscoverWords onBack={() => setDiscoverOpen(false)} onWordAdded={refreshStore} />
   }
 
+  if (addWordOpen) {
+    return <AddWord onBack={() => setAddWordOpen(false)} onWordAdded={refreshStore} />
+  }
+
   if (onboardingOpen) {
     return <Onboarding onComplete={() => setOnboardingOpen(false)} />
   }
@@ -59,7 +66,9 @@ export default function App() {
       ) : view === 'worldSphere' ? (
         <WorldSphere onBack={() => setView('hub')} onNavigate={id => setView(id)} />
       ) : view === 'practice' ? (
-        <SlotPractice onBack={() => setView('worldSphere')} />
+        <PracticeHub onBack={() => setView('worldSphere')} onNavigate={id => setView(id)} />
+      ) : view === 'sentenceLab' ? (
+        <SentenceLab onBack={() => setView('practice')} />
       ) : selected && practicing ? (
         <WordPractice
           word={selected}
@@ -76,7 +85,7 @@ export default function App() {
           onStoreChange={refreshStore}
         />
       ) : (
-        <WordBank onSelectWord={setSelected} onBack={() => setView('hub')} />
+        <WordBank onSelectWord={setSelected} onBack={() => setView('hub')} onAddWord={() => setAddWordOpen(true)} />
       )}
 
       <div className="dev-controls">

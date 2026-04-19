@@ -1,6 +1,9 @@
 import LaneStatusBar from './LaneStatusBar'
+import { getStrings } from './uiStrings'
+import { getInterfaceLanguage } from './learnerProfile'
 
 export default function WordCard({ word, wordProgress, status = 'banked', onSelect }) {
+  const s = getStrings(getInterfaceLanguage())
   const { fullyUnlocked, lanes, mastery } = wordProgress ?? {}
 
   return (
@@ -8,7 +11,7 @@ export default function WordCard({ word, wordProgress, status = 'banked', onSele
       <div className="word-card-main">
         <div className="word-card-left">
           <span className="word-base">{word.baseForm}</span>
-          <span className="word-category">{word.classifications.grammaticalCategory}</span>
+          <span className="word-category">{s.common.categories[word.classifications.grammaticalCategory] ?? word.classifications.grammaticalCategory}</span>
         </div>
         <div className="word-card-right">
           {!fullyUnlocked && lanes && <LaneStatusBar laneProgress={lanes} />}
