@@ -195,4 +195,64 @@ export default {
     topicPlaceholder:  'e.g. food, music…',
   },
 
+  celestial: {
+
+    firstWord: 'Your first word.',
+
+    // Shown when a lane auto-completes in Phase 1
+    laneAck: {
+      reading:   'Reading',
+      writing:   'Writing',
+      listening: 'Listening',
+      speaking:  'Speaking',
+    },
+
+    // Shown when a communicative function is unlocked
+    // Keys match functionUnlocked values in phase1Sequence.en.js
+    functions: {
+      refer_to_self:    'You can refer to yourself.',
+      express_desire:   'You can express desire.',
+      name_food:        'You can talk about food.',
+      express_possession: 'You can say what you have.',
+      address_others:   'You can address someone directly.',
+      greet_others:     'You can greet people.',
+      ask_for_more:     'You can ask for more.',
+      decline_refuse:   'You can say no.',
+      connect_ideas:    'You can connect two ideas.',
+      name_water:       'You can ask for water.',
+    },
+
+    tapToHear:     'tap to hear',
+    speakIt:       'say it',
+    bannerDismiss: '×',
+    devSpeakDone:  '✓ mark done',
+
+  },
+
+  // Lane-specific practice mechanics.
+  // Used by DiscoverWords (and eventually AddWord) when a lane is active.
+  // These are foundation strings — the exercise design will evolve these.
+  practice: {
+
+    writing: {
+      instruction:  'Use this word in a sentence:',
+      placeholder:  'Write your sentence here...',
+      submit:       'Submit',
+    },
+
+    speaking: {
+      instruction:  'Say the word out loud:',
+      micLabel:     'Tap to speak',
+      listening:    'Listening...',
+      notSupported: 'Speech recognition is not supported. Try Chrome.',
+    },
+
+    listening: {
+      instruction: 'Listen, then mark whether you got it.',
+      play:        'Play word',
+      playing:     'Playing...',
+    },
+
+  },
+
 }

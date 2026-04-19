@@ -1824,6 +1824,25 @@ const words = [
     forms: [],
   },
 
+  {
+    id: "more",
+    baseForm: "more",
+    language: "en",
+    classifications: { grammaticalCategory: "adverb" },
+    meaning: "A greater amount or degree of something.",
+    fullMeaning: "More expresses a greater quantity or degree: 'more food', 'more water', 'I want more'. It is one of the most practical early words in any language — it lets the learner ask for additional amounts of anything without knowing the specific word for it. More also functions as a comparative marker ('more difficult') and an adverb of continuation ('do you want more?').",
+    forms: [],
+  },
+  {
+    id: "no",
+    baseForm: "no",
+    language: "en",
+    classifications: { grammaticalCategory: "interjection" },
+    meaning: "Used to refuse, deny, or express the absence of something.",
+    fullMeaning: "No is the fundamental negative response — the counterpart to yes. It refuses, denies, and disagrees: 'no thank you', 'no more', 'no, I don't want that'. Without no, a learner cannot decline anything. Along with yes, it forms the bedrock of all responses to questions and offers, and as a determiner it negates nouns directly: 'no food', 'no water'.",
+    forms: [],
+  },
+
   // ── Degree adverbs ────────────────────────────────────────────
 
   {

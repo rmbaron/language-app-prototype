@@ -10,6 +10,8 @@ import ContentManager from './ContentManager'
 import DiscoverWords from './DiscoverWords'
 import AddWord from './AddWord'
 import Onboarding from './Onboarding'
+import CelestialScreen from './CelestialScreen'
+import CelestialEditor from './CelestialEditor'
 import { loadState, getWordBank, ACTIVE_LIMIT } from './userStore'
 import { getDepthLevel, recordSession } from './learnerProfile'
 import FlashcardMode from './FlashcardMode'
@@ -26,7 +28,9 @@ export default function App() {
   const [discoverOpen, setDiscoverOpen] = useState(false)
   const [addWordOpen, setAddWordOpen]   = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
-  const [flashcardOpen, setFlashcardOpen] = useState(false)
+  const [flashcardOpen, setFlashcardOpen]     = useState(false)
+  const [celestialOpen, setCelestialOpen]     = useState(false)
+  const [celestialJump, setCelestialJump]     = useState(null)
   const [activeCappedAlert, setActiveCappedAlert] = useState(false)
 
   useEffect(() => {
@@ -52,6 +56,22 @@ export default function App() {
 
   if (onboardingOpen) {
     return <Onboarding onComplete={() => setOnboardingOpen(false)} />
+  }
+
+  if (celestialOpen) {
+    return (
+      <div className="dev-celestial-workspace">
+        <div className="dev-phone-frame">
+          <CelestialScreen
+            onExit={() => setCelestialOpen(false)}
+            framed
+            jumpTo={celestialJump}
+            onJumpConsumed={() => setCelestialJump(null)}
+          />
+        </div>
+        <CelestialEditor workspace onJumpTo={setCelestialJump} />
+      </div>
+    )
   }
 
   if (flashcardOpen) {
@@ -100,6 +120,9 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
           Flashcards
+        </button>
+        <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
+          Celestial
         </button>
         <button className="dev-toggle" onClick={() => setDevOpen(d => !d)}>
           {devOpen ? '✕ Dev' : 'Dev'}

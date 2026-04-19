@@ -6,6 +6,9 @@ import { getStrings } from './uiStrings'
 import { getWordSlotInfo } from './cefrLevels'
 import { LANES, LANE_DISPLAY } from './lanes'
 import allWords from './wordData'
+import { speak, getLangCode } from './speak'
+import { transcribe, isSupported as isSpeechRecognitionSupported } from './transcribe'
+import { evaluateWriting, evaluateSpeaking } from './evaluate'
 
 // DiscoverWords — the word intake UI.
 // Self-contained component with no opinion about where it lives.
@@ -54,6 +57,14 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
   const [cardFlipped, setCardFlipped] = useState(false)
   const [trialCount, setTrialCount]   = useState(0)   // correct attempts in selected lane
   const [trialDone, setTrialDone]     = useState(false)
+
+  // Lane-specific practice state
+  const [writingInput, setWritingInput]     = useState('')
+  const [isRecording, setIsRecording]       = useState(false)
+  const [practiceResult, setPracticeResult] = useState(null)   // { pass, feedback } | null
+  const [practiceError, setPracticeError]   = useState(null)   // string | null
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const [hasPlayed, setHasPlayed]           = useState(false)
 
   const count      = aiDecides ? (aiCount ?? 10) : manualCount
   const isSearching = search.trim().length > 0
@@ -176,6 +187,12 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
     setTrialCount(existing)
     setCardFlipped(false)
     setTrialDone(false)
+    setWritingInput('')
+    setIsRecording(false)
+    setPracticeResult(null)
+    setPracticeError(null)
+    setIsPlayingAudio(false)
+    setHasPlayed(false)
   }
 
   function handleTrialBack() {
@@ -193,17 +210,57 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
   function handleCorrect() {
     const result = recordAttempt(trialWord.id, trialLane)
     setTrialCount(result.count)
+    setWritingInput('')
+    setPracticeResult(null)
     if (result.graduated) {
       setTrialDone(true)
       setBanked(prev => new Set([...prev, trialWord.id]))
       if (onWordAdded) onWordAdded()
     } else {
       setCardFlipped(false)
+      setHasPlayed(false)   // listening: allow re-play on next round
     }
   }
 
   function handleIncorrect() {
     setCardFlipped(false)
+    setPracticeResult(null)
+    setHasPlayed(false)
+  }
+
+  // ── Lane-specific handlers ────────────────────────────────────
+
+  async function handleWritingSubmit() {
+    const result = await evaluateWriting(trialWord.baseForm, writingInput)
+    setPracticeResult(result)
+  }
+
+  async function handleSpeakingAttempt() {
+    if (!isSpeechRecognitionSupported()) {
+      setPracticeError(s.practice.speaking.notSupported)
+      return
+    }
+    setIsRecording(true)
+    setPracticeError(null)
+    setPracticeResult(null)
+    try {
+      const transcript = await transcribe({ lang: getLangCode(getActiveLanguage()) })
+      const result     = await evaluateSpeaking(trialWord.baseForm, transcript)
+      setPracticeResult(result)
+    } catch (err) {
+      setPracticeError(err.message)
+    } finally {
+      setIsRecording(false)
+    }
+  }
+
+  async function handlePlay() {
+    setIsPlayingAudio(true)
+    try {
+      await speak(trialWord.baseForm, getActiveLanguage())
+    } catch {}
+    setIsPlayingAudio(false)
+    setHasPlayed(true)
   }
 
   // ── Slot info helper ──────────────────────────────────────────
@@ -243,21 +300,134 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
       )
     }
 
-    // Flashcard practice
+    // Lane-specific practice
     if (trialLane) {
-      const laneLabel = LANES.find(l => l.id === trialLane)?.label
+      const laneLabel = s.common.lanes[trialLane]
       const laneColor = LANE_DISPLAY[trialLane].color
       const remaining = THRESHOLD - trialCount
-      return (
-        <div className="discover">
-          <button className="profile-back" onClick={handleTrialBack}>← Back</button>
 
+      const laneHeader = (
+        <>
+          <button className="profile-back" onClick={handleTrialBack}>{s.common.back}</button>
           <div className="trial-lane-header">
-            <span className="trial-lane-badge" style={{ background: laneColor }}>
-              {laneLabel}
-            </span>
+            <span className="trial-lane-badge" style={{ background: laneColor }}>{laneLabel}</span>
             <span className="trial-lane-progress">{trialCount} / {THRESHOLD}</span>
           </div>
+        </>
+      )
+
+      // ── Writing ───────────────────────────────────────────────
+      if (trialLane === 'writing') {
+        return (
+          <div className="discover">
+            {laneHeader}
+            <p className="trial-practice-prompt">{trialWord.meaning}</p>
+            <p className="trial-practice-instruction">{s.practice.writing.instruction}</p>
+            <textarea
+              className="trial-writing-input"
+              value={writingInput}
+              onChange={e => { setWritingInput(e.target.value); setPracticeResult(null) }}
+              placeholder={s.practice.writing.placeholder}
+              rows={4}
+            />
+            {practiceResult && (
+              <p className={`trial-feedback trial-feedback--${practiceResult.pass ? 'pass' : 'fail'}`}>
+                {practiceResult.feedback}
+              </p>
+            )}
+            <div className="trial-actions">
+              {practiceResult?.pass ? (
+                <button className="trial-btn trial-btn--correct" onClick={handleCorrect}>
+                  {s.discover.correct}
+                </button>
+              ) : (
+                <button
+                  className="trial-btn trial-btn--submit"
+                  onClick={handleWritingSubmit}
+                  disabled={!writingInput.trim()}
+                >
+                  {s.practice.writing.submit}
+                </button>
+              )}
+            </div>
+            {trialCount > 0 && remaining > 0 && (
+              <p className="trial-remaining">{s.discover.moreCorrect(remaining)}</p>
+            )}
+          </div>
+        )
+      }
+
+      // ── Speaking ──────────────────────────────────────────────
+      if (trialLane === 'speaking') {
+        return (
+          <div className="discover">
+            {laneHeader}
+            <p className="trial-practice-prompt">{trialWord.meaning}</p>
+            <p className="trial-practice-instruction">{s.practice.speaking.instruction}</p>
+            {practiceError && (
+              <p className="trial-feedback trial-feedback--fail">{practiceError}</p>
+            )}
+            {practiceResult && (
+              <p className={`trial-feedback trial-feedback--${practiceResult.pass ? 'pass' : 'fail'}`}>
+                {practiceResult.feedback}
+              </p>
+            )}
+            {practiceResult?.pass ? (
+              <div className="trial-actions">
+                <button className="trial-btn trial-btn--correct" onClick={handleCorrect}>
+                  {s.discover.correct}
+                </button>
+              </div>
+            ) : (
+              <button
+                className={`trial-mic-btn${isRecording ? ' trial-mic-btn--active' : ''}`}
+                onClick={handleSpeakingAttempt}
+                disabled={isRecording}
+              >
+                {isRecording ? s.practice.speaking.listening : s.practice.speaking.micLabel}
+              </button>
+            )}
+            {trialCount > 0 && remaining > 0 && (
+              <p className="trial-remaining">{s.discover.moreCorrect(remaining)}</p>
+            )}
+          </div>
+        )
+      }
+
+      // ── Listening ─────────────────────────────────────────────
+      if (trialLane === 'listening') {
+        return (
+          <div className="discover">
+            {laneHeader}
+            <p className="trial-practice-instruction">{s.practice.listening.instruction}</p>
+            <button
+              className={`trial-play-btn${isPlayingAudio ? ' trial-play-btn--active' : ''}`}
+              onClick={handlePlay}
+              disabled={isPlayingAudio}
+            >
+              {isPlayingAudio ? s.practice.listening.playing : s.practice.listening.play}
+            </button>
+            {hasPlayed && (
+              <div className="trial-actions">
+                <button className="trial-btn trial-btn--correct" onClick={handleCorrect}>
+                  {s.discover.correct}
+                </button>
+                <button className="trial-btn trial-btn--incorrect" onClick={handleIncorrect}>
+                  {s.discover.incorrect}
+                </button>
+              </div>
+            )}
+            {trialCount > 0 && remaining > 0 && (
+              <p className="trial-remaining">{s.discover.moreCorrect(remaining)}</p>
+            )}
+          </div>
+        )
+      }
+
+      // ── Reading (flashcard) ───────────────────────────────────
+      return (
+        <div className="discover">
+          {laneHeader}
 
           <div
             className="trial-card"
