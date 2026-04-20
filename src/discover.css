@@ -1,0 +1,329 @@
+/* ── Discover Words ── */
+
+.discover {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.discover-header {
+  margin-bottom: 16px;
+}
+
+.discover-search {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 0.95rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.discover-search:focus {
+  border-color: #1a1a1a;
+}
+
+.discover-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.discover-ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.discover-ai-toggle input {
+  cursor: pointer;
+}
+
+.discover-ai-count {
+  font-weight: 700;
+  color: #555;
+}
+
+.discover-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.discover-slider {
+  flex: 1;
+  cursor: pointer;
+}
+
+.discover-slider-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #555;
+  min-width: 60px;
+  text-align: right;
+}
+
+.discover-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.discover-subtitle {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.discover-empty {
+  font-size: 0.9rem;
+  color: #aaa;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.discover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discover-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.discover-item:hover {
+  border-color: #bbb;
+}
+
+.discover-item--added {
+  border-color: #c8e6c9;
+  background: #f9fff9;
+}
+
+.discover-item-body {
+  flex: 1;
+}
+
+.discover-item-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dev-quick-bank-btn {
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.dev-quick-bank-btn:hover {
+  opacity: 1;
+  color: #7effa0;
+  border-color: #7effa0;
+}
+
+.discover-item-word {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.discover-item-category {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.discover-item-meaning {
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.discover-item-scores {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.discover-score {
+  font-size: 0.7rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: #888;
+}
+
+.discover-add-btn {
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.discover-add-btn:hover {
+  background: #333;
+}
+
+.discover-add-btn--added {
+  background: #4caf50;
+  cursor: default;
+}
+
+/* ── DiscoverWords slot context ───────────────────────────── */
+
+.discover-cefr-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: #e8f0fe;
+  color: #3a6bc4;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+
+.discover-slot-reason {
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+.discover-slot-reason--fills_missing {
+  background: #fff3cd;
+  color: #8a6000;
+}
+
+.discover-slot-reason--deepens {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* ── Discover: steering buttons ─────────────────────────────── */
+
+.discover-steering {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.discover-steering-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.discover-steer-btn {
+  padding: 5px 12px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.discover-steer-btn:hover {
+  border-color: #aaa;
+  color: #1a1a1a;
+}
+
+.discover-steer-btn--active {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.discover-steer-btn--interest {
+  border-style: dashed;
+}
+
+.discover-steer-btn--interest.discover-steer-btn--active {
+  background: #555;
+  border-color: #555;
+  border-style: solid;
+}
+
+.discover-steer-btn--add {
+  border-style: dashed;
+  color: #aaa;
+  border-color: #ddd;
+}
+
+.discover-steer-btn--add:hover {
+  color: #555;
+  border-color: #aaa;
+}
+
+.discover-topic-input {
+  padding: 4px 10px;
+  border: 1px dashed #aaa;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: #1a1a1a;
+  outline: none;
+  width: 130px;
+}
+
+.discover-topic-input:focus {
+  border-color: #555;
+  border-style: solid;
+}
+
+/* Intent input — freeform steering placeholder */
+
+.discover-intent-row {
+  margin-top: 4px;
+}
+
+.discover-intent-input {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #aaa;
+  background: #fafafa;
+  cursor: not-allowed;
+  outline: none;
+}
+

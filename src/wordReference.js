@@ -1,7 +1,7 @@
 // Word Reference — the system's vocabulary universe.
 //
-// This is NOT the learning content (wordData.js) or recommendation scoring
-// (wordMeta.js). It is a large, flat list of words the app knows exist.
+// This is NOT the learning content (wordData.js).
+// It is a large, flat list of words the app knows exist.
 //
 // Purpose:
 //   At advanced tiers (see vocabTiers.js), the permission gate for whether
@@ -12,7 +12,6 @@
 //
 // What lives here:
 //   A word ID and its frequencyTier score (1–5). That's all the gate needs.
-//   Richer metadata (recommendation scoring) stays in wordMeta.js.
 //   Learning content (meanings, forms, audio) stays in wordData.js.
 //
 // Scale:
@@ -36,9 +35,8 @@
 //   user's lane pool.
 
 const wordReference = {
-  // ── Seed entries (words currently in wordData / wordMeta) ──
+  // ── Seed entries (words currently in wordData) ──
   // These will be subsumed by the full dataset when it arrives.
-  // FrequencyTier scores here should match wordMeta.js.
   want:    { frequencyTier: 5 },
   need:    { frequencyTier: 5 },
   good:    { frequencyTier: 5 },

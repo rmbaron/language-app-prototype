@@ -5,7 +5,8 @@ import { loadProfile, getActiveLanguage, getCefrLevel, addTopic, getInterfaceLan
 import { getStrings } from './uiStrings'
 import { getWordSlotInfo } from './cefrLevels'
 import { LANES, LANE_DISPLAY } from './lanes'
-import allWords from './wordData'
+import wordDataWords from './wordData'
+import { getLiveSeedWords } from './wordLayerTwo'
 import { speak, getLangCode } from './speak'
 import { transcribe, isSupported as isSpeechRecognitionSupported } from './transcribe'
 import { evaluateWriting, evaluateSpeaking } from './evaluate'
@@ -88,6 +89,8 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
       setLoading(false)
     })
   }, [count, isSearching, grammarFilter, interestFilter])
+
+  const allWords = [...wordDataWords, ...getLiveSeedWords(getActiveLanguage(), new Set(wordDataWords.map(w => w.id)))]
 
   const searchResults = isSearching ? (() => {
     const bankIds    = new Set(getWordBank())

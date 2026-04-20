@@ -39,8 +39,6 @@ const SLOT_CATEGORIES = [
 
 // Maps a clicked Celestial element to an editor section key
 const ELEMENT_SECTION_MAP = [
-  { selector: '.celestial-slot',       section: 'sentencePhase'  },  // sentence phase boxes
-  { selector: '.celestial-floating-word', section: 'sentencePhase' }, // floating word
   { selector: '.grammar-slot',         section: 'grammarSlots'   },
   { selector: '.celestial-word-wrap',  section: 'word'           },
   { selector: '.celestial-meaning',    section: 'meaning'        },
@@ -58,7 +56,6 @@ const PHASE_TO_LANE = {
   writing:     'writing',
   listening:   'listening',
   speaking:    'speaking',
-  sentence:    null,
   transition:  null,
 }
 
@@ -320,7 +317,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo, onSequenc
 
           {/* Phase buttons for current word */}
           <div className="ced-phase-nav">
-            {['arriving','writing','listening','speaking','sentence','transition'].map(ph => (
+            {['arriving','writing','listening','speaking','transition'].map(ph => (
               <button
                 key={ph}
                 className={`ced-phase-btn${navPhase === ph || (ph === 'arriving' && navPhase === 'reading_ack') ? ' ced-phase-btn--active' : ''}`}
@@ -579,51 +576,6 @@ export default function CelestialEditor({ workspace = false, onJumpTo, onSequenc
                   onX={d => nudge(['mic', 'offsetX'], d)}
                   onY={d => nudge(['mic', 'offsetY'], d)}
                 />
-              </Row>
-            </Section>
-
-            <Section label="Sentence Phase" sectionRef={reg('sentencePhase')} flash={flashKey.sentencePhase}>
-              <Row label="word top %">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'floatingWordTopPct'], -1)}>↑</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.floatingWordTopPct}%</span>
-                  <button onClick={() => nudge(['sentencePhase', 'floatingWordTopPct'], +1)}>↓</button>
-                </div>
-              </Row>
-              <Row label="slots top %">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'slotRowTopPct'], -1)}>↑</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.slotRowTopPct}%</span>
-                  <button onClick={() => nudge(['sentencePhase', 'slotRowTopPct'], +1)}>↓</button>
-                </div>
-              </Row>
-              <Row label="box padding ↕">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingV'], -1)}>−</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.slotPaddingV ?? 8}px</span>
-                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingV'], +1)}>+</button>
-                </div>
-              </Row>
-              <Row label="box padding ↔">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingH'], -1)}>−</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.slotPaddingH ?? 4}px</span>
-                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingH'], +1)}>+</button>
-                </div>
-              </Row>
-              <Row label="box gap">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'slotGap'], -1)}>−</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.slotGap ?? 6}px</span>
-                  <button onClick={() => nudge(['sentencePhase', 'slotGap'], +1)}>+</button>
-                </div>
-              </Row>
-              <Row label="box font">
-                <div className="ced-stepper">
-                  <button onClick={() => nudge(['sentencePhase', 'slotFontSize'], -1)}>−</button>
-                  <span className="ced-stepper-val">{design.sentencePhase.slotFontSize ?? 13}px</span>
-                  <button onClick={() => nudge(['sentencePhase', 'slotFontSize'], +1)}>+</button>
-                </div>
               </Row>
             </Section>
 

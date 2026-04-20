@@ -24,7 +24,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "The person speaking — yourself.",
-    fullMeaning: "I is the first-person singular subject pronoun. It is always the subject of a sentence — the one doing the action. In English, I is always capitalized. It is the starting point of almost every sentence a learner will ever produce.",
     forms: [
       { form: "me",     type: "object" },
       { form: "my",     type: "possessive" },
@@ -38,7 +37,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "A thing, animal, or idea being referred to.",
-    fullMeaning: "It is the third-person singular neutral pronoun. It refers to objects, animals, ideas, or anything that is not a specific person. It is one of the most-used words in English and unlocks the ability to talk about the entire world of things.",
     forms: [
       { form: "its",    type: "possessive" },
       { form: "itself", type: "reflexive" },
@@ -50,7 +48,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To feel a desire or wish for something.",
-    fullMeaning: "To want something means to feel a desire, wish, or longing for it. It can express a personal preference (\"I want coffee\"), a request (\"I want you to stay\"), or a need that feels emotionally driven rather than strictly necessary.",
     forms: [
       { form: "wants",     type: "third_person_present" },
       { form: "wanted",    type: "past" },
@@ -64,7 +61,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To require something as necessary or essential.",
-    fullMeaning: "To need something means it is required or essential — not just desired. It implies a stronger sense of necessity than \"want\". It can describe physical requirements (\"I need water\"), logical requirements (\"You need a ticket\"), or obligations (\"We need to talk\").",
     forms: [
       { form: "needs",     type: "third_person_present" },
       { form: "needed",    type: "past" },
@@ -78,7 +74,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having positive qualities; better than average.",
-    fullMeaning: "Good describes something that has positive qualities, meets expectations, or is morally sound. It's one of the most flexible words in English and shifts meaning depending on context: quality (\"a good meal\"), character (\"a good person\"), suitability (\"a good fit\"), or skill (\"good at chess\").",
     forms: [
       { form: "better", type: "comparative" },
       { form: "best",   type: "superlative" },
@@ -91,7 +86,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A building where people live.",
-    fullMeaning: "A house is a structure built for people to live in, typically a standalone building. It differs from \"home\", which carries emotional meaning, and \"apartment\" or \"flat\", which are units within larger buildings. House can also be used as a verb meaning to provide shelter or contain something.",
     forms: [
       { form: "houses", type: "plural" },
     ],
@@ -102,7 +96,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To exist or have a quality — I am, you are, she is.",
-    fullMeaning: "Be is the most fundamental verb in English. Unlike action verbs, it links a subject to a state, identity, or quality: 'I am happy', 'you are here', 'it is good'. Its forms (am/is/are) are irregular and among the most-used words in the language. Mastering be unlocks the ability to describe identity, location, and states — without it, descriptions are incomplete.",
     forms: [
       { form: "am",    type: "first_person_present" },
       { form: "is",    type: "third_person_present" },
@@ -119,7 +112,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "demonstrative" },
     meaning: "The thing close to the speaker.",
-    fullMeaning: "This is a demonstrative pronoun pointing to something near the speaker — physically or conceptually. It is used to identify things ('this is good'), refer to ideas just mentioned ('this is why'), and establish shared reference in conversation. Together with 'that', it gives the learner the ability to point at the world.",
     forms: [
       { form: "these", type: "plural" },
     ],
@@ -130,7 +122,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "demonstrative" },
     meaning: "The thing away from the speaker.",
-    fullMeaning: "That is the far-pointing counterpart to 'this'. It refers to something further away physically or conceptually. It also introduces clauses ('I know that you want it') and is used to identify things at a distance. With 'this', it forms the basic pointing system that all concrete reference builds on.",
     forms: [
       { form: "those", type: "plural" },
     ],
@@ -141,7 +132,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interrogative" },
     meaning: "Used to ask about things or request information.",
-    fullMeaning: "What is the most fundamental question word in English. It asks about identity, content, and meaning: 'what is this?', 'what do you want?', 'what happened?'. As a question word, it transforms any statement-capable structure into a request for information. It is one of the first question words a learner needs.",
     forms: [],
   },
   {
@@ -150,7 +140,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to ask about or refer to a place.",
-    fullMeaning: "Where asks about and refers to location. It is essential for navigation, giving directions, finding things, and understanding context: 'where are you?', 'where is the house?', 'I know where it is'. Together with 'what', it gives the learner the two most-used question words for real-world interaction.",
     forms: [],
   },
   {
@@ -159,7 +148,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "A male person being referred to.",
-    fullMeaning: "He is the third-person singular masculine subject pronoun. It refers to a male person or animal performing an action. In English, he always takes a conjugated verb form — 'he wants', not 'he want'.",
     forms: [
       { form: "him",     type: "object" },
       { form: "his",     type: "possessive" },
@@ -172,7 +160,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "A female person being referred to.",
-    fullMeaning: "She is the third-person singular feminine subject pronoun. Like he, she takes a conjugated verb form — 'she sees', not 'she see'. She and he together open up the full range of third-person singular subjects.",
     forms: [
       { form: "her",     type: "object" },
       { form: "her",     type: "possessive" },
@@ -185,7 +172,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "The person or people being spoken to.",
-    fullMeaning: "You is the second-person pronoun in English, used to address one or more people directly. Unlike many languages, English uses \"you\" for both singular and plural. It can be a subject (\"You are right\") or an object (\"I see you\"), and is one of the most common words in the language.",
     forms: [
       { form: "your",       type: "possessive" },
       { form: "yours",      type: "possessive" },
@@ -199,7 +185,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To move or travel from one place to another.",
-    fullMeaning: "Go is one of the most fundamental verbs in English. It describes movement away from the current position, travel, departure, or general movement. It also appears in countless fixed phrases and is used to indicate future action (\"going to\"), making it one of the most versatile words in the language.",
     forms: [
       { form: "goes",    type: "third_person_present" },
       { form: "went",    type: "past" },
@@ -214,7 +199,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To move toward the speaker or a specified place.",
-    fullMeaning: "Come is the directional counterpart to \"go\" — it implies movement toward the speaker's current position, or toward a place already established as the reference point. It is used in invitations (\"come here\"), arrivals (\"she came\"), and is the basis for many idioms and phrasal verbs.",
     forms: [
       { form: "comes",      type: "third_person_present" },
       { form: "came",       type: "past" },
@@ -228,7 +212,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To perceive with the eyes; to understand.",
-    fullMeaning: "See covers both literal vision and cognitive understanding. In conversation it is used to describe what you observe (\"I can see the house\") and to signal comprehension (\"I see\"). It appears in many everyday expressions: \"see you later\", \"let's see\", \"I see what you mean\".",
     forms: [
       { form: "sees",     type: "third_person_present" },
       { form: "saw",      type: "past" },
@@ -243,7 +226,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To be aware of or have information about something.",
-    fullMeaning: "Know expresses certainty and awareness. It can mean having factual information (\"I know the answer\"), recognizing something (\"I know that song\"), or being familiar with a person or place (\"I know her well\"). It is also used in conversational stalling and hedging: \"I don't know\", \"you know\".",
     forms: [
       { form: "knows",      type: "third_person_present" },
       { form: "knew",       type: "past" },
@@ -258,7 +240,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To have an opinion or belief; to use the mind.",
-    fullMeaning: "Think is used to express opinions (\"I think it's good\"), beliefs (\"I think so\"), and internal mental processes. It softens statements and opens discussion — \"I think\" is one of the most natural sentence starters in English for expressing personal views without coming across as overly assertive.",
     forms: [
       { form: "thinks",     type: "third_person_present" },
       { form: "thought",    type: "past" },
@@ -272,7 +253,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A 24-hour period; the time between sunrise and sunset.",
-    fullMeaning: "Day is one of the most basic units of time in everyday language. It is used in greetings (\"good day\"), planning (\"what day is it?\"), habits (\"every day\"), and storytelling (\"one day...\"). It appears in hundreds of fixed phrases and collocates with almost every time-related expression.",
     forms: [
       { form: "days", type: "plural" },
     ],
@@ -283,7 +263,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A person you know and like and enjoy spending time with.",
-    fullMeaning: "Friend describes a person with whom you have a bond of mutual affection, trust, and enjoyment — distinct from family or acquaintances. It is one of the most emotionally significant common words and appears constantly in social language: introductions, stories, making plans, and casual conversation.",
     forms: [
       { form: "friends", type: "plural" },
     ],
@@ -294,7 +273,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "Any substance eaten for nourishment.",
-    fullMeaning: "Food is a foundational concrete noun covering anything eaten or consumed for energy and nourishment. It appears in daily conversation about meals, preferences, culture, and survival. Knowing \"food\" unlocks an enormous amount of practical everyday vocabulary and situational language.",
     forms: [
       { form: "foods", type: "plural" },
     ],
@@ -305,7 +283,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling pleasure, joy, or contentment.",
-    fullMeaning: "Happy describes a positive emotional state — feeling pleased, satisfied, or content. It is one of the first emotional words a learner needs because it appears in greetings (\"happy birthday\"), responses (\"I'm happy to help\"), and is the baseline word for expressing positive feelings before learning more specific emotional vocabulary.",
     forms: [
       { form: "happier",   type: "comparative" },
       { form: "happiest",  type: "superlative" },
@@ -318,7 +295,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to make a request more polite.",
-    fullMeaning: "Please is the core politeness word in English. Added to any request, it signals courtesy and respect. It also functions as a verb (\"please someone\") and appears in formal writing. Without \"please\", even grammatically correct requests can come across as rude — making it one of the most functionally important words for real-world interaction.",
     forms: [],
   },
   {
@@ -327,7 +303,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling regret or sadness about something.",
-    fullMeaning: "Sorry expresses apology, sympathy, or regret. It is indispensable for real-world social interaction — for apologizing, expressing condolences, or politely getting someone's attention (\"sorry, excuse me\"). Without it, a learner has no natural way to acknowledge mistakes or navigate everyday social friction.",
     forms: [],
   },
   {
@@ -336,7 +311,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To assist or support someone.",
-    fullMeaning: "Help is one of the most essential interaction words. It is used to ask for assistance (\"can you help me?\"), offer support (\"let me help you\"), and discuss aid in general. As a noun it means assistance itself. Knowing \"help\" immediately enables a learner to navigate situations where they are lost or confused.",
     forms: [
       { form: "helps",     type: "third_person_present" },
       { form: "helped",    type: "past" },
@@ -350,7 +324,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The indefinite continued progress of existence; a point or period.",
-    fullMeaning: "Time is among the most frequent nouns in English. It refers to the general concept of time (\"time flies\"), a specific moment (\"what time is it?\"), or a period (\"last time\"). It collocates with nearly every verb and appears in countless phrases essential for scheduling, storytelling, and everyday conversation.",
     forms: [
       { form: "times", type: "plural" },
     ],
@@ -361,7 +334,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Large in size, extent, or intensity.",
-    fullMeaning: "Big is one of the most basic and versatile descriptors in English. It describes physical size (\"a big house\"), importance (\"a big deal\"), and is used in countless common expressions. It is typically learned before more specific synonyms like \"large\", \"enormous\", or \"huge\" because of its everyday frequency and simplicity.",
     forms: [
       { form: "bigger",  type: "comparative" },
       { form: "biggest", type: "superlative" },
@@ -373,7 +345,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to make a statement negative.",
-    fullMeaning: "Not is the primary negation word in English. It turns positive statements into negative ones: I want → I don't want, I know → I don't know. As a standalone adverb it also appears in 'not at all', 'not yet', 'not quite'. It is one of the most functionally critical words in the language — without it, a learner cannot express what they don't want, don't know, or don't have.",
     forms: [],
   },
   {
@@ -382,7 +353,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "At the present time; immediately.",
-    fullMeaning: "Now grounds speech in the present moment. It is used to indicate immediacy (\"do it now\"), contrast with the past (\"then vs now\"), and structure spoken discourse (\"now, let me explain\"). It is one of the first time words a learner needs and appears heavily in both casual conversation and instructions.",
     forms: [],
   },
 
@@ -395,7 +365,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "The speaker and at least one other person together.",
-    fullMeaning: "We is the first-person plural subject pronoun. It includes the speaker and one or more other people: 'we want', 'we are here'. It is essential for talking about groups, shared plans, and collective experience — and one of the first pronouns a learner needs alongside I and you.",
     forms: [
       { form: "us",         type: "object" },
       { form: "our",        type: "possessive" },
@@ -409,7 +378,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "People or things being talked about.",
-    fullMeaning: "They is the third-person plural subject pronoun, referring to a group of people or things: 'they are here', 'they want food'. It is also widely used as a singular gender-neutral pronoun. With I, you, he, she, it, and we, it completes the full English pronoun system.",
     forms: [
       { form: "them",       type: "object" },
       { form: "their",      type: "possessive" },
@@ -425,7 +393,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To find something pleasant or enjoyable.",
-    fullMeaning: "Like is one of the most natural and frequent verbs in everyday English. It expresses preference and enjoyment: 'I like food', 'she likes music', 'do you like it?'. It is essential for expressing taste, making conversation, and building on the learner's earliest vocabulary about people and things they encounter.",
     forms: [
       { form: "likes",      type: "third_person_present" },
       { form: "liked",      type: "past" },
@@ -439,7 +406,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To put food in your mouth and swallow it.",
-    fullMeaning: "Eat is one of the most concrete and necessary verbs at A1 level. It covers the basic daily act of consuming food: 'I eat', 'she eats', 'we eat together'. It pairs naturally with food words the learner already has and immediately enables real-world sentences about daily life.",
     forms: [
       { form: "eats",      type: "third_person_present" },
       { form: "ate",       type: "past" },
@@ -454,7 +420,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To own or possess something; to experience something.",
-    fullMeaning: "Have is one of the most versatile and frequent verbs in English. It expresses possession ('I have a house'), experience ('I have a problem'), and is the core auxiliary for perfect tenses ('I have seen'). At A1 level the focus is on possession and experience. Knowing 'have' dramatically expands what a learner can express about themselves and their world.",
     forms: [
       { form: "has",       type: "third_person_present" },
       { form: "had",       type: "past" },
@@ -470,7 +435,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Little in size; not large.",
-    fullMeaning: "Small is the direct opposite of big and one of the first size words a learner needs. It describes physical dimensions ('a small house'), quantity ('a small amount'), and importance ('a small problem'). Together with big, it gives the learner the foundational size contrast that underlies a huge range of descriptive language.",
     forms: [
       { form: "smaller",  type: "comparative" },
       { form: "smallest", type: "superlative" },
@@ -482,7 +446,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a high temperature; warm to the touch.",
-    fullMeaning: "Hot is one of the first temperature words a learner needs. It describes physical heat ('hot food', 'hot day') and is one of the most commonly encountered adjectives in daily life — weather, food, and beverages all generate natural use. Together with cold, it forms the foundational temperature contrast.",
     forms: [
       { form: "hotter",  type: "comparative" },
       { form: "hottest", type: "superlative" },
@@ -494,7 +457,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a low temperature; not warm.",
-    fullMeaning: "Cold is the counterpart to hot and essential for daily conversation about weather, food, temperature, and comfort. It describes physical sensation ('I am cold'), objects ('cold water'), and weather ('cold day'). It also functions as a noun ('I have a cold') but at A1 the adjective use is primary.",
     forms: [
       { form: "colder",  type: "comparative" },
       { form: "coldest", type: "superlative" },
@@ -508,7 +470,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interrogative" },
     meaning: "Used to ask about a person's identity.",
-    fullMeaning: "Who is the question word for people. It asks about identity and is one of the first question words a learner needs: 'who is that?', 'who are you?', 'I know who it is'. Together with what and where, it gives the learner the core set of question words for talking about people, things, and places.",
     forms: [],
   },
   {
@@ -517,7 +478,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to ask about the way something is done or the degree of something.",
-    fullMeaning: "How is essential for greetings ('how are you?'), asking about methods ('how do I get there?'), and degree ('how big is it?'). It is one of the most frequently used question words in English and is needed almost immediately for basic social interaction — 'how are you?' is among the very first exchanges a learner encounters.",
     forms: [],
   },
 
@@ -528,7 +488,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Inside or enclosed by something; within a place or time.",
-    fullMeaning: "In is one of the most common words in English and the primary preposition for expressing location inside a space ('in the house', 'in the room') and time within a period ('in the morning', 'in April'). Without 'in', a learner cannot describe where most things are — it is foundational for location language.",
     forms: [],
   },
   {
@@ -537,7 +496,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Resting on or attached to a surface.",
-    fullMeaning: "On expresses position on a surface ('on the table', 'on the wall') and time on a specific day ('on Monday'). It is one of the three core English prepositions of location alongside in and at, and together they cover the vast majority of everyday location expressions a learner will encounter.",
     forms: [],
   },
   {
@@ -546,7 +504,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "At a specific point or place; at a specific time.",
-    fullMeaning: "At expresses a precise point in space ('at the door', 'at the table') or time ('at noon', 'at 8 o'clock'). It is one of the three core English location prepositions and is essential for talking about meeting places, times, and specific locations. It appears in greetings ('at home', 'at work') and is among the most-used words in everyday English.",
     forms: [],
   },
 
@@ -557,7 +514,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "At or in this place, close to the speaker.",
-    fullMeaning: "Here points to the speaker's current location or indicates that something is present: 'I am here', 'come here', 'here it is'. It is one of the first place words a learner needs and pairs naturally with prepositions to give a basic but complete system for talking about location.",
     forms: [],
   },
   {
@@ -566,7 +522,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "At or in that place, away from the speaker.",
-    fullMeaning: "There refers to a location away from the speaker: 'it is there', 'go there', 'I want to go there'. It also functions as a grammatical placeholder: 'there is a house', 'there are people'. Together with here, it forms the basic near/far location contrast that is essential for any real-world spatial communication.",
     forms: [],
   },
 
@@ -577,7 +532,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "determiner" },
     meaning: "Used before a singular noun to refer to one of something.",
-    fullMeaning: "A (and its vowel-form 'an') is the indefinite article — one of the most common words in English. It introduces a noun for the first time or refers to one unspecified member of a group: 'a house', 'a good day', 'I want a friend'. Without articles, English noun phrases sound incomplete and unnatural. A is typically the first article a learner encounters.",
     forms: [
       { form: "an", type: "vowel_variant" },
     ],
@@ -588,7 +542,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "determiner" },
     meaning: "Used before a noun to refer to something specific or already known.",
-    fullMeaning: "The is the definite article and the most common word in English. It identifies a specific, known referent: 'the house' (we know which house), 'the day', 'the friend'. The contrast between 'a house' (any house) and 'the house' (that specific house) is one of the most fundamental distinctions in English and is needed as soon as a learner starts building real sentences.",
     forms: [],
   },
   {
@@ -597,7 +550,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "determiner" },
     meaning: "An unspecified amount or number of something.",
-    fullMeaning: "Some introduces an unspecified quantity in positive statements and offers: 'I want some food', 'there is some water', 'do you want some?'. It is the natural partner to 'any' and is essential for talking about quantities without being specific — one of the first building blocks of practical everyday language.",
     forms: [],
   },
   {
@@ -606,7 +558,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "determiner" },
     meaning: "Used in questions and negatives to refer to an unspecified amount.",
-    fullMeaning: "Any is the negative/question counterpart to 'some': 'do you have any food?', 'I don't have any'. It also means 'whichever' in positive statements: 'take any seat'. As an A1 learner, the primary use is in questions and negatives, making it essential for the kinds of practical questions a new language user needs most.",
     forms: [],
   },
 
@@ -623,7 +574,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To feel deep affection or strong liking for someone or something.",
-    fullMeaning: "Love expresses deep positive feeling — for people ('I love my family'), activities ('I love music'), and food. At A1 it is primarily used to express strong preference. It is one of the most emotionally significant verbs in any language and appears very early in real conversation.",
     forms: [
       { form: "loves",     type: "third_person_present" },
       { form: "loved",     type: "past" },
@@ -637,7 +587,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To feel strong dislike for someone or something.",
-    fullMeaning: "Hate is the strong opposite of love. It expresses intense dislike: 'I hate this', 'she hates cold food'. At A1 it gives the learner the ability to express strong negative preferences, completing the preference spectrum alongside like and love.",
     forms: [
       { form: "hates",     type: "third_person_present" },
       { form: "hated",     type: "past" },
@@ -651,7 +600,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To speak words; to express something in words.",
-    fullMeaning: "Say is one of the most fundamental communication verbs. It is used to report speech ('he says...'), express statements, and quote ('she said yes'). Its simplicity makes it one of the first communication verbs a learner needs.",
     forms: [
       { form: "says",     type: "third_person_present" },
       { form: "said",     type: "past" },
@@ -665,7 +613,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To use spoken words; to talk or communicate verbally.",
-    fullMeaning: "Speak refers to the act of verbal communication — 'I speak English', 'do you speak French?', 'she speaks well'. It is one of the most immediately relevant verbs for a language learner, who needs it to talk about language ability and communication in general.",
     forms: [
       { form: "speaks",      type: "third_person_present" },
       { form: "spoke",       type: "past" },
@@ -679,7 +626,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To look at and understand written text.",
-    fullMeaning: "Read is a core literacy verb: 'I read a book', 'she reads every day', 'can you read this?'. For a language learner, reading ability in the target language is often one of the first areas developed. The past tense is spelled the same but pronounced differently.",
     forms: [
       { form: "reads",     type: "third_person_present" },
       { form: "read",      type: "past" },
@@ -693,7 +639,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To put words or letters on a surface or screen.",
-    fullMeaning: "Write covers all forms of written communication: 'I write emails', 'she writes every day', 'write your name here'. Like reading, it is immediately relevant for a language learner and appears in tasks like filling in forms, sending messages, and practising new vocabulary.",
     forms: [
       { form: "writes",      type: "third_person_present" },
       { form: "wrote",       type: "past" },
@@ -707,7 +652,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To do a job or task; to function properly.",
-    fullMeaning: "Work covers employment ('I work here'), effort ('I work hard'), and function ('it works'). It is one of the most necessary everyday verbs — people talk about where they work, what they do at work, and whether things work, constantly. As a noun it also means a job or workplace.",
     forms: [
       { form: "works",      type: "third_person_present" },
       { form: "worked",     type: "past" },
@@ -721,7 +665,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To reside somewhere; to be alive.",
-    fullMeaning: "Live is used to describe where someone resides: 'I live in the city', 'where do you live?'. It also means to be alive. It is one of the first verbs needed for basic personal information exchange — telling and asking about where people live.",
     forms: [
       { form: "lives",      type: "third_person_present" },
       { form: "lived",      type: "past" },
@@ -735,7 +678,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To hand something to someone; to provide or offer.",
-    fullMeaning: "Give is a foundational transfer verb: 'give me the book', 'she gives food', 'can you give me help?'. It unlocks two-object sentence patterns and is essential for describing actions involving people and objects — a critical expansion of what the learner can express.",
     forms: [
       { form: "gives",     type: "third_person_present" },
       { form: "gave",      type: "past" },
@@ -749,7 +691,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To pick up or carry something; to accept or receive.",
-    fullMeaning: "Take is the complement to give and one of the most versatile verbs in English. It covers physical actions ('take the book'), transportation ('take the bus'), and time ('it takes a long time'). Its high frequency and flexibility make it essential early vocabulary.",
     forms: [
       { form: "takes",     type: "third_person_present" },
       { form: "took",      type: "past" },
@@ -763,7 +704,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To create or produce something; to cause something to happen.",
-    fullMeaning: "Make is one of the most frequent verbs in English. It covers creation ('make food'), causation ('make happy'), and production. It appears in many fixed phrases and collocations across all topics. A learner with 'make' can express a wide range of everyday actions.",
     forms: [
       { form: "makes",     type: "third_person_present" },
       { form: "made",      type: "past" },
@@ -777,7 +717,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To obtain or receive something; to become.",
-    fullMeaning: "Get is among the most frequent verbs in spoken English. It covers obtaining ('get food'), receiving ('I got a message'), becoming ('get tired'), and movement ('get home'). Its versatility means learners encounter it immediately in everyday conversation.",
     forms: [
       { form: "gets",     type: "third_person_present" },
       { form: "got",      type: "past" },
@@ -791,7 +730,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To swallow liquid.",
-    fullMeaning: "Drink is a basic daily verb: 'I drink water', 'she drinks coffee', 'what do you want to drink?'. It pairs naturally with food and beverage vocabulary and is one of the first verbs needed for real-world situations like ordering at a café or talking about daily habits.",
     forms: [
       { form: "drinks",      type: "third_person_present" },
       { form: "drank",       type: "past" },
@@ -805,7 +743,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To rest in a state of unconsciousness.",
-    fullMeaning: "Sleep is a universal daily activity: 'I sleep eight hours', 'she sleeps here', 'I want to sleep'. It appears in conversations about health, routines, and feelings. It is one of the first verbs needed for talking about everyday life and personal information.",
     forms: [
       { form: "sleeps",      type: "third_person_present" },
       { form: "slept",       type: "past" },
@@ -819,7 +756,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To direct your eyes toward something; to appear a certain way.",
-    fullMeaning: "Look covers deliberate visual attention ('look at this'), appearance ('you look good'), and searching ('look for something'). Unlike see, which is passive perception, look is intentional. It is one of the most-used verbs in everyday direction and observation language.",
     forms: [
       { form: "looks",     type: "third_person_present" },
       { form: "looked",    type: "past" },
@@ -833,7 +769,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To take part in a game or recreational activity.",
-    fullMeaning: "Play covers games, sports, music, and leisure: 'play a game', 'play football', 'play music'. It is one of the most common verbs for children and young people, and widely used in adult conversation about hobbies and activities.",
     forms: [
       { form: "plays",     type: "third_person_present" },
       { form: "played",    type: "past" },
@@ -847,7 +782,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To make something no longer closed or sealed.",
-    fullMeaning: "Open is a concrete everyday verb: 'open the door', 'open a book', 'the shop is open'. It is one of the first directional action words a learner needs and its opposite (close) forms a simple teachable pair. It also functions as an adjective ('the door is open').",
     forms: [
       { form: "opens",      type: "third_person_present" },
       { form: "opened",     type: "past" },
@@ -861,7 +795,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To shut something; to make something no longer open.",
-    fullMeaning: "Close is the direct opposite of open: 'close the door', 'close your book', 'the shop is closed'. Together they form one of the most fundamental action-word pairs in everyday language. Close also functions as an adjective ('a close friend') and adverb ('close by').",
     forms: [
       { form: "closes",      type: "third_person_present" },
       { form: "closed",      type: "past" },
@@ -875,7 +808,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To move on foot at a normal pace.",
-    fullMeaning: "Walk is a foundational movement verb: 'I walk to school', 'she walks every day', 'let's walk'. It appears in directions, descriptions of routines, and everyday conversation about how people get around. It is simpler and more common at A1 than run or drive.",
     forms: [
       { form: "walks",      type: "third_person_present" },
       { form: "walked",     type: "past" },
@@ -889,7 +821,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "verb" },
     meaning: "To move quickly on foot.",
-    fullMeaning: "Run is one of the first movement verbs beyond walk. It describes fast physical movement: 'I run every morning', 'she runs fast', 'run!'. It appears in sports, exercise, and urgency contexts and is one of the most natural early physical-action verbs.",
     forms: [
       { form: "runs",     type: "third_person_present" },
       { form: "ran",      type: "past" },
@@ -906,7 +837,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Of poor quality; not good.",
-    fullMeaning: "Bad is the direct opposite of good and equally fundamental. It describes quality ('bad food'), character ('bad person'), and situations ('bad day'). Without bad, a learner can only express the positive end of the quality spectrum. Together with good, it gives the most basic evaluative contrast in English.",
     forms: [
       { form: "worse", type: "comparative" },
       { form: "worst", type: "superlative" },
@@ -918,7 +848,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a great length or duration.",
-    fullMeaning: "Long describes physical length ('a long street') and duration ('a long time'). It is one of the most basic dimensional adjectives in English and pairs with short to form a fundamental size contrast. It appears across all everyday topics — distances, stories, waiting times, and descriptions.",
     forms: [
       { form: "longer",  type: "comparative" },
       { form: "longest", type: "superlative" },
@@ -930,7 +859,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Not long in length or time; small in height.",
-    fullMeaning: "Short is the opposite of long and covers both physical size ('a short street') and duration ('a short time'). It also describes height ('she is short'). Together with long and tall, it gives the learner the foundational length and height vocabulary needed for everyday descriptions.",
     forms: [
       { form: "shorter",  type: "comparative" },
       { form: "shortest", type: "superlative" },
@@ -942,7 +870,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having existed for a long time; not young or new.",
-    fullMeaning: "Old describes age for people ('an old man'), things ('an old car'), and places ('an old city'). It pairs with young and new to form two essential contrasts. It appears in basic biographical information and descriptions of the physical world — one of the first descriptors a learner encounters.",
     forms: [
       { form: "older",  type: "comparative" },
       { form: "oldest", type: "superlative" },
@@ -954,7 +881,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Not old; in an early stage of life.",
-    fullMeaning: "Young describes people or animals in the early part of their life: 'a young woman', 'young children', 'she is young'. It is the counterpart to old and one of the first descriptors for people. It appears in conversations about age, family, and personal descriptions — essential A1 territory.",
     forms: [
       { form: "younger",  type: "comparative" },
       { form: "youngest", type: "superlative" },
@@ -966,7 +892,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Recently made, acquired, or discovered; not old or used.",
-    fullMeaning: "New describes things recently created or obtained: 'a new car', 'new words', 'my new friend'. It is the counterpart to old in the sense of recency and is one of the most used adjectives in everyday English. It appears in topics ranging from shopping to introductions to daily news.",
     forms: [
       { form: "newer",  type: "comparative" },
       { form: "newest", type: "superlative" },
@@ -978,7 +903,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Moderately hot; comfortable in temperature.",
-    fullMeaning: "Warm describes a pleasant middle temperature — hotter than cool, less extreme than hot: 'warm water', 'a warm day', 'warm food'. It fills an important gap between hot and cold in the temperature spectrum and appears naturally in conversations about weather, food, and comfort.",
     forms: [
       { form: "warmer",  type: "comparative" },
       { form: "warmest", type: "superlative" },
@@ -990,7 +914,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Not difficult; done or achieved without great effort.",
-    fullMeaning: "Easy describes tasks, situations, or things that require little effort: 'this is easy', 'an easy question', 'easy food'. It pairs with hard to form a fundamental difficulty contrast. It appears very naturally in language learning contexts ('is this easy for you?') and everyday problem-solving.",
     forms: [
       { form: "easier",  type: "comparative" },
       { form: "easiest", type: "superlative" },
@@ -1003,7 +926,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Moving or happening quickly; not slow.",
-    fullMeaning: "Fast describes speed of movement or events: 'a fast car', 'she runs fast', 'the time goes fast'. It is both adjective and adverb. Together with slow, it forms the basic speed contrast that appears in directions, descriptions, and comparisons across all topics.",
     forms: [
       { form: "faster",  type: "comparative" },
       { form: "fastest", type: "superlative" },
@@ -1015,7 +937,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Not moving or happening quickly; taking a long time.",
-    fullMeaning: "Slow is the opposite of fast and covers both speed and pace: 'a slow car', 'speak slowly please', 'the day is slow'. It appears naturally in requests ('please speak slowly'), directions, and descriptions of both physical speed and time perception.",
     forms: [
       { form: "slower",  type: "comparative" },
       { form: "slowest", type: "superlative" },
@@ -1028,7 +949,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling unhappy or sorrowful.",
-    fullMeaning: "Sad is the counterpart to happy and one of the first emotional adjectives a learner needs. It describes feelings ('I am sad'), people ('she looks sad'), and events ('a sad story'). Together with happy, it covers the foundational emotional axis of positive and negative feeling.",
     forms: [
       { form: "sadder",  type: "comparative" },
       { form: "saddest", type: "superlative" },
@@ -1041,7 +961,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling or showing strong displeasure or frustration.",
-    fullMeaning: "Angry describes a state of strong displeasure or irritation: 'I am angry', 'she looks angry', 'why are you angry?'. It is one of the core emotional adjectives needed for describing feelings and reactions in everyday interaction. At A1, expressing emotional states is a high-priority communicative function.",
     forms: [
       { form: "angrier",  type: "comparative" },
       { form: "angriest", type: "superlative" },
@@ -1054,7 +973,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling a need to rest or sleep; lacking energy.",
-    fullMeaning: "Tired describes physical or mental fatigue: 'I am tired', 'she looks tired', 'I am so tired'. It is one of the most commonly expressed personal states in everyday conversation — appearing in discussions of work, health, and daily life. Its frequency and simplicity make it essential early vocabulary.",
     forms: [],
   },
   {
@@ -1063,7 +981,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Feeling a need or desire to eat.",
-    fullMeaning: "Hungry describes the physical state of needing food: 'I am hungry', 'are you hungry?', 'the child is hungry'. It pairs naturally with food vocabulary and is needed immediately for practical real-world interaction — ordering food, asking for something to eat, or explaining a need.",
     forms: [
       { form: "hungrier",  type: "comparative" },
       { form: "hungriest", type: "superlative" },
@@ -1075,7 +992,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Unwell; suffering from an illness.",
-    fullMeaning: "Sick describes illness or poor health: 'I am sick', 'she is sick today', 'I feel sick'. It is one of the first health words a learner needs for basic self-expression and practical interaction — explaining absences, describing how someone feels, or asking about health.",
     forms: [],
   },
   {
@@ -1084,7 +1000,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a lot to do; occupied with tasks.",
-    fullMeaning: "Busy describes having a lot to do: 'I am busy', 'she is very busy', 'it is a busy day'. It is one of the first adjectives needed for social navigation — explaining why you can't meet, describing your day, or talking about work. Immediately useful in conversations about schedules and availability.",
     forms: [
       { form: "busier",  type: "comparative" },
       { form: "busiest", type: "superlative" },
@@ -1096,7 +1011,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Correct; appropriate.",
-    fullMeaning: "Right covers correctness ('that is right'), direction ('turn right'), and moral judgment ('the right thing'). It is the counterpart to wrong and one of the most versatile basic adjectives in English. At A1, the primary use is confirming correctness in conversation and understanding simple evaluations.",
     forms: [],
   },
   {
@@ -1105,7 +1019,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Not correct; not appropriate.",
-    fullMeaning: "Wrong is the opposite of right — 'that is wrong', 'you have the wrong book', 'something is wrong'. It is essential for basic correction and evaluation in conversation. Without wrong, a learner has no natural way to flag errors, misunderstandings, or problems — a critical functional gap.",
     forms: [],
   },
   {
@@ -1114,7 +1027,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Pleasant; kind; enjoyable.",
-    fullMeaning: "Nice is a broadly positive adjective covering pleasantness ('nice food'), character ('a nice person'), and approval ('that is nice'). It is one of the most naturally used positive words in everyday English conversation and appears very early in real social interaction — greetings, compliments, and general positive responses.",
     forms: [
       { form: "nicer",  type: "comparative" },
       { form: "nicest", type: "superlative" },
@@ -1126,7 +1038,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Very attractive or pleasing to look at.",
-    fullMeaning: "Beautiful describes strong visual or aesthetic appeal: 'a beautiful place', 'she is beautiful', 'beautiful day'. It is one of the first adjectives learners want to use to describe things they find impressive or attractive. It opens up the ability to give genuine compliments and express appreciation.",
     forms: [
       { form: "more beautiful", type: "comparative" },
       { form: "most beautiful", type: "superlative" },
@@ -1142,7 +1053,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the color of blood or fire.",
-    fullMeaning: "Red is one of the first and most recognizable colors. It appears in descriptions of objects, clothing, and warnings ('red light'). Colors are among the first vocabulary sets learners need for real-world description, and red typically has the most emotional and cultural associations.",
     forms: [],
   },
   {
@@ -1151,7 +1061,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the color of a clear sky.",
-    fullMeaning: "Blue is one of the most common and well-loved colors. It describes the sky, water, clothing, and objects: 'a blue car', 'blue eyes', 'the sea is blue'. It is one of the first colors a learner needs for basic description and appears frequently across all everyday topic areas.",
     forms: [],
   },
   {
@@ -1160,7 +1069,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the color of grass or leaves.",
-    fullMeaning: "Green is strongly associated with nature, plants, and the environment: 'green grass', 'green tree', 'a green bag'. It is one of the most frequently encountered colors in everyday life and appears naturally in descriptions of the natural world, food, and objects.",
     forms: [],
   },
   {
@@ -1169,7 +1077,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the color of the sun or ripe bananas.",
-    fullMeaning: "Yellow is one of the most recognizable bright colors. It describes sunlight, fruit, and objects: 'a yellow car', 'yellow flower', 'the sun is yellow'. It appears very naturally in early vocabulary alongside other primary colors.",
     forms: [],
   },
   {
@@ -1178,7 +1085,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the darkest possible color, like night.",
-    fullMeaning: "Black is one of the most fundamental colors — the absence of all light. It describes clothing, objects, and the night: 'a black car', 'black coffee', 'the sky is black'. Together with white, it forms the most basic color contrast in any language.",
     forms: [],
   },
   {
@@ -1187,7 +1093,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the lightest possible color, like snow.",
-    fullMeaning: "White is the lightest color and the counterpart to black. It describes objects, clothing, and environments: 'a white house', 'white bread', 'white snow'. Together with black, it forms the foundational light/dark color contrast and is one of the first color words needed for everyday description.",
     forms: [],
   },
   {
@@ -1196,7 +1101,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a color between black and white.",
-    fullMeaning: "Gray (also spelled grey) is the neutral color between black and white. It describes clouds, concrete, and many everyday objects: 'a gray day', 'gray walls', 'gray hair'. It is one of the colors most needed for describing the built environment and weather.",
     forms: [
       { form: "grey", type: "variant_spelling" },
     ],
@@ -1207,7 +1111,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having the color of earth or wood.",
-    fullMeaning: "Brown is the color of soil, wood, and many food items: 'brown bread', 'brown eyes', 'a brown bag'. It is one of the most commonly encountered colors in the natural environment and food context, making it an important early color vocabulary item.",
     forms: [],
   },
   {
@@ -1216,7 +1119,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a color between red and yellow.",
-    fullMeaning: "Orange is both a color and a fruit. The color describes sunsets, fruit, and objects: 'an orange bag', 'orange light'. The double meaning makes it a memorable early vocabulary item. It is one of the six most commonly taught colors at beginner level.",
     forms: [],
   },
   {
@@ -1225,7 +1127,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a light red color.",
-    fullMeaning: "Pink is a very common color in clothing, nature, and everyday objects: 'a pink flower', 'pink shirt', 'pink sky'. It is one of the most recognizable and frequently encountered colors in everyday life and is typically learned early in A1 alongside the other basic colors.",
     forms: [],
   },
   {
@@ -1234,7 +1135,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adjective" },
     meaning: "Having a color between blue and red.",
-    fullMeaning: "Purple describes objects, clothing, and nature: 'a purple flower', 'purple sky at sunset'. It is associated with royalty and creativity and is one of the secondary colors typically learned early alongside the primary colors.",
     forms: [],
   },
 
@@ -1246,7 +1146,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "An adult male person.",
-    fullMeaning: "Man is one of the most fundamental nouns for referring to people. It describes an adult male person and appears in countless everyday descriptions, stories, and references: 'a man', 'the man', 'an old man'. Together with woman, boy, and girl, it covers the basic person reference system a learner needs immediately.",
     forms: [
       { form: "men", type: "plural" },
     ],
@@ -1257,7 +1156,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "An adult female person.",
-    fullMeaning: "Woman is the female counterpart to man and equally fundamental. It describes an adult female person: 'a woman', 'the woman', 'a young woman'. It appears in descriptions, stories, and everyday reference throughout all topics. Together with man, it forms the most basic person-gender distinction in English.",
     forms: [
       { form: "women", type: "plural" },
     ],
@@ -1268,7 +1166,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A young male person; a child or teenager who is male.",
-    fullMeaning: "Boy refers to a young male — a child or teenager: 'a boy', 'a small boy', 'the boy is happy'. Together with girl, it covers the child person reference system. These words appear naturally in stories, family descriptions, and everyday observation.",
     forms: [
       { form: "boys", type: "plural" },
     ],
@@ -1279,7 +1176,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A young female person; a child or teenager who is female.",
-    fullMeaning: "Girl is the female counterpart to boy: 'a girl', 'a young girl', 'the girl is happy'. Together with boy, man, and woman, it completes the basic four-way person reference system in English. It is among the first people nouns a learner needs for stories, descriptions, and family conversations.",
     forms: [
       { form: "girls", type: "plural" },
     ],
@@ -1290,7 +1186,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A group of people related to each other, especially parents and children.",
-    fullMeaning: "Family is one of the most emotionally significant and frequently used nouns at A1 level. It covers the basic social unit: 'my family', 'a big family', 'family time'. Talking about family is among the very first conversations a beginner needs to have, making this a priority vocabulary item.",
     forms: [
       { form: "families", type: "plural" },
     ],
@@ -1301,7 +1196,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A female parent.",
-    fullMeaning: "Mother is the formal word for a female parent. At A1 level, both 'mother' and 'mom' are needed — learners encounter both in text and speech. Family member words are among the first vocabulary items in any language course because talking about family is a universal early conversation topic.",
     forms: [
       { form: "mothers", type: "plural" },
       { form: "mom",     type: "informal" },
@@ -1313,7 +1207,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A male parent.",
-    fullMeaning: "Father is the formal word for a male parent. Like mother, it appears in family vocabulary from the earliest stages of language learning. Learners need both the formal form (father) and the informal (dad) since both appear frequently in everyday speech and text.",
     forms: [
       { form: "fathers", type: "plural" },
       { form: "dad",     type: "informal" },
@@ -1325,7 +1218,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A young person who is not yet an adult.",
-    fullMeaning: "Child is the gender-neutral word for a young person. Its plural 'children' is irregular and one of the most commonly used irregular plurals in English: 'the children are happy', 'she has a child'. It appears across family, education, and social topics and is needed very early.",
     forms: [
       { form: "children", type: "plural" },
     ],
@@ -1336,7 +1228,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A human being.",
-    fullMeaning: "Person is the most general word for a human being — gender-neutral and applicable to anyone: 'a person', 'an important person', 'one person'. Its irregular plural 'people' is among the most-used nouns in English. Knowing person and people is essential for talking about humans in general.",
     forms: [
       { form: "people", type: "plural" },
     ],
@@ -1347,7 +1238,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A very young child who cannot yet walk or talk.",
-    fullMeaning: "Baby refers to the youngest stage of life: 'a baby', 'the baby is sleeping', 'a small baby'. It is one of the most universally understood words and appears in family discussions, announcements, and everyday conversation about young families.",
     forms: [
       { form: "babies", type: "plural" },
     ],
@@ -1361,7 +1251,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The clear liquid needed for life; what falls as rain.",
-    fullMeaning: "Water is one of the most fundamental nouns in any language — essential for life and conversation. 'I want water', 'can I have water?', 'the water is cold'. It appears immediately in restaurant, travel, and daily-need situations. Without water in their vocabulary, a learner cannot express one of their most basic daily needs.",
     forms: [],
   },
   {
@@ -1370,7 +1259,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A basic food made from flour and water, usually baked.",
-    fullMeaning: "Bread is a staple food word that appears in meal vocabulary from the very beginning: 'I want bread', 'do you have bread?', 'good bread'. It is one of the most universal food words across cultures and is needed immediately for restaurant, shop, and meal conversations.",
     forms: [],
   },
   {
@@ -1379,7 +1267,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The white liquid produced by cows and other animals; used as a drink and in cooking.",
-    fullMeaning: "Milk is a fundamental food and drink word: 'I drink milk', 'do you want milk?', 'cold milk'. It appears in breakfast vocabulary, café orders, and shopping. As an uncountable noun, it is often used without an article — an important early grammatical pattern.",
     forms: [],
   },
   {
@@ -1388,7 +1275,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "An oval object laid by a bird, used as food.",
-    fullMeaning: "Egg is a basic and universally known food item: 'I eat an egg', 'she wants an egg', 'two eggs please'. The 'a/an' distinction is immediately relevant with egg (an egg, not a egg), making it a useful testing word for article practice. It appears in breakfast and meal contexts from the very start.",
     forms: [
       { form: "eggs", type: "plural" },
     ],
@@ -1399,7 +1285,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A hot drink made from roasted coffee beans.",
-    fullMeaning: "Coffee is one of the most universally ordered drinks and appears immediately in café, restaurant, and daily routine conversations: 'I want coffee', 'do you have coffee?', 'a hot coffee'. It is uncountable when referring to the substance ('I like coffee') and countable when referring to a serving ('a coffee please').",
     forms: [
       { form: "coffees", type: "plural" },
     ],
@@ -1410,7 +1295,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A hot drink made from dried leaves steeped in water.",
-    fullMeaning: "Tea is one of the most widely consumed drinks in the world and appears in café, home, and hospitality contexts: 'I want tea', 'do you have tea?', 'a cup of tea'. It is the natural counterpart to coffee in early drink vocabulary and is needed immediately for ordering and daily routine conversations.",
     forms: [
       { form: "teas", type: "plural" },
     ],
@@ -1421,7 +1305,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A round fruit with red, green, or yellow skin.",
-    fullMeaning: "Apple is one of the first fruit words and among the most universally known foods: 'an apple', 'a red apple', 'I eat an apple'. It is an excellent testing word because it starts with a vowel (triggering 'an') and has clear color and size descriptors that pair naturally with other A1 vocabulary.",
     forms: [
       { form: "apples", type: "plural" },
     ],
@@ -1435,7 +1318,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The place where you live or where you feel you belong.",
-    fullMeaning: "Home is one of the most emotionally significant location words. Unlike house (a physical structure), home carries belonging and comfort: 'go home', 'I am at home', 'this is my home'. It appears in daily routines, directions, and personal conversations from the earliest stages of language learning.",
     forms: [
       { form: "homes", type: "plural" },
     ],
@@ -1446,7 +1328,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A place where children go to learn.",
-    fullMeaning: "School is one of the most frequently encountered institutional nouns: 'go to school', 'I am at school', 'a big school'. It appears in daily routine conversations, family discussions, and descriptions of life. It is one of the first location words needed to describe daily life, especially for younger learners.",
     forms: [
       { form: "schools", type: "plural" },
     ],
@@ -1457,7 +1338,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A large and important town.",
-    fullMeaning: "City is a foundational location noun: 'a big city', 'I live in the city', 'what city is this?'. It appears in biographical information (where do you live?), travel, and geography. It is one of the first place nouns a learner needs for talking about where they live and where they are going.",
     forms: [
       { form: "cities", type: "plural" },
     ],
@@ -1468,7 +1348,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A public road in a town or city, usually with buildings on either side.",
-    fullMeaning: "Street is a key navigation and location word: 'which street?', 'on the street', 'a long street'. It appears in directions, addresses, and descriptions of the built environment. As a location word, it is needed almost immediately for navigating and describing cities and towns.",
     forms: [
       { form: "streets", type: "plural" },
     ],
@@ -1479,7 +1358,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A nation with its own government and land.",
-    fullMeaning: "Country is one of the first geography words a learner needs: 'what country are you from?', 'a big country', 'my country'. It appears in introductions, travel conversations, and general world knowledge. Knowing country is essential for basic self-description and cross-cultural communication.",
     forms: [
       { form: "countries", type: "plural" },
     ],
@@ -1490,7 +1368,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "An open outdoor area with grass and trees for public enjoyment.",
-    fullMeaning: "Park is a common place noun for outdoor recreation: 'go to the park', 'in the park', 'a big park'. It appears naturally in conversations about activities, directions, and daily routines. It is one of the most useful concrete location nouns for talking about where people spend their leisure time.",
     forms: [
       { form: "parks", type: "plural" },
     ],
@@ -1501,7 +1378,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A place where people pay to eat meals.",
-    fullMeaning: "Restaurant is an immediately practical place noun for real-world situations: 'go to a restaurant', 'a good restaurant', 'in the restaurant'. One of the app's first planned modules is the restaurant simulation, making this vocabulary directly tied to an early game scenario. An essential A1 word.",
     forms: [
       { form: "restaurants", type: "plural" },
     ],
@@ -1515,7 +1391,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A road vehicle with four wheels and an engine.",
-    fullMeaning: "Car is one of the most frequently encountered concrete nouns: 'a car', 'my car', 'a big car'. It appears in conversations about transportation, directions, descriptions, and daily life. It is a useful testing noun because it pairs naturally with color adjectives ('a red car') and size ('a big car').",
     forms: [
       { form: "cars", type: "plural" },
     ],
@@ -1526,7 +1401,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A written or printed work, usually with pages bound together.",
-    fullMeaning: "Book is a foundational literacy noun: 'read a book', 'my book', 'a good book'. It appears in school, home, and leisure contexts. As one of the most universally understood objects and a direct connection to the act of reading, it is among the first object nouns a language learner encounters.",
     forms: [
       { form: "books", type: "plural" },
     ],
@@ -1537,7 +1411,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "Currency; coins or notes used for buying things.",
-    fullMeaning: "Money is an immediately practical noun: 'I need money', 'do you have money?', 'a lot of money'. It appears in shopping, asking for help, and practical problem-solving situations. As an uncountable noun, it pairs well with 'some' and 'any' ('I have some money', 'I don't have any money').",
     forms: [],
   },
   {
@@ -1546,7 +1419,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A device for making calls or communicating; a mobile phone.",
-    fullMeaning: "Phone is one of the most central objects in modern life: 'my phone', 'call on the phone', 'do you have a phone?'. At A1 it appears in communication contexts and practical situations (calling for help, giving a number). It is among the first object nouns needed for contemporary everyday life.",
     forms: [
       { form: "phones", type: "plural" },
     ],
@@ -1557,7 +1429,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A piece of furniture with a flat top and legs.",
-    fullMeaning: "Table is a fundamental furniture noun: 'on the table', 'a big table', 'sit at the table'. It appears in home, restaurant, and classroom contexts. As a location-based noun, it pairs naturally with prepositions ('on the table', 'at the table') and is one of the first object nouns needed for describing indoor spaces.",
     forms: [
       { form: "tables", type: "plural" },
     ],
@@ -1568,7 +1439,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A piece of furniture for sleeping on.",
-    fullMeaning: "Bed is an essential home noun: 'in the bed', 'a big bed', 'go to bed'. It appears in daily routine vocabulary (sleep, wake up) and home descriptions. 'Go to bed' is one of the most common fixed phrases involving a noun, making bed an early and practical vocabulary item.",
     forms: [
       { form: "beds", type: "plural" },
     ],
@@ -1582,7 +1452,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The early part of the day, from sunrise until noon.",
-    fullMeaning: "Morning is one of the first time-of-day words a learner needs: 'good morning', 'in the morning', 'every morning'. It appears in greetings (the most common being 'good morning'), daily routine descriptions, and time expressions. Immediately useful and culturally universal.",
     forms: [
       { form: "mornings", type: "plural" },
     ],
@@ -1593,7 +1462,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "The part of the day from late afternoon until bedtime.",
-    fullMeaning: "Evening describes the later part of the day: 'good evening', 'in the evening', 'every evening'. Like morning, it appears in greetings and daily routine conversation. Together with morning and night, it covers the basic time-of-day vocabulary a learner needs.",
     forms: [
       { form: "evenings", type: "plural" },
     ],
@@ -1604,7 +1472,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A period of seven days.",
-    fullMeaning: "Week is one of the most essential time units: 'last week', 'this week', 'next week', 'every week'. It appears in planning, scheduling, and talking about routines and events. Along with day, month, and year, it forms the foundational time vocabulary for any practical language use.",
     forms: [
       { form: "weeks", type: "plural" },
     ],
@@ -1615,7 +1482,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "One of the twelve periods that a year is divided into.",
-    fullMeaning: "Month is a fundamental time unit: 'last month', 'this month', 'next month', 'every month'. It appears in schedules, dates, plans, and biographical information. Together with week and year, it gives the learner the complete time-scale vocabulary needed for real-world communication.",
     forms: [
       { form: "months", type: "plural" },
     ],
@@ -1626,7 +1492,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "noun" },
     meaning: "A period of twelve months or 365 days.",
-    fullMeaning: "Year is a foundational time unit: 'last year', 'next year', 'this year', 'every year'. It appears in conversations about plans, history, and age ('I am twenty years old'). Without year, a learner cannot discuss age, anniversaries, or any long-term plans.",
     forms: [
       { form: "years", type: "plural" },
     ],
@@ -1640,7 +1505,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used to say that something is possible or that someone is able to do something.",
-    fullMeaning: "Can is the most fundamental modal verb in English. It expresses ability ('I can speak English'), possibility ('it can happen'), and permission/requests ('can I help you?'). It is one of the first grammar functions a learner needs — without it, they cannot express what they are or aren't able to do.",
     forms: [
       { form: "can't",  type: "negative" },
       { form: "cannot", type: "negative_formal" },
@@ -1652,7 +1516,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used to talk about the future; expressing intention or prediction.",
-    fullMeaning: "Will is the primary future marker in English: 'I will go', 'it will be good', 'she will come'. It is one of the first grammar functions a learner needs to express future plans and intentions. Mastering will immediately expands the learner's ability to make predictions, offers, and promises.",
     forms: [
       { form: "won't",    type: "negative" },
       { form: "will not", type: "negative_formal" },
@@ -1664,7 +1527,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used for polite requests, conditions, or things you want.",
-    fullMeaning: "Would is one of the most useful polite forms in English: 'I would like...', 'would you like...?'. At A1, its primary use is in polite requests and offers ('I would like a coffee'). This makes it immediately practical for restaurant, shopping, and hospitality situations.",
     forms: [
       { form: "wouldn't", type: "negative" },
     ],
@@ -1675,7 +1537,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used to give advice or say what is the right thing to do.",
-    fullMeaning: "Should expresses advice, recommendation, and obligation: 'you should eat', 'I should go', 'what should I do?'. It is one of the first modals needed for giving and receiving advice. It appears in practical everyday situations — health advice, directions, and decision-making.",
     forms: [
       { form: "shouldn't", type: "negative" },
     ],
@@ -1686,7 +1547,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used to say something is necessary or strongly required.",
-    fullMeaning: "Must expresses strong necessity or obligation: 'I must go', 'you must eat', 'this must be right'. It is stronger than should and used when something is required or unavoidable. At A1, it appears in practical instructions and high-priority advice, and is needed for understanding rules and requirements.",
     forms: [
       { form: "mustn't", type: "negative" },
     ],
@@ -1697,7 +1557,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Past form of can; also used for polite requests and possibilities.",
-    fullMeaning: "Could expresses past ability ('I could run fast'), polite requests ('could you help me?'), and possibility ('it could be right'). At A1, the polite request use is the most immediately practical: 'could you...?' is one of the most useful request forms for real-world interaction.",
     forms: [
       { form: "couldn't", type: "negative" },
     ],
@@ -1708,7 +1567,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "modal" },
     meaning: "Used to say something is possible or to ask for permission politely.",
-    fullMeaning: "May expresses possibility ('it may rain') and formal permission ('may I sit here?'). It is more formal than can for permission requests. At A1, its primary use is polite permission ('may I...?') and simple possibility. Less frequent than can or will at beginner level, but appears in formal and polite contexts.",
     forms: [],
   },
 
@@ -1720,7 +1578,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to ask about or refer to the time of something.",
-    fullMeaning: "When is the question word for time: 'when is it?', 'when do you eat?', 'I know when'. Together with what, where, who, and how, it completes the core A1 question word set. Time-related questions are among the most basic and practical communicative needs from the very beginning of language learning.",
     forms: [],
   },
   {
@@ -1729,7 +1586,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Used to ask about the reason for something.",
-    fullMeaning: "Why is the question word for reasons: 'why are you here?', 'why do you want that?'. It gives the learner the ability to ask about causes and motivations — a fundamental communicative need. 'Why' questions immediately expand conversational depth beyond simple identification and location questions.",
     forms: [],
   },
   {
@@ -1738,7 +1594,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "pronoun" },
     meaning: "Used to ask about or identify a specific item from a group.",
-    fullMeaning: "Which asks about a choice or identification from a known set: 'which one?', 'which is your bag?'. It is slightly more specific than what (which implies a limited set of options). It appears naturally in shopping, directions, and selection situations that a learner encounters early.",
     forms: [],
   },
 
@@ -1750,7 +1605,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interjection" },
     meaning: "Used to agree, confirm, or respond positively.",
-    fullMeaning: "Yes is one of the most fundamental words in any language — the basic affirmative response. It confirms, agrees, and signals understanding: 'yes, I want that', 'yes, please'. Without yes, a learner cannot give the most basic positive response to any question or offer.",
     forms: [],
   },
   {
@@ -1759,7 +1613,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interjection" },
     meaning: "A greeting used when meeting someone or answering a call.",
-    fullMeaning: "Hello is the most universal English greeting: the standard way to begin a conversation, answer a phone, or acknowledge someone. Together with goodbye, it forms the entry and exit points of any social interaction. It is one of the very first words in any A1 curriculum.",
     forms: [
       { form: "hi", type: "informal" },
     ],
@@ -1770,7 +1623,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interjection" },
     meaning: "Said when leaving someone or ending a conversation.",
-    fullMeaning: "Goodbye is the counterpart to hello — the basic farewell. It ends conversations and partings: 'goodbye', 'say goodbye'. Together with hello, it gives the learner the ability to properly open and close any social interaction — the two social bookends that frame all conversation.",
     forms: [
       { form: "bye", type: "informal" },
     ],
@@ -1784,7 +1636,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "conjunction" },
     meaning: "Used to join words, phrases, or clauses together.",
-    fullMeaning: "And is the most fundamental conjunction in English — the word that joins ideas together. 'I want food and water', 'she is happy and tired'. Without and, a learner can only express one idea at a time. Adding and immediately expands the complexity and naturalness of everything they can say.",
     forms: [],
   },
   {
@@ -1793,7 +1644,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "conjunction" },
     meaning: "Used to introduce a contrast or exception.",
-    fullMeaning: "But introduces contrast and exception: 'I want food but not that', 'it is good but cold'. It is essential for nuanced communication — without but, a learner can only express agreement or unqualified statements. But gives them the ability to express a more complex view while remaining at basic grammatical complexity.",
     forms: [],
   },
   {
@@ -1802,7 +1652,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "conjunction" },
     meaning: "Used to present an alternative or choice.",
-    fullMeaning: "Or presents choices and alternatives: 'do you want food or water?', 'coffee or tea?'. It is essential for asking and answering questions that involve options. Together with and and but, it completes the three foundational English conjunctions that allow the learner to build compound expressions.",
     forms: [],
   },
   {
@@ -1811,7 +1660,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "conjunction" },
     meaning: "Used to give a reason for something.",
-    fullMeaning: "Because introduces reasons and explanations: 'I am happy because I see my friend', 'she eats because she is hungry'. It is the primary reason-giving conjunction in English and one of the first connectors a learner needs to go beyond single-clause sentences. It dramatically expands the learner's ability to explain and justify.",
     forms: [],
   },
   {
@@ -1820,7 +1668,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "conjunction" },
     meaning: "Used to introduce a condition or supposition.",
-    fullMeaning: "If introduces conditions: 'if you want, I can help', 'if it is good, I will eat it'. At A1 level, basic conditionals appear early in practical conversation. If gives the learner the ability to express conditions, make polite offers, and handle simple hypotheticals — a significant communicative leap from simple statements.",
     forms: [],
   },
 
@@ -1830,7 +1677,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "A greater amount or degree of something.",
-    fullMeaning: "More expresses a greater quantity or degree: 'more food', 'more water', 'I want more'. It is one of the most practical early words in any language — it lets the learner ask for additional amounts of anything without knowing the specific word for it. More also functions as a comparative marker ('more difficult') and an adverb of continuation ('do you want more?').",
     forms: [],
   },
   {
@@ -1839,7 +1685,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "interjection" },
     meaning: "Used to refuse, deny, or express the absence of something.",
-    fullMeaning: "No is the fundamental negative response — the counterpart to yes. It refuses, denies, and disagrees: 'no thank you', 'no more', 'no, I don't want that'. Without no, a learner cannot decline anything. Along with yes, it forms the bedrock of all responses to questions and offers, and as a determiner it negates nouns directly: 'no food', 'no water'.",
     forms: [],
   },
 
@@ -1851,7 +1696,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "To a great degree; extremely.",
-    fullMeaning: "Very is the most fundamental degree adverb in English. It intensifies adjectives and adverbs: 'very good', 'very big', 'very happy'. Without very, a learner can only express qualities at their base level — adding very immediately allows them to express emphasis and strong feeling, which is essential for natural communication.",
     forms: [],
   },
   {
@@ -1860,7 +1704,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Very much; in reality; used for emphasis.",
-    fullMeaning: "Really functions as an intensifier ('I really want this', 'really good') and a confirmation of truth ('really?', 'I really do'). It is one of the most natural words in spoken English and appears constantly in informal conversation. At A1, its intensifier use is primary — 'really' sounds more natural than 'very' in many spoken contexts.",
     forms: [],
   },
   {
@@ -1869,7 +1712,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "In addition; as well; too.",
-    fullMeaning: "Also adds information and builds lists: 'I want food, and also water'. It is one of the first connective adverbs a learner needs to extend what they are saying beyond a single item. It signals continuation and is particularly useful in conversations about preferences, descriptions, and narration.",
     forms: [],
   },
   {
@@ -1878,7 +1720,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Perhaps; possibly; used when uncertain.",
-    fullMeaning: "Maybe expresses uncertainty and possibility: 'maybe tomorrow', 'I don't know, maybe'. It is one of the first hedging words a learner needs — without it, every statement sounds certain or committed. Maybe allows the learner to express doubt and tentative ideas, which is essential for natural conversational behaviour.",
     forms: [],
   },
   {
@@ -1887,7 +1728,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "adverb" },
     meaning: "Simply; only; exactly; recently.",
-    fullMeaning: "Just has several closely related uses: 'just one' (only), 'just right' (exactly), 'I just saw him' (very recently). It is one of the most frequent words in spoken English and appears constantly in everyday conversation. At A1, 'just' lets the learner qualify and soften statements in very natural ways.",
     forms: [],
   },
 
@@ -1899,7 +1739,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Toward a place or person; used to show direction or destination.",
-    fullMeaning: "To is one of the most frequent words in English. It indicates direction ('go to school'), recipient ('give to me'), and is part of the infinitive construction ('want to go'). Without to, a learner cannot express motion toward a destination — one of the most fundamental things language needs to convey.",
     forms: [],
   },
   {
@@ -1908,7 +1747,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Indicating the origin, starting point, or source of something.",
-    fullMeaning: "From expresses origin and starting point: 'where are you from?', 'I am from here', 'come from home'. It is one of the first prepositions needed for personal introduction (country of origin) and direction (coming from somewhere). Together with to, it gives the learner the basic movement/direction contrast.",
     forms: [],
   },
   {
@@ -1917,7 +1755,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Intended to benefit someone; in exchange for; during a period of time.",
-    fullMeaning: "For is one of the most versatile prepositions in English: purpose ('for you', 'for food'), time ('for a week'), exchange ('pay for'). It appears constantly in everyday expressions and is essential for expressing who something is intended for — a foundational conversational function.",
     forms: [],
   },
   {
@@ -1926,7 +1763,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Accompanied by; having; using.",
-    fullMeaning: "With is one of the most frequently used prepositions: accompaniment ('go with me'), possession ('coffee with milk'), and instrument ('write with a pen'). Without with, a learner cannot express that people are together or that things are combined — one of the most basic relational concepts in everyday language.",
     forms: [],
   },
   {
@@ -1935,7 +1771,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "Concerning or relating to; approximately.",
-    fullMeaning: "About has two main uses: concerning a topic ('talk about food', 'think about it') and approximation ('about ten'). The topic use is essential for early learners — they need to say what they are talking about, thinking about, or asking about constantly.",
     forms: [],
   },
   {
@@ -1944,7 +1779,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "In or to a higher position; toward the top.",
-    fullMeaning: "Up indicates upward direction or position: 'go up', 'look up', 'up the street'. It is also part of many common phrasal verbs (wake up, give up, look up). At A1, the spatial directional use is primary, but its role in high-frequency phrasal verbs makes it an important word to introduce early.",
     forms: [],
   },
   {
@@ -1953,7 +1787,6 @@ const words = [
     language: "en",
     classifications: { grammaticalCategory: "preposition" },
     meaning: "In or to a lower position; toward the bottom.",
-    fullMeaning: "Down is the counterpart to up: 'go down', 'sit down', 'down the street'. Together they form the vertical direction contrast. Like up, it appears in many common phrasal verbs (write down, calm down, put down). The spatial directional use is primary at A1 but phrasal verb exposure starts early in real language use.",
     forms: [],
   },
 ]

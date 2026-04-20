@@ -14,8 +14,13 @@ import CelestialScreen from './CelestialScreen'
 import CelestialEditor from './CelestialEditor'
 import { loadState, getWordBank, ACTIVE_LIMIT } from './userStore'
 import { getDepthLevel, recordSession } from './learnerProfile'
+import { runLayerOneBatch } from './wordEnrichment'
+import { prePopulateMockLayerTwo } from './wordLayerTwo'
+import { runLayerTwoBatch } from './wordEnrichmentTwo'
+import WordPipeline from './WordPipeline'
 import FlashcardMode from './FlashcardMode'
 import SentenceLab from './SentenceLab'
+import WorldReadingLane from './WorldReadingLane'
 import words from './wordData'
 
 export default function App() {
@@ -25,6 +30,7 @@ export default function App() {
   const [storeData, setStoreData] = useState(loadState)
   const [devOpen, setDevOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [pipelineOpen, setPipelineOpen] = useState(false)
   const [discoverOpen, setDiscoverOpen] = useState(false)
   const [addWordOpen, setAddWordOpen]   = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
@@ -37,6 +43,11 @@ export default function App() {
 
   useEffect(() => {
     recordSession()
+    prePopulateMockLayerTwo('en')
+    // auto-batch disabled — run manually from Pipeline screen
+    // runLayerOneBatch('en')
+    //   .then(() => runLayerTwoBatch('en'))
+    //   .catch(() => {})
   }, [])
 
   function refreshStore(result) {
@@ -46,6 +57,10 @@ export default function App() {
 
   if (adminOpen) {
     return <ContentManager onClose={() => setAdminOpen(false)} />
+  }
+
+  if (pipelineOpen) {
+    return <WordPipeline onClose={() => setPipelineOpen(false)} />
   }
 
   if (discoverOpen) {
@@ -93,6 +108,8 @@ export default function App() {
         <PracticeHub onBack={() => setView('worldSphere')} onNavigate={id => setView(id)} />
       ) : view === 'sentenceLab' ? (
         <SentenceLab onBack={() => setView('practice')} />
+      ) : view === 'practice_reading' ? (
+        <WorldReadingLane onBack={() => setView('practice')} />
       ) : selected && practicing ? (
         <WordPractice
           word={selected}
@@ -115,6 +132,9 @@ export default function App() {
       <div className="dev-controls">
         <button className="dev-toggle" onClick={() => setAdminOpen(true)}>
           Admin
+        </button>
+        <button className="dev-toggle" onClick={() => setPipelineOpen(true)}>
+          Pipeline
         </button>
         <button className="dev-toggle" onClick={() => setDiscoverOpen(true)}>
           Discover

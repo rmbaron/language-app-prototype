@@ -1,71 +1,37 @@
-import { useState } from 'react'
-import { getActiveLanguage, getCefrLevel } from './learnerProfile'
-import { getLevel, getCurrentSubLevel, getCumulativeSlots, getPhaseSlots } from './cefrLevels'
-import { getWordBank } from './userStore'
-import allWords from './wordData'
+import { getInterfaceLanguage } from './learnerProfile'
+import { getStrings } from './uiStrings'
+
+const LANES = [
+  { id: 'reading',   descKey: 'laneReading',   available: true  },
+  { id: 'writing',   descKey: 'laneWriting',   available: false },
+  { id: 'listening', descKey: 'laneListening', available: false },
+  { id: 'speaking',  descKey: 'laneSpeaking',  available: false },
+]
 
 export default function PracticeHub({ onBack, onNavigate }) {
-  const activeLang   = getActiveLanguage()
-  const cefrLevel    = getCefrLevel() ?? 'A1'
-  const level        = getLevel(cefrLevel)
-  const subdivisions = level?.subdivisions ?? []
-  const allSlots     = level?.grammarSlots ?? []
-
-  const bankIds      = getWordBank()
-  const calcSubLevel = getCurrentSubLevel(cefrLevel, bankIds, allWords, activeLang)
-
-  const [selectedSub, setSelectedSub] = useState(calcSubLevel ?? subdivisions[0]?.id ?? null)
-
-  const activeSlotIds = new Set(getCumulativeSlots(cefrLevel, selectedSub))
-  const newSlotIds    = new Set(getPhaseSlots(cefrLevel, selectedSub))
+  const s = getStrings(getInterfaceLanguage())
 
   return (
     <div className="practice-hub">
-      <button className="profile-back" onClick={onBack}>← Back</button>
-      <p className="practice-hub-title">Practice</p>
+      <button className="profile-back" onClick={onBack}>{s.common.back}</button>
+      <p className="practice-hub-title">{s.practiceHub.title}</p>
 
       <div className="practice-hub-grid">
-        <button className="practice-hub-btn" onClick={() => onNavigate('sentenceLab')}>
-          <span className="practice-hub-btn-label">Sentence Lab</span>
-          <span className="practice-hub-btn-desc">Generate sentences from grammar structure tiers.</span>
-        </button>
+        {LANES.map(lane => (
+          <button
+            key={lane.id}
+            className={`practice-hub-btn${!lane.available ? ' practice-hub-btn--disabled' : ''}`}
+            onClick={() => lane.available && onNavigate(`practice_${lane.id}`)}
+            disabled={!lane.available}
+          >
+            <span className="practice-hub-btn-label">{s.common.lanes[lane.id]}</span>
+            <span className="practice-hub-btn-desc">{s.practiceHub[lane.descKey]}</span>
+            {!lane.available && (
+              <span className="practice-hub-btn-soon">{s.practiceHub.comingSoon}</span>
+            )}
+          </button>
+        ))}
       </div>
-
-      {/* ── Dev: A1 sub-level slot viewer ── */}
-      {subdivisions.length > 0 && (
-        <div className="practice-sublevel-panel">
-          <div className="practice-sublevel-header">
-            <span className="practice-sublevel-title">Grammar slots</span>
-            <select
-              className="practice-sublevel-select"
-              value={selectedSub ?? ''}
-              onChange={e => setSelectedSub(e.target.value)}
-            >
-              {subdivisions.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.id} — {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="practice-sublevel-slots">
-            {allSlots
-              .filter(slot => activeSlotIds.has(slot.id))
-              .map(slot => (
-                <span
-                  key={slot.id}
-                  className={[
-                    'practice-sublevel-slot',
-                    newSlotIds.has(slot.id) ? 'practice-sublevel-slot--new' : '',
-                  ].join(' ').trim()}
-                >
-                  {slot.userLabel ?? slot.label}
-                </span>
-              ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { getWordProgress } from './wordProgress'
 import LaneLock from './LaneLock'
 import { getStrings } from './uiStrings'
 import { getInterfaceLanguage } from './learnerProfile'
+import { FULL_MEANINGS } from './wordFullMeanings.en'
 
 function Section({ label, isOpen, onToggle, children }) {
   return (
@@ -76,7 +77,7 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
 
       <div className="profile-sections">
         <Section label={s.wordProfile.sections.fullerMeaning} isOpen={open.fuller} onToggle={() => toggle('fuller')}>
-          <p className="section-text">{word.fullMeaning}</p>
+          <p className="section-text">{FULL_MEANINGS[word.id]}</p>
         </Section>
 
         <Section label={s.wordProfile.sections.otherForms} isOpen={open.forms} onToggle={() => toggle('forms')}>

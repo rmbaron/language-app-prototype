@@ -34,6 +34,8 @@
 //   The AI reads a template, generates instances for matching words, deposits here.
 //   Designers edit templates; they never manage individual word content.
 
+import { markContentReady } from './wordLayerTwo'
+
 // ── Layer 1: Index ────────────────────────────────────────────
 
 const INDEX_KEY = 'lapp-content-index'
@@ -152,9 +154,11 @@ export function addContent(wordId, laneId, fields) {
   const item = typeof fields === 'string'
     ? { id: Date.now().toString(), text: fields }
     : { id: Date.now().toString(), ...fields }
+  const isFirstContent = Object.values(wordData).every(lane => lane.length === 0)
   wordData[laneId].push(item)
   saveWordData(wordId, wordData)
   indexSet(wordId, laneId, wordData[laneId].length)
+  if (isFirstContent) markContentReady(wordId)
 }
 
 export function updateContent(wordId, laneId, itemId, fields) {

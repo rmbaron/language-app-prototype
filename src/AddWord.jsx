@@ -31,12 +31,22 @@ export default function AddWord({ onBack, onWordAdded }) {
   const activeLang = getActiveLanguage()
   const q          = search.trim().toLowerCase()
 
-  const searchResults = q.length < 1 ? [] : allWords.filter(
-    w =>
+  const searchResults = q.length < 1 ? [] : allWords
+    .filter(w =>
       w.language === activeLang &&
       !bankIds.has(w.id) &&
       (w.baseForm.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
-  ).slice(0, 12)
+    )
+    .sort((a, b) => {
+      const aExact = a.baseForm.toLowerCase() === q
+      const bExact = b.baseForm.toLowerCase() === q
+      if (aExact !== bExact) return aExact ? -1 : 1
+      const aBase = a.baseForm.toLowerCase().includes(q)
+      const bBase = b.baseForm.toLowerCase().includes(q)
+      if (aBase !== bBase) return aBase ? -1 : 1
+      return 0
+    })
+    .slice(0, 12)
 
   function selectWord(word) {
     setSelectedWord(word)

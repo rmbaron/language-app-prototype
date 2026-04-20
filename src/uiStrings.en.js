@@ -242,6 +242,23 @@ export default {
 
   },
 
+  practiceHub: {
+    title:       'Practice',
+    laneReading:   'Read sentences built from your words.',
+    laneWriting:   'Write sentences using your words.',
+    laneListening: 'Listen and respond.',
+    laneSpeaking:  'Say it out loud.',
+    comingSoon:    'Coming soon',
+  },
+
+  readingPractice: {
+    title:       'Reading',
+    generating:  'Generating...',
+    next:        'Next sentence',
+    error:       'Could not generate a sentence. Try again.',
+    noStructures: 'Keep building your word bank to unlock sentences.',
+  },
+
   // Lane-specific practice mechanics.
   // Used by DiscoverWords (and eventually AddWord) when a lane is active.
   // These are foundation strings — the exercise design will evolve these.

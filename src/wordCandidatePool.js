@@ -17,6 +17,7 @@
 //     (e.g. don't recommend "ran" before "run" is established)
 
 import words from './wordData'
+import { getLayerTwo, getLiveSeedWords } from './wordLayerTwo'
 import { getWordBank } from './userStore'
 import { getGrammarNodes, getOpenEndedLimit } from './grammarProgression'
 import { getUnlockedNodeIds } from './grammarStore'
@@ -233,8 +234,11 @@ function scoreWord(word, profile, existingWordIds, boostContext, slotContext, cu
     grammarBoost += boostContext.categoryBoosts.get(word.classifications.grammaticalCategory) ?? 0
   }
 
-  // Words with no signal have no basis to be recommended
-  if (slotBoost === 0 && grammarBoost === 0) return null
+  // Words with no slot or grammar signal are normally excluded —
+  // except words explicitly cleared by the pipeline (contentReady: true),
+  // which are eligible by definition.
+  const isLive = getLayerTwo(word.id)?.contentReady === true
+  if (slotBoost === 0 && grammarBoost === 0 && !isLive) return null
 
   // ── Curriculum boost (paradigm completion + consolidation momentum) ──
   let curriculumBoost = 0
@@ -258,11 +262,12 @@ function scoreWord(word, profile, existingWordIds, boostContext, slotContext, cu
 
 function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
   const activeLang        = profile.expressed.stable.targetLanguage ?? 'en'
-  const boostContext      = buildGrammarBoostContext(existingWordIds, words, activeLang)
-  const slotContext       = buildSlotBoostContext(existingWordIds, words, activeLang)
-  const curriculumContext = getCurriculumBoosts(existingWordIds, words, activeLang)
+  const allWords          = [...words, ...getLiveSeedWords(activeLang, new Set(words.map(w => w.id)))]
+  const boostContext      = buildGrammarBoostContext(existingWordIds, allWords, activeLang)
+  const slotContext       = buildSlotBoostContext(existingWordIds, allWords, activeLang)
+  const curriculumContext = getCurriculumBoosts(existingWordIds, allWords, activeLang)
 
-  const candidates = words
+  const candidates = allWords
     .filter(word => word.language === activeLang)
     .map(word => scoreWord(word, profile, existingWordIds, boostContext, slotContext, curriculumContext, steeringParams))
     .filter(Boolean)
@@ -279,8 +284,8 @@ function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
   const nextLevel  = allLevels[currentIdx + 1]
 
   if (nextLevel) {
-    const nextSlotContext = buildSlotBoostContext(existingWordIds, words, activeLang)
-    const nextCandidates  = words
+    const nextSlotContext = buildSlotBoostContext(existingWordIds, allWords, activeLang)
+    const nextCandidates  = allWords
       .filter(word => word.language === activeLang)
       .map(word => scoreWord(word, profile, existingWordIds, boostContext, nextSlotContext, curriculumContext, steeringParams))
       .filter(Boolean)
@@ -289,7 +294,7 @@ function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
   }
 
   // Last resort: all eligible words at a baseline score.
-  return words
+  return allWords
     .filter(word => word.language === activeLang && !existingWordIds.includes(word.id))
     .map(word => ({ word, score: 0.1, source: 'static' }))
 }

@@ -44,14 +44,6 @@ export default {
     "offsetX": 0,
     "offsetY": 0
   },
-  "sentencePhase": {
-    "slotRowTopPct": 67,
-    "floatingWordTopPct": 33,
-    "slotPaddingV": 8,
-    "slotPaddingH": 4,
-    "slotGap": 6,
-    "slotFontSize": 13
-  },
   "timing": {
     "wordArrivesMs": 900,
     "arrivingDurationMs": 3000,

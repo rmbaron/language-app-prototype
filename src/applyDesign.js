@@ -53,14 +53,4 @@ export function applyDesignToDOM(design) {
   s.setProperty('--ced-mic-offset-x', `${design.mic.offsetX ?? 0}px`)
   s.setProperty('--ced-mic-offset-y', `${design.mic.offsetY ?? 0}px`)
 
-  // Sentence phase positions
-  const sp = design.sentencePhase
-  if (sp) {
-    s.setProperty('--ced-sentence-word-top',  `${sp.floatingWordTopPct ?? 33}%`)
-    s.setProperty('--ced-sentence-slots-top', `${sp.slotRowTopPct ?? 67}%`)
-    s.setProperty('--ced-slot-padding-v',     `${sp.slotPaddingV ?? 8}px`)
-    s.setProperty('--ced-slot-padding-h',     `${sp.slotPaddingH ?? 4}px`)
-    s.setProperty('--ced-slot-gap',           `${sp.slotGap ?? 6}px`)
-    s.setProperty('--ced-slot-font-size',     `${sp.slotFontSize ?? 13}px`)
-  }
 }

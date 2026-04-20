@@ -1,0 +1,71 @@
+// Word Layer 1 — basic enrichment cache
+//
+// Stores the minimum the system needs to know about a word:
+//   grammaticalCategory  — what kind of word it is
+//   meaning              — short definition in the interface language
+//   semanticSubtype      — finer semantic grouping (person, place, thing, etc.)
+//   enrichedAt           — timestamp, for debugging / cache inspection
+//
+// Storage: localStorage, keyed per word per language.
+// Shared across users in the same browser for now.
+// Swap to Firestore later without changing the interface above this file.
+//
+// Pre-population: words already in wordData.en.js have their Layer 1
+// data derived from there automatically, so no API call is needed for them.
+
+import allWords from './wordData'
+
+const KEY_PREFIX = 'lapp-l1'
+
+function storageKey(lang, wordId) {
+  return `${KEY_PREFIX}-${lang}-${wordId}`
+}
+
+// ── Read / write ──────────────────────────────────────────────
+
+export function getLayerOne(wordId, lang = 'en') {
+  try   { return JSON.parse(localStorage.getItem(storageKey(lang, wordId)) ?? 'null') }
+  catch { return null }
+}
+
+export function setLayerOne(wordId, lang = 'en', data) {
+  try {
+    localStorage.setItem(storageKey(lang, wordId), JSON.stringify({
+      ...data,
+      enrichedAt: Date.now(),
+    }))
+  } catch { /* storage full — silently skip */ }
+}
+
+export function hasLayerOne(wordId, lang = 'en') {
+  return localStorage.getItem(storageKey(lang, wordId)) !== null
+}
+
+// ── Batch helpers ─────────────────────────────────────────────
+
+// Returns seed words that don't yet have a Layer 1 entry.
+// These are the words the batch processor should enrich next.
+export function getMissingLayerOne(seedWords, lang = 'en') {
+  return seedWords.filter(w => w.language === lang && !hasLayerOne(w.id, lang))
+}
+
+// ── Pre-population from wordData ──────────────────────────────
+//
+// Words already in wordData.en.js have grammaticalCategory and meaning.
+// Pre-populate their Layer 1 entries from there so no API call is needed.
+// Call this once at app start — it's a no-op for words already cached.
+
+export function prePopulateFromWordData(lang = 'en') {
+  const words = allWords.filter(w => w.language === lang)
+  for (const word of words) {
+    if (hasLayerOne(word.id, lang)) continue
+    const cat = word.classifications?.grammaticalCategory
+    if (!cat || !word.meaning) continue
+    setLayerOne(word.id, lang, {
+      grammaticalCategory: cat,
+      meaning:             word.meaning,
+      semanticSubtype:     null,   // will be filled by API if/when needed
+      source:              'wordData',
+    })
+  }
+}

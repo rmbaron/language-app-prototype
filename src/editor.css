@@ -852,9 +852,9 @@
 
 .celestial-sentence-moment {
   position: absolute;
-  top: var(--ced-sentence-slots-top, 67%);
+  top: 67%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(calc(-50% + var(--ced-slots-offset-x, 0px)), var(--ced-slots-offset-y, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -867,9 +867,9 @@
 
 .celestial-floating-word {
   position: absolute;
-  top: var(--ced-sentence-word-top, 33%);
+  top: 33%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(calc(-50% + var(--ced-floating-word-offset-x, 0px)), calc(-50% + var(--ced-floating-word-offset-y, 0px)));
   cursor: pointer;
   text-align: center;
   animation: celestialWordArrive 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
