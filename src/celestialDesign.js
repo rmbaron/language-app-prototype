@@ -15,7 +15,7 @@ export default {
     "opacity": 0.35
   },
   "banner": {
-    "topPx": 40,
+    "topPx": 50,
     "leftOffsetPx": -105,
     "titleFontFamily": null,
     "titleSize": 21,
@@ -43,6 +43,14 @@ export default {
     "sizePx": 56,
     "offsetX": 0,
     "offsetY": 0
+  },
+  "sentencePhase": {
+    "slotRowTopPct": 67,
+    "floatingWordTopPct": 33,
+    "slotPaddingV": 8,
+    "slotPaddingH": 4,
+    "slotGap": 6,
+    "slotFontSize": 13
   },
   "timing": {
     "wordArrivesMs": 900,

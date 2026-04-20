@@ -10,6 +10,7 @@ import allWords from './wordData'
 import LaneStamp from './LaneStamp'
 import FunctionUnlock from './FunctionUnlock'
 import MomentBanner from './MomentBanner'
+import GrammarSlot from './GrammarSlot'
 import celestialDesign from './celestialDesign'
 import { applyDesignToDOM } from './applyDesign'
 
@@ -30,16 +31,24 @@ const STARS = generateStars(180)
 //   writing     — user types the word
 //   listening   — user taps the word to hear it
 //   speaking    — mic materializes; user speaks
+//   sentence    — assembled sentence shown in context; tap to continue
 //   transition  — brief pause between words (placeholder for arrival elements)
 //   done        — final word complete (last word only)
-const PHASES = ['arriving', 'reading_ack', 'writing', 'listening', 'speaking', 'transition', 'done']
+const PHASES = ['arriving', 'reading_ack', 'writing', 'listening', 'speaking', 'sentence', 'transition', 'done']
 
 const LANE_DOTS = ['reading', 'writing', 'listening', 'speaking']
 
-export default function CelestialScreen({ onExit, framed = false, jumpTo = null, onJumpConsumed }) {
+// Font sizes for the ghost row — scales down as word count grows
+function ghostRowFontSize(totalWords, isCurrent) {
+  const bases = [64, 52, 42, 34, 28]
+  const base  = bases[Math.min(totalWords - 1, bases.length - 1)]
+  return isCurrent ? Math.round(base * 1.18) : base
+}
+
+export default function CelestialScreen({ onExit, framed = false, jumpTo = null, onJumpConsumed, sequence: sequenceProp = null, ghostSettings = null }) {
   const s          = getStrings(getInterfaceLanguage())
   const activeLang = getActiveLanguage()
-  const sequence   = getPhase1Sequence(activeLang)
+  const sequence   = sequenceProp ?? getPhase1Sequence(activeLang)
 
   const [wordIndex,    setWordIndex]    = useState(0)
   const [wordArrived,  setWordArrived]  = useState(false)
@@ -49,6 +58,11 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
   const [isPlaying,    setIsPlaying]    = useState(false)
   const [isRecording,  setIsRecording]  = useState(false)
   const [speakError,   setSpeakError]   = useState(null)
+
+  // ── Sentence phase slot state ────────────────────────────────
+  // slotWords: { [slotIndex]: wordId } — which word is in each slot
+  const [slotWords,    setSlotWords]    = useState({})
+  const [openSlot,     setOpenSlot]     = useState(null)  // index of expanded slot picker
 
   // ── Independent display systems ─────────────────────────────
   const [stampLane,    setStampLane]    = useState(null)
@@ -62,6 +76,12 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
 
   const entry  = sequence[wordIndex]
   const word   = allWords.find(w => w.id === entry?.wordId)
+
+  // All words revealed so far (used for grammar slots + ghost row)
+  const revealedWords = sequence
+    .slice(0, wordIndex + 1)
+    .map(e => allWords.find(w => w.id === e.wordId))
+    .filter(Boolean)
 
   function advancePhase() {
     setPhaseIndex(i => Math.min(i + 1, PHASES.length - 1))
@@ -77,6 +97,8 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
     setStampLane(null)
     setUnlockKey(null)
     setBannerPayload(null)
+    setSlotWords({})
+    setOpenSlot(null)
     setPhaseIndex(0)
     setWordIndex(i => i + 1)
   }
@@ -99,6 +121,8 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
     setSpeakError(null)
     setStampLane(null)
     setUnlockKey(null)
+    setSlotWords({})
+    setOpenSlot(null)
     setBannerPayload(jumpTo.wordIndex === 0 ? { title: s.celestial.firstWord } : null)
     setWordIndex(jumpTo.wordIndex)
     setPhaseIndex(targetPhaseIndex)
@@ -139,6 +163,9 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
     const t = setTimeout(() => writingRef.current?.focus(), 350)
     return () => clearTimeout(t)
   }, [currentPhase, wordIndex])
+
+  // ── Sentence: tap to advance ─────────────────────────────────
+  // (no auto-advance — the learner controls when to move on)
 
   // ── Transition: brief pause, then advance to next word ───────
   useEffect(() => {
@@ -254,31 +281,82 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
         />
       )}
 
+      {/* Grammar slots — positioned absolutely in celestial space */}
+      {(() => {
+        const slots = entry?.grammarSlots ?? []
+        if (!slots.length) return null
+        return slots.map(slot => {
+          const available = revealedWords.filter(w => w.classifications?.grammaticalCategory === slot.category)
+          return (
+            <GrammarSlot
+              key={slot.id}
+              category={slot.category}
+              words={available}
+              x={slot.x}
+              y={slot.y}
+              scale={slot.scale ?? 1}
+            />
+          )
+        })
+      })()}
+
       <div className="celestial-content">
 
-        {/* Word — stays central. Tappable during listening. Hidden in transition. */}
-        {currentPhase !== 'transition' && (
+        {/* Word — centered. Ghost mode shows all revealed words in a row. */}
+        {currentPhase !== 'transition' && currentPhase !== 'sentence' && (
           <div className="ced-word-positioner">
-            <div
-              className={[
-                'celestial-word-wrap',
-                wordArrived                  ? 'celestial-word-wrap--arrived'  : '',
-                currentPhase === 'listening' ? 'celestial-word-wrap--tappable' : '',
-                isPlaying                    ? 'celestial-word-wrap--playing'  : '',
-                writingMatch                 ? 'celestial-word-wrap--matched'  : '',
-              ].filter(Boolean).join(' ')}
-              onClick={handleWordTap}
-            >
-              <p className="celestial-word">{word.baseForm}</p>
-              {currentPhase === 'arriving' && wordArrived && (
-                <p className="celestial-meaning">{word.meaning}</p>
-              )}
-            </div>
+            {ghostSettings?.enabled ? (
+              // Ghost row: all revealed words at once so you can see accumulation
+              <div className={`celestial-ghost-row${ghostSettings.wrap ? ' celestial-ghost-row--wrap' : ''}`}>
+                {revealedWords.map((rw, ri) => {
+                  const isCurrent = ri === wordIndex
+                  const fs = ghostRowFontSize(revealedWords.length, isCurrent)
+                  return (
+                    <div
+                      key={rw.id}
+                      className={[
+                        'celestial-ghost-item',
+                        isCurrent ? 'celestial-ghost-item--current' : 'celestial-ghost-item--past',
+                        isCurrent && currentPhase === 'listening' ? 'celestial-word-wrap--tappable' : '',
+                        isCurrent && isPlaying   ? 'celestial-word-wrap--playing'  : '',
+                        isCurrent && writingMatch ? 'celestial-word-wrap--matched'  : '',
+                      ].filter(Boolean).join(' ')}
+                      style={{ '--ghost-opacity': isCurrent ? 1 : ghostSettings.opacity }}
+                      onClick={isCurrent ? handleWordTap : undefined}
+                    >
+                      <p className="celestial-ghost-word" style={{ fontSize: `${fs}px` }}>
+                        {rw.baseForm}
+                      </p>
+                      {isCurrent && currentPhase === 'arriving' && wordArrived && (
+                        <p className="celestial-meaning">{rw.meaning}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              // Normal: single word centered
+              <div
+                className={[
+                  'celestial-word-wrap',
+                  wordArrived                  ? 'celestial-word-wrap--arrived'  : '',
+                  currentPhase === 'listening' ? 'celestial-word-wrap--tappable' : '',
+                  isPlaying                    ? 'celestial-word-wrap--playing'  : '',
+                  writingMatch                 ? 'celestial-word-wrap--matched'  : '',
+                ].filter(Boolean).join(' ')}
+                onClick={handleWordTap}
+              >
+                <p className="celestial-word">{word.baseForm}</p>
+                {currentPhase === 'arriving' && wordArrived && (
+                  <p className="celestial-meaning">{word.meaning}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Lane progress dots — appear from writing onward, hide in transition/done */}
-        {phaseIndex >= 2 && currentPhase !== 'transition' && currentPhase !== 'done' && (
+        {phaseIndex >= 2 && currentPhase !== 'transition' && currentPhase !== 'sentence' && currentPhase !== 'done' && (
           <div className="celestial-dots">
             {LANE_DOTS.map(lane => (
               <div
@@ -337,6 +415,125 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
             )}
           </div></div>
         )}
+
+        {/* Sentence — floating word + grammar slot row */}
+        {currentPhase === 'sentence' && (() => {
+          const structure   = entry?.sentenceStructure ?? []
+          const requiredId  = entry?.requiredWordId
+
+          // Build slot→wordId map: authored default, overridden by learner swaps
+          const currentSlotWords = structure.map((slot, i) =>
+            slotWords[i] !== undefined ? slotWords[i] : slot.wordId
+          )
+
+          // Learner has placed the required word in at least one slot
+          const requiredPlaced = currentSlotWords.includes(requiredId)
+
+          // Words available for a given category (all revealed so far)
+          function optionsFor(category) {
+            return revealedWords.filter(w => w.classifications?.grammaticalCategory === category)
+          }
+
+          function handleSlotTap(i) {
+            const opts = optionsFor(structure[i].category)
+            if (opts.length <= 1) return  // nothing to swap
+            setOpenSlot(prev => prev === i ? null : i)
+          }
+
+          function handleWordPick(slotIndex, wordId) {
+            setSlotWords(prev => ({ ...prev, [slotIndex]: wordId }))
+            setOpenSlot(null)
+          }
+
+          // Find the slot index the required word belongs in (by category)
+          const requiredWord      = allWords.find(w => w.id === requiredId)
+          const requiredCategory  = requiredWord?.classifications?.grammaticalCategory
+          const requiredSlotIndex = structure.findIndex(sl => sl.category === requiredCategory)
+
+          // Is the required word currently floating (not yet placed in its slot)?
+          const isFloating = !requiredPlaced
+
+          function handleFloatingWordTap() {
+            if (requiredSlotIndex < 0) return
+            setSlotWords(prev => ({ ...prev, [requiredSlotIndex]: requiredId }))
+            setOpenSlot(null)
+          }
+
+          return (
+            <>
+              {/* Floating word — position set via --ced-sentence-word-top CSS var */}
+              {isFloating && requiredWord && (
+                <div
+                  className="celestial-floating-word"
+                  onClick={handleFloatingWordTap}
+                >
+                  <p className="celestial-floating-word-text">{requiredWord.baseForm}</p>
+                </div>
+              )}
+
+              {/* Slot row — position set via --ced-sentence-slots-top CSS var */}
+              <div className="celestial-sentence-moment">
+                <div className="celestial-slot-row">
+                  {structure.map((slot, i) => {
+                    const filledId      = currentSlotWords[i]
+                    const filledWord    = allWords.find(w => w.id === filledId)
+                    const isRequired    = filledId === requiredId
+                    const hasOptions    = optionsFor(slot.category).length > 1
+                    const isOpen        = openSlot === i
+                    const isTargetSlot  = i === requiredSlotIndex && isFloating
+
+                    return (
+                      <div key={i} className="celestial-slot-wrap">
+                        <div
+                          className={[
+                            'celestial-slot',
+                            isRequired   ? 'celestial-slot--required'   : '',
+                            hasOptions   ? 'celestial-slot--swappable'  : '',
+                            isOpen       ? 'celestial-slot--open'       : '',
+                            isTargetSlot ? 'celestial-slot--awaiting'   : '',
+                          ].filter(Boolean).join(' ')}
+                          onClick={() => handleSlotTap(i)}
+                        >
+                          <span className="celestial-slot-role">
+                            {s.celestial.roles[slot.role] ?? slot.role}
+                          </span>
+                          <span className="celestial-slot-word">
+                            {filledWord?.baseForm ?? '?'}
+                          </span>
+                          {hasOptions && !isTargetSlot && (
+                            <span className="celestial-slot-swap-hint">
+                              {isOpen ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+
+                        {isOpen && (
+                          <div className="celestial-slot-picker">
+                            {optionsFor(slot.category).map(opt => (
+                              <button
+                                key={opt.id}
+                                className={`celestial-slot-option${opt.id === filledId ? ' celestial-slot-option--active' : ''}`}
+                                onClick={() => handleWordPick(i, opt.id)}
+                              >
+                                {opt.baseForm}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {requiredPlaced && (
+                  <button className="celestial-slot-continue" onClick={advancePhase}>
+                    {s.celestial.tapToContinue}
+                  </button>
+                )}
+              </div>
+            </>
+          )
+        })()}
 
         {/* Transition — placeholder for inter-word arrival elements */}
         {currentPhase === 'transition' && (

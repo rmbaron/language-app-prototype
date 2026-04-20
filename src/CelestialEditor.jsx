@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import celestialDesign from './celestialDesign'
 import { applyDesignToDOM } from './applyDesign'
 import { getPhase1Sequence } from './phase1Sequence'
-import { getActiveLanguage } from './learnerProfile'
+import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
+import { getStrings } from './uiStrings'
 import allWords from './wordData'
+import GrammarSlot from './GrammarSlot'
 
 const FONTS = [
   { name: null,                 label: 'Default'           },
@@ -28,8 +30,18 @@ const WEIGHTS = [
   { value: 900, label: 'Black'   },
 ]
 
+// Grammatical categories available for grammar slots
+const SLOT_CATEGORIES = [
+  'pronoun', 'verb', 'noun', 'adjective',
+  'adverb', 'conjunction', 'preposition',
+  'determiner', 'interjection', 'interrogative', 'demonstrative',
+]
+
 // Maps a clicked Celestial element to an editor section key
 const ELEMENT_SECTION_MAP = [
+  { selector: '.celestial-slot',       section: 'sentencePhase'  },  // sentence phase boxes
+  { selector: '.celestial-floating-word', section: 'sentencePhase' }, // floating word
+  { selector: '.grammar-slot',         section: 'grammarSlots'   },
   { selector: '.celestial-word-wrap',  section: 'word'           },
   { selector: '.celestial-meaning',    section: 'meaning'        },
   { selector: '.moment-banner',        section: 'banner'         },
@@ -38,21 +50,53 @@ const ELEMENT_SECTION_MAP = [
   { selector: '.celestial-mic-wrap',   section: 'mic'            },
 ]
 
-export default function CelestialEditor({ workspace = false, onJumpTo }) {
-  const [open,      setOpen]      = useState(true)   // start open in workspace mode
+// Lane phases that have sentence content
+const LANE_PHASES = ['arriving', 'reading_ack', 'writing', 'listening', 'speaking']
+const PHASE_TO_LANE = {
+  arriving:    'reading',
+  reading_ack: 'reading',
+  writing:     'writing',
+  listening:   'listening',
+  speaking:    'speaking',
+  sentence:    null,
+  transition:  null,
+}
+
+let _nextSlotId = 1
+function newSlotId() { return `slot-${_nextSlotId++}` }
+
+const DEFAULT_GHOST = { enabled: false, opacity: 0.25, wrap: false }
+
+export default function CelestialEditor({ workspace = false, onJumpTo, onSequenceChange, onGhostChange }) {
+  const [open,      setOpen]      = useState(true)
   const [design,    setDesign]    = useState(() => structuredClone(celestialDesign))
   const [saving,    setSaving]    = useState(false)
   const [saved,     setSaved]     = useState(false)
-  const [flashKey,  setFlashKey]  = useState({})   // { sectionKey: counter } triggers re-flash
+  const [seqSaving, setSeqSaving] = useState(false)
+  const [seqSaved,  setSeqSaved]  = useState(false)
+  const [flashKey,  setFlashKey]  = useState({})
+  const [ghost,     setGhost]     = useState(DEFAULT_GHOST)
 
-  // Stage navigator state — tracks which word+phase is selected
+  // Stage navigator state
   const [navWordIndex, setNavWordIndex] = useState(0)
   const [navPhase,     setNavPhase]     = useState('arriving')
 
+  // Editable sequence — local working copy
   const activeLang = getActiveLanguage()
-  const sequence   = getPhase1Sequence(activeLang)
+  const s          = getStrings(getInterfaceLanguage())
+  const [sequence, setSequence] = useState(() => structuredClone(getPhase1Sequence(activeLang)))
 
   const sectionRefs = useRef({})
+
+  // Propagate sequence changes to CelestialScreen immediately (live preview)
+  useEffect(() => {
+    onSequenceChange?.(sequence)
+  }, [sequence])
+
+  // Propagate ghost settings live
+  useEffect(() => {
+    onGhostChange?.(ghost.enabled ? ghost : null)
+  }, [ghost])
 
   // E key toggles the panel
   useEffect(() => {
@@ -65,7 +109,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Click-to-select: when editor is open, clicks on Celestial elements scroll + flash the section
+  // Click-to-select: clicks on Celestial elements scroll + flash the section
   useEffect(() => {
     if (!open) return
     function handleClick(e) {
@@ -82,6 +126,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
     return () => document.removeEventListener('click', handleClick, true)
   }, [open])
 
+  // ── Design update helpers ────────────────────────────────────
   function update(path, value) {
     setDesign(prev => {
       const next = structuredClone(prev)
@@ -104,7 +149,75 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
     })
   }
 
-  async function save() {
+  // ── Sequence update helpers ──────────────────────────────────
+  function updateEntry(wordIndex, updater) {
+    setSequence(prev => {
+      const next = structuredClone(prev)
+      updater(next[wordIndex])
+      return next
+    })
+  }
+
+  function updateSentence(wordIndex, lane, sentenceIndex, text) {
+    updateEntry(wordIndex, entry => {
+      entry.sentences[lane][sentenceIndex] = { text }
+    })
+  }
+
+  function addSentence(wordIndex, lane) {
+    updateEntry(wordIndex, entry => {
+      if (!entry.sentences[lane]) entry.sentences[lane] = []
+      entry.sentences[lane].push({ text: '___.' })
+    })
+  }
+
+  function removeSentence(wordIndex, lane, sentenceIndex) {
+    updateEntry(wordIndex, entry => {
+      entry.sentences[lane].splice(sentenceIndex, 1)
+    })
+  }
+
+  function updateFunctionUnlocked(wordIndex, value) {
+    updateEntry(wordIndex, entry => { entry.functionUnlocked = value })
+  }
+
+  // ── Grammar slot helpers ─────────────────────────────────────
+  function addSlot(wordIndex, category) {
+    updateEntry(wordIndex, entry => {
+      if (!entry.grammarSlots) entry.grammarSlots = []
+      entry.grammarSlots.push({ id: newSlotId(), category, x: 50, y: 50 })
+    })
+  }
+
+  function removeSlot(wordIndex, slotId) {
+    updateEntry(wordIndex, entry => {
+      entry.grammarSlots = entry.grammarSlots.filter(s => s.id !== slotId)
+    })
+  }
+
+  function nudgeSlot(wordIndex, slotId, axis, delta) {
+    updateEntry(wordIndex, entry => {
+      const slot = entry.grammarSlots.find(s => s.id === slotId)
+      if (slot) slot[axis] = Math.round(Math.max(0, Math.min(100, slot[axis] + delta)) * 10) / 10
+    })
+  }
+
+  function nudgeSlotScale(wordIndex, slotId, delta) {
+    updateEntry(wordIndex, entry => {
+      const slot = entry.grammarSlots.find(s => s.id === slotId)
+      if (slot) slot.scale = Math.round(Math.max(0.3, Math.min(3, (slot.scale ?? 1) + delta)) * 10) / 10
+    })
+  }
+
+  function updateSlotCategory(wordIndex, slotId, category) {
+    updateEntry(wordIndex, entry => {
+      const slot = entry.grammarSlots.find(s => s.id === slotId)
+      if (slot) slot.category = category
+    })
+  }
+
+  // ── Save ─────────────────────────────────────────────────────
+  async function saveDesign() {
     setSaving(true)
     try {
       const res = await fetch('/__celestial-design', {
@@ -120,6 +233,23 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
     setSaving(false)
   }
 
+  async function saveSequence() {
+    setSeqSaving(true)
+    try {
+      const res = await fetch('/__phase1-sequence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sequence),
+      })
+      if (res.ok) {
+        setSeqSaved(true)
+        setTimeout(() => setSeqSaved(false), 2000)
+      }
+    } catch {}
+    setSeqSaving(false)
+  }
+
+  // ── Stage navigator ──────────────────────────────────────────
   function jumpTo(wordIndex, phase) {
     setNavWordIndex(wordIndex)
     setNavPhase(phase)
@@ -128,6 +258,21 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
 
   function reg(key) {
     return el => { sectionRefs.current[key] = el }
+  }
+
+  // Current entry / word for stage-aware sections
+  const currentEntry  = sequence[navWordIndex]
+  const currentWord   = allWords.find(w => w.id === currentEntry?.wordId)
+  const currentLane   = PHASE_TO_LANE[navPhase] ?? null
+
+  // Words revealed up to and including navWordIndex (for slot preview)
+  const revealedWords = sequence
+    .slice(0, navWordIndex + 1)
+    .map(e => allWords.find(w => w.id === e.wordId))
+    .filter(Boolean)
+
+  function copy(text) {
+    navigator.clipboard?.writeText(text).catch(() => {})
   }
 
   return (
@@ -142,7 +287,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
         <div className={workspace ? 'ced-panel ced-panel--workspace' : 'ced-panel'}>
           <div className="ced-header">Celestial Editor{workspace ? ' — click any element' : ''}</div>
 
-          {/* Stage navigator — word chips + transition chips */}
+          {/* Stage navigator */}
           <div className="ced-stage-nav">
             {sequence.map((entry, i) => {
               const wordObj = allWords.find(w => w.id === entry.wordId)
@@ -173,14 +318,166 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
             })}
           </div>
 
+          {/* Phase buttons for current word */}
+          <div className="ced-phase-nav">
+            {['arriving','writing','listening','speaking','sentence','transition'].map(ph => (
+              <button
+                key={ph}
+                className={`ced-phase-btn${navPhase === ph || (ph === 'arriving' && navPhase === 'reading_ack') ? ' ced-phase-btn--active' : ''}`}
+                onClick={() => jumpTo(navWordIndex, ph)}
+              >
+                {ph}
+              </button>
+            ))}
+          </div>
+
           <div className="ced-body">
 
+            {/* ── Word accumulation preview ──────────────────── */}
+            <Section label="Word accumulation preview">
+              <Row label="show all">
+                <button
+                  className={`ced-ghost-toggle${ghost.enabled ? ' ced-ghost-toggle--on' : ''}`}
+                  onClick={() => setGhost(g => ({ ...g, enabled: !g.enabled }))}
+                >
+                  {ghost.enabled ? 'on' : 'off'}
+                </button>
+              </Row>
+              {ghost.enabled && (
+                <>
+                  <Row label="past opacity">
+                    <div className="ced-slider-wrap">
+                      <input
+                        className="ced-slider"
+                        type="range" min={0} max={1} step={0.05}
+                        value={ghost.opacity}
+                        onChange={e => setGhost(g => ({ ...g, opacity: Number(e.target.value) }))}
+                      />
+                      <span className="ced-slider-val">{ghost.opacity.toFixed(2)}</span>
+                    </div>
+                  </Row>
+                  <Row label="wrap">
+                    <button
+                      className={`ced-ghost-toggle${ghost.wrap ? ' ced-ghost-toggle--on' : ''}`}
+                      onClick={() => setGhost(g => ({ ...g, wrap: !g.wrap }))}
+                    >
+                      {ghost.wrap ? 'wrap' : 'single line'}
+                    </button>
+                  </Row>
+                  <div className="ced-ghost-hint">
+                    Jump to word 4 or 5 to see accumulation
+                  </div>
+                </>
+              )}
+            </Section>
+
+            {/* ── Stage Content ──────────────────────────────── */}
+            <Section label={`Stage Content — "${currentWord?.baseForm ?? '?'}" · ${currentLane ?? navPhase}`} sectionRef={reg('stageContent')} flash={flashKey.stageContent}>
+              <div className="ced-content-row">
+                <span className="ced-content-label">word</span>
+                <span className="ced-content-value">{currentWord?.baseForm ?? '—'}</span>
+                <button className="ced-copy-btn" onClick={() => copy(currentWord?.baseForm ?? '')}>copy</button>
+              </div>
+              <div className="ced-content-row">
+                <span className="ced-content-label">meaning</span>
+                <span className="ced-content-value ced-content-value--muted">{currentWord?.meaning ?? '—'}</span>
+                <button className="ced-copy-btn" onClick={() => copy(currentWord?.meaning ?? '')}>copy</button>
+              </div>
+              <div className="ced-content-row">
+                <span className="ced-content-label">unlock</span>
+                <input
+                  className="ced-content-input"
+                  value={currentEntry?.functionUnlocked ?? ''}
+                  onChange={e => updateFunctionUnlocked(navWordIndex, e.target.value)}
+                />
+                <button className="ced-copy-btn" onClick={() => copy(currentEntry?.functionUnlocked ?? '')}>copy</button>
+              </div>
+
+              {/* Sentences for current lane */}
+              {currentLane && (
+                <div className="ced-sentences">
+                  <div className="ced-sentences-label">{currentLane} sentences</div>
+                  {(currentEntry?.sentences?.[currentLane] ?? []).map((s, si) => (
+                    <div key={si} className="ced-sentence-row">
+                      <input
+                        className="ced-sentence-input"
+                        value={s.text}
+                        onChange={e => updateSentence(navWordIndex, currentLane, si, e.target.value)}
+                      />
+                      <button className="ced-copy-btn" onClick={() => copy(s.text)}>copy</button>
+                      <button className="ced-remove-btn" onClick={() => removeSentence(navWordIndex, currentLane, si)}>×</button>
+                    </div>
+                  ))}
+                  <button className="ced-add-btn" onClick={() => addSentence(navWordIndex, currentLane)}>+ sentence</button>
+                </div>
+              )}
+            </Section>
+
+            {/* ── Grammar Slots ──────────────────────────────── */}
+            <Section label={`Grammar Slots — "${currentWord?.baseForm ?? '?'}"`} sectionRef={reg('grammarSlots')} flash={flashKey.grammarSlots}>
+              {(currentEntry?.grammarSlots ?? []).map(slot => {
+                const available = revealedWords.filter(w => w.classifications?.grammaticalCategory === slot.category)
+                return (
+                  <div key={slot.id} className="ced-slot-row">
+                    <div className="ced-slot-top">
+                      <select
+                        className="ced-slot-cat"
+                        value={slot.category}
+                        onChange={e => updateSlotCategory(navWordIndex, slot.id, e.target.value)}
+                      >
+                        {SLOT_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{s.common.categories[cat] ?? cat}</option>
+                        ))}
+                      </select>
+                      <span className="ced-slot-count">{available.length} word{available.length !== 1 ? 's' : ''}</span>
+                      <button className="ced-remove-btn" onClick={() => removeSlot(navWordIndex, slot.id)}>×</button>
+                    </div>
+                    <div className="ced-slot-pos">
+                      <SlotAxisNudge
+                        axis="y"
+                        value={slot.y}
+                        onDec={() => nudgeSlot(navWordIndex, slot.id, 'y', -1)}
+                        onInc={() => nudgeSlot(navWordIndex, slot.id, 'y', +1)}
+                      />
+                      <SlotAxisNudge
+                        axis="x"
+                        value={slot.x}
+                        onDec={() => nudgeSlot(navWordIndex, slot.id, 'x', -1)}
+                        onInc={() => nudgeSlot(navWordIndex, slot.id, 'x', +1)}
+                      />
+                      <SlotAxisNudge
+                        axis="size"
+                        value={slot.scale ?? 1}
+                        display={`${((slot.scale ?? 1) * 100).toFixed(0)}%`}
+                        onDec={() => nudgeSlotScale(navWordIndex, slot.id, -0.1)}
+                        onInc={() => nudgeSlotScale(navWordIndex, slot.id, +0.1)}
+                      />
+                    </div>
+                    {/* Inline preview */}
+                    <div className="ced-slot-preview">
+                      <GrammarSlot
+                        category={slot.category}
+                        words={available}
+                        x={0} y={0}
+                        editorMode
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+              <AddSlotRow onAdd={cat => addSlot(navWordIndex, cat)} categories={SLOT_CATEGORIES} strings={s} />
+            </Section>
+
+            {/* ── Save sequence ──────────────────────────────── */}
+            <div className="ced-seq-save-row">
+              <button className="ced-save ced-save--inline" onClick={saveSequence} disabled={seqSaving}>
+                {seqSaving ? 'Saving…' : seqSaved ? '✓ Saved' : 'Save sequence to file'}
+              </button>
+            </div>
+
+            {/* ── Visual design sections ─────────────────────── */}
             <Section label="Word" sectionRef={reg('word')} flash={flashKey.word}>
-              <FontRow
-                label="font"
-                value={design.word.fontFamily}
-                onChange={v => update(['word', 'fontFamily'], v)}
-              />
+              <FontRow label="font" value={design.word.fontFamily} onChange={v => update(['word', 'fontFamily'], v)} />
               <Row label="size">
                 <Stepper value={design.word.fontSize} onChange={v => update(['word', 'fontSize'], v)} min={8} max={200} step={2} />
               </Row>
@@ -200,11 +497,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
             </Section>
 
             <Section label="Meaning" sectionRef={reg('meaning')} flash={flashKey.meaning}>
-              <FontRow
-                label="font"
-                value={design.meaning.fontFamily}
-                onChange={v => update(['meaning', 'fontFamily'], v)}
-              />
+              <FontRow label="font" value={design.meaning.fontFamily} onChange={v => update(['meaning', 'fontFamily'], v)} />
               <Row label="size">
                 <Stepper value={design.meaning.fontSize} onChange={v => update(['meaning', 'fontSize'], v)} min={8} max={80} step={1} />
               </Row>
@@ -216,8 +509,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
             <Section label="Banner" sectionRef={reg('banner')} flash={flashKey.banner}>
               <Row label="position">
                 <PositionNudge
-                  top={design.banner.topPx}
-                  left={design.banner.leftOffsetPx}
+                  top={design.banner.topPx} left={design.banner.leftOffsetPx}
                   onTop={d => nudge(['banner', 'topPx'], d)}
                   onLeft={d => nudge(['banner', 'leftOffsetPx'], d)}
                 />
@@ -290,6 +582,51 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
               </Row>
             </Section>
 
+            <Section label="Sentence Phase" sectionRef={reg('sentencePhase')} flash={flashKey.sentencePhase}>
+              <Row label="word top %">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'floatingWordTopPct'], -1)}>↑</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.floatingWordTopPct}%</span>
+                  <button onClick={() => nudge(['sentencePhase', 'floatingWordTopPct'], +1)}>↓</button>
+                </div>
+              </Row>
+              <Row label="slots top %">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'slotRowTopPct'], -1)}>↑</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.slotRowTopPct}%</span>
+                  <button onClick={() => nudge(['sentencePhase', 'slotRowTopPct'], +1)}>↓</button>
+                </div>
+              </Row>
+              <Row label="box padding ↕">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingV'], -1)}>−</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.slotPaddingV ?? 8}px</span>
+                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingV'], +1)}>+</button>
+                </div>
+              </Row>
+              <Row label="box padding ↔">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingH'], -1)}>−</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.slotPaddingH ?? 4}px</span>
+                  <button onClick={() => nudge(['sentencePhase', 'slotPaddingH'], +1)}>+</button>
+                </div>
+              </Row>
+              <Row label="box gap">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'slotGap'], -1)}>−</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.slotGap ?? 6}px</span>
+                  <button onClick={() => nudge(['sentencePhase', 'slotGap'], +1)}>+</button>
+                </div>
+              </Row>
+              <Row label="box font">
+                <div className="ced-stepper">
+                  <button onClick={() => nudge(['sentencePhase', 'slotFontSize'], -1)}>−</button>
+                  <span className="ced-stepper-val">{design.sentencePhase.slotFontSize ?? 13}px</span>
+                  <button onClick={() => nudge(['sentencePhase', 'slotFontSize'], +1)}>+</button>
+                </div>
+              </Row>
+            </Section>
+
             <Section label="Timing — save + reload" sectionRef={reg('timing')} flash={flashKey.timing}>
               <Row label="word arrives ms">
                 <NumInput value={design.timing.wordArrivesMs} onChange={v => update(['timing', 'wordArrivesMs'], Number(v))} min={0} />
@@ -310,12 +647,50 @@ export default function CelestialEditor({ workspace = false, onJumpTo }) {
 
           </div>
 
-          <button className="ced-save" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save to file'}
+          <button className="ced-save" onClick={saveDesign} disabled={saving}>
+            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save design to file'}
           </button>
         </div>
       )}
     </>
+  )
+}
+
+// ── AddSlotRow ───────────────────────────────────────────────
+
+function AddSlotRow({ onAdd, categories, strings: s }) {
+  const [selectedCat, setSelectedCat] = useState(categories[0])
+  return (
+    <div className="ced-add-slot-row">
+      <select
+        className="ced-slot-cat"
+        value={selectedCat}
+        onChange={e => setSelectedCat(e.target.value)}
+      >
+        {categories.map(cat => (
+          <option key={cat} value={cat}>{s.common.categories[cat] ?? cat}</option>
+        ))}
+      </select>
+      <button className="ced-add-btn" onClick={() => onAdd(selectedCat)}>+ add slot</button>
+    </div>
+  )
+}
+
+// ── SlotAxisNudge ─────────────────────────────────────────────
+// axis: 'x' | 'y' | 'size'
+// For x/y: dec = ← / ↑, inc = → / ↓. For size: − / +.
+
+function SlotAxisNudge({ axis, value, display, onDec, onInc }) {
+  const decLabel = axis === 'y' ? '↑' : axis === 'x' ? '←' : '−'
+  const incLabel = axis === 'y' ? '↓' : axis === 'x' ? '→' : '+'
+  const shown    = display ?? `${value}%`
+  return (
+    <div className="ced-slot-nudge">
+      <span className="ced-slot-nudge-label">{axis}</span>
+      <button className="ced-nudge-btn" onClick={onDec}>{decLabel}</button>
+      <span className="ced-slot-nudge-val">{shown}</span>
+      <button className="ced-nudge-btn" onClick={onInc}>{incLabel}</button>
+    </div>
   )
 }
 
@@ -325,11 +700,10 @@ function Section({ label, sectionRef, flash, children }) {
   const key   = flash ?? 0
   const elRef = useRef(null)
 
-  // Re-trigger flash animation each time flash counter increments
   useEffect(() => {
     if (!key || !elRef.current) return
     elRef.current.classList.remove('ced-section--flash')
-    void elRef.current.offsetWidth  // force reflow
+    void elRef.current.offsetWidth
     elRef.current.classList.add('ced-section--flash')
   }, [key])
 
@@ -385,7 +759,6 @@ function _hideGuide() {
 }
 
 function PositionNudge({ top, left, x, y, onTop, onLeft, onX, onY, step = 5 }) {
-  // Supports two modes: banner (top/left absolute) or element (x/y offset)
   const isOffset = onX !== undefined
   const vVal  = isOffset ? y   : top
   const hVal  = isOffset ? x   : left

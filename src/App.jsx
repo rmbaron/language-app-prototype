@@ -31,6 +31,8 @@ export default function App() {
   const [flashcardOpen, setFlashcardOpen]     = useState(false)
   const [celestialOpen, setCelestialOpen]     = useState(false)
   const [celestialJump, setCelestialJump]     = useState(null)
+  const [editorSequence, setEditorSequence]   = useState(null)
+  const [ghostSettings, setGhostSettings]     = useState(null)
   const [activeCappedAlert, setActiveCappedAlert] = useState(false)
 
   useEffect(() => {
@@ -67,9 +69,11 @@ export default function App() {
             framed
             jumpTo={celestialJump}
             onJumpConsumed={() => setCelestialJump(null)}
+            sequence={editorSequence}
+            ghostSettings={ghostSettings}
           />
         </div>
-        <CelestialEditor workspace onJumpTo={setCelestialJump} />
+        <CelestialEditor workspace onJumpTo={setCelestialJump} onSequenceChange={setEditorSequence} onGhostChange={setGhostSettings} />
       </div>
     )
   }

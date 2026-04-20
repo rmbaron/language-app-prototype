@@ -222,10 +222,23 @@ export default {
       name_water:       'You can ask for water.',
     },
 
-    tapToHear:     'tap to hear',
-    speakIt:       'say it',
-    bannerDismiss: '×',
-    devSpeakDone:  '✓ mark done',
+    tapToHear:      'tap to hear',
+    speakIt:        'say it',
+    bannerDismiss:  '×',
+    devSpeakDone:   '✓ mark done',
+    tapToContinue:  'tap to continue',
+    useNewWord:     'place the new word to continue',
+
+    // Syntactic roles shown in the sentence phase slot labels
+    roles: {
+      subject:   'Subject',
+      verb:      'Verb',
+      object:    'Object',
+      modifier:  'Modifier',
+      connector: 'Connector',
+      greeting:  'Greeting',
+      response:  'Response',
+    },
 
   },
 
