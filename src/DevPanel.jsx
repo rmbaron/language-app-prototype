@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react'
-import words from './wordData'
+import { getAllWords } from './wordRegistry'
 import { LANES } from './lanes'
 import { THRESHOLD, loadState, resetWord, resetAllProgress, resetAll, getWordBank } from './userStore'
-import {
-  loadGrammarState, resetGrammarState, GRAMMAR_PASS_THRESHOLD,
-  graduateNodesInStage, resetNodesInStage, getUnlockedNodeIds,
-} from './grammarStore'
-import { getGrammarNodes } from './grammarProgression'
 import { getContentIndex } from './contentStore'
 import { loadProfile, resetProfile, getActiveLanguage, getCefrLevel } from './learnerProfile'
 import { getSlotCoverage, getCurrentSubLevel } from './cefrLevels'
@@ -51,14 +46,8 @@ export default function DevPanel({ onReset }) {
 
   function handleResetAll() {
     resetAll()
-    resetGrammarState()
     forceUpdate(n => n + 1)
     onReset()
-  }
-
-  function handleResetGrammar() {
-    resetGrammarState()
-    forceUpdate(n => n + 1)
   }
 
   function handleResetProfile() {
@@ -66,14 +55,9 @@ export default function DevPanel({ onReset }) {
     forceUpdate(n => n + 1)
   }
 
-  // ── Grammar tab data ──────────────────────────────────────────
-  const grammarNodes  = getGrammarNodes()
   const wordBankIds   = getWordBank()
   const activeLang    = getActiveLanguage()
-  const gs            = loadGrammarState()
-  const graduatedSet  = new Set(gs.graduatedNodes)
-  const unlockedSet   = new Set(getUnlockedNodeIds(wordBankIds, words, activeLang))
-  const stages        = [...new Set(grammarNodes.map(n => n.stage).filter(Boolean))].sort((a, b) => a - b)
+  const allWords      = getAllWords(activeLang)
 
   return (
     <div className="dev-panel">
@@ -86,12 +70,6 @@ export default function DevPanel({ onReset }) {
           onClick={() => setTab('general')}
         >
           General
-        </button>
-        <button
-          className={`dev-tab ${tab === 'grammar' ? 'dev-tab--active' : ''}`}
-          onClick={() => setTab('grammar')}
-        >
-          Grammar
         </button>
       </div>
 
@@ -129,7 +107,7 @@ export default function DevPanel({ onReset }) {
             <span className="dev-profile-val">{getCefrLevel() ?? '—'}</span>
             <span className="dev-profile-key">sub-level</span>
             <span className="dev-profile-val">
-              {getCurrentSubLevel(getCefrLevel() ?? 'A1', wordBankIds, words, activeLang) ?? '—'}
+              {getCurrentSubLevel(getCefrLevel() ?? 'A1', wordBankIds, allWords, activeLang) ?? '—'}
             </span>
             <span className="dev-profile-key">personalization</span>
             <span className="dev-profile-val">{profile.expressed.preferences.personalizationLevel ?? '—'}</span>
@@ -150,7 +128,7 @@ export default function DevPanel({ onReset }) {
         {/* Collapsible: CEFR Slot Coverage */}
         {(() => {
           const cefrLevel = getCefrLevel() ?? 'A1'
-          const slotCov   = getSlotCoverage(cefrLevel, wordBankIds, words, activeLang)
+          const slotCov   = getSlotCoverage(cefrLevel, wordBankIds, allWords, activeLang)
           const covered   = slotCov.filter(s => s.covered).length
           return (
             <div className="dev-section">
@@ -189,7 +167,7 @@ export default function DevPanel({ onReset }) {
           <button className="dev-collapse-title" onClick={() => toggle('contentStore')}>
             — System: Content Store — {collapsed.contentStore ? '▸' : '▾'}
           </button>
-          {!collapsed.contentStore && words.map(word => (
+          {!collapsed.contentStore && allWords.map(word => (
             <div key={word.id} className="dev-word-row">
               <span className="dev-word-id">{word.id}</span>
               <div className="dev-word-lanes">
@@ -239,7 +217,7 @@ export default function DevPanel({ onReset }) {
           <button className="dev-collapse-title" onClick={() => toggle('attemptCounts')}>
             — User: Attempt Counts (/{THRESHOLD}) — {collapsed.attemptCounts ? '▸' : '▾'}
           </button>
-          {!collapsed.attemptCounts && words.map(word => {
+          {!collapsed.attemptCounts && allWords.map(word => {
             const attempts = storeData.attempts[word.id]
             return (
               <div key={word.id} className="dev-word-row">
@@ -295,103 +273,6 @@ export default function DevPanel({ onReset }) {
 
       </>}
 
-      {/* ══════════════════════════════════════════════════════════
-          GRAMMAR TAB
-      ══════════════════════════════════════════════════════════ */}
-      {tab === 'grammar' && <>
-
-        <div className="dev-section">
-          <p className="dev-section-title">— Reset —</p>
-          <div className="dev-reset-row">
-            <button className="dev-reset-btn" onClick={handleResetGrammar}>
-              Reset all grammar
-            </button>
-          </div>
-        </div>
-
-        <div className="dev-section">
-          <p className="dev-section-title">— Grammar Tiers —</p>
-          {stages.map(stage => {
-            const allInStage    = grammarNodes.filter(n => n.stage === stage)
-            const activeInStage = allInStage.filter(n => n.status !== 'stub')
-            const gradCount     = activeInStage.filter(n => graduatedSet.has(n.id)).length
-            const allGraduated  = activeInStage.length > 0 && gradCount === activeInStage.length
-
-            return (
-              <div key={stage} className="dev-tier-row">
-                <div className="dev-tier-header">
-                  <span className="dev-tier-num">Stage {stage}</span>
-                  <span className="dev-tier-count">{gradCount}/{activeInStage.length} graduated</span>
-                  <div className="dev-tier-actions">
-                    <button
-                      className="dev-reset-btn"
-                      disabled={allGraduated}
-                      onClick={() => { graduateNodesInStage(stage); forceUpdate(n => n + 1) }}
-                    >
-                      Graduate all
-                    </button>
-                    <button
-                      className="dev-reset-btn"
-                      onClick={() => { resetNodesInStage(stage); forceUpdate(n => n + 1) }}
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-                <div className="dev-tier-nodes">
-                  {allInStage.map(n => (
-                    <span
-                      key={n.id}
-                      className={[
-                        'dev-tier-node',
-                        graduatedSet.has(n.id) ? 'dev-tier-node--grad'     :
-                        unlockedSet.has(n.id)  ? 'dev-tier-node--unlocked' :
-                        n.status === 'stub'     ? 'dev-tier-node--stub'     : '',
-                      ].join(' ').trim()}
-                      title={n.description}
-                    >
-                      {n.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="dev-section">
-          <p className="dev-section-title">— Node Scores (/{GRAMMAR_PASS_THRESHOLD} to graduate) —</p>
-          {(() => {
-            const scores     = gs.nodeScores
-            const allNodeIds = Object.keys(scores)
-            if (allNodeIds.length === 0 && graduatedSet.size === 0) {
-              return <p className="dev-empty">No grammar attempts yet.</p>
-            }
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {[...graduatedSet].map(id => (
-                  <div key={id} className="dev-word-row">
-                    <span className="dev-word-id">{id}</span>
-                    <span className="dev-lane-count dev-lane-count--done">graduated ✓</span>
-                    <span className="dev-pool-words">
-                      {scores[id] ? `${scores[id].correct}/${scores[id].attempts} correct` : ''}
-                    </span>
-                  </div>
-                ))}
-                {allNodeIds.filter(id => !graduatedSet.has(id)).map(id => (
-                  <div key={id} className="dev-word-row">
-                    <span className="dev-word-id">{id}</span>
-                    <span className="dev-lane-count">
-                      {scores[id]?.correct ?? 0}/{GRAMMAR_PASS_THRESHOLD}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )
-          })()}
-        </div>
-
-      </>}
     </div>
   )
 }

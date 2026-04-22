@@ -3,7 +3,7 @@ import { getWordBank, loadState, recordAttempt, THRESHOLD } from './userStore'
 import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
 import { getStrings } from './uiStrings'
 import { LANES, LANE_DISPLAY } from './lanes'
-import allWords from './wordData'
+import { getAllWords } from './wordRegistry'
 
 // AddWord — lets the user manually bank a word by producing it.
 // Only productive lanes (writing, speaking) are offered — the user must
@@ -31,9 +31,8 @@ export default function AddWord({ onBack, onWordAdded }) {
   const activeLang = getActiveLanguage()
   const q          = search.trim().toLowerCase()
 
-  const searchResults = q.length < 1 ? [] : allWords
+  const searchResults = q.length < 1 ? [] : getAllWords(activeLang)
     .filter(w =>
-      w.language === activeLang &&
       !bankIds.has(w.id) &&
       (w.baseForm.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
     )

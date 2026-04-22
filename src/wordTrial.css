@@ -1,0 +1,357 @@
+/* ── Word Trial (Discover → practice flow) ─────────────────── */
+
+/* Detail screen: word info + lane picker */
+
+.trial-detail {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.trial-detail-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.trial-detail-word {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-detail-category {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.trial-detail-meaning {
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.trial-lane-prompt {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.trial-lane-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.trial-lane-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px;
+  border: 2px solid var(--lane-color);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.trial-lane-btn:hover {
+  background: color-mix(in srgb, var(--lane-color) 8%, #fff);
+}
+
+.trial-lane-btn-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--lane-color);
+}
+
+.trial-lane-btn-prev {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+/* Flashcard practice screen */
+
+.trial-lane-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.trial-lane-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  letter-spacing: 0.04em;
+}
+
+.trial-lane-progress {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #888;
+}
+
+.trial-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  transition: border-color 0.15s;
+}
+
+.trial-card:hover {
+  border-color: #bbb;
+}
+
+.trial-card-front,
+.trial-card-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.trial-card-word {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-card-hint {
+  font-size: 0.8rem;
+  color: #bbb;
+  letter-spacing: 0.04em;
+}
+
+.trial-card-category {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.trial-card-meaning {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.trial-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.trial-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.trial-btn:hover { opacity: 0.85; }
+
+.trial-btn--correct {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.trial-btn--incorrect {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.trial-remaining {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-align: center;
+}
+
+/* Back button shared with trial flow */
+
+.trial-back-btn {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.trial-back-btn:hover {
+  border-color: #aaa;
+}
+
+/* Success screen */
+
+.trial-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.trial-success-check {
+  font-size: 2.5rem;
+  color: #4caf50;
+}
+
+.trial-success-word {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.trial-success-msg {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+/* ── Lane-specific practice UI ─────────────────────────────── */
+
+.trial-practice-prompt {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin: 32px 0 8px;
+}
+
+.trial-practice-instruction {
+  font-size: 0.85rem;
+  color: #888;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Writing */
+
+.trial-writing-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  resize: vertical;
+  margin-bottom: 16px;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+.trial-writing-input:focus {
+  outline: none;
+  border-color: #aaa;
+}
+
+.trial-btn--submit {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Feedback */
+
+.trial-feedback {
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.trial-feedback--pass {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.trial-feedback--fail {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Speaking */
+
+.trial-mic-btn {
+  display: block;
+  width: 100%;
+  padding: 20px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  border: 2px solid #1a1a1a;
+  border-radius: 12px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.trial-mic-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.trial-mic-btn--active {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Listening */
+
+.trial-play-btn {
+  display: block;
+  width: 100%;
+  padding: 20px;
+  margin: 32px 0 24px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  border: 2px solid #1a1a1a;
+  border-radius: 12px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.trial-play-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.trial-play-btn--active {
+  background: #1a1a1a;
+  color: #fff;
+}

@@ -6,7 +6,7 @@ import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
 import { getStrings } from './uiStrings'
 import { speak, getLangCode } from './speak'
 import { transcribe, isSupported as isSpeechRecognitionSupported } from './transcribe'
-import allWords from './wordData'
+import { getAllWords } from './wordRegistry'
 import LaneStamp from './LaneStamp'
 import FunctionUnlock from './FunctionUnlock'
 import MomentBanner from './MomentBanner'
@@ -70,12 +70,13 @@ export default function CelestialScreen({ onExit, framed = false, jumpTo = null,
   const timing            = celestialDesign.timing
 
   const entry  = sequence[wordIndex]
-  const word   = allWords.find(w => w.id === entry?.wordId)
+  const langWords    = getAllWords(activeLang)
+  const word         = langWords.find(w => w.id === entry?.wordId)
 
   // All words revealed so far (used for grammar slots + ghost row)
   const revealedWords = sequence
     .slice(0, wordIndex + 1)
-    .map(e => allWords.find(w => w.id === e.wordId))
+    .map(e => langWords.find(w => w.id === e.wordId))
     .filter(Boolean)
 
   function advancePhase() {

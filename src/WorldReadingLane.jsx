@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { getActiveLanguage, getInterfaceLanguage, getCefrLevel } from './learnerProfile'
 import { getStrings } from './uiStrings'
 import { getWordBank } from './userStore'
-import allWords from './wordData'
+import { getBankedWords } from './wordRegistry'
 import { getCurrentSubLevel } from './cefrLevels'
 import { getFullPracticePool } from './practicePool'
 import { generatePracticeSentence, generateForCache, MIN_WORDS, LANE_MAX_WORDS } from './practiceGenerate'
@@ -33,20 +33,19 @@ export default function WorldReadingLane({ onBack }) {
   const [expandedBucket, setExpandedBucket] = useState(null) // structure id
 
   // ── Generation output ─────────────────────────────────────────
-  const [sentence,      setSentence]      = useState(null)
-  const [loading,       setLoading]       = useState(false)
-  const [error,         setError]         = useState(null)
-  const [hasGenerated,  setHasGenerated]  = useState(false)
+  const [sentence,         setSentence]         = useState(null)
+  const [recentSentences,  setRecentSentences]  = useState([])
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState(null)
+  const [hasGenerated,     setHasGenerated]     = useState(false)
 
   useEffect(() => {
     const bankIds    = getWordBank()
-    const subLevel   = getCurrentSubLevel(cefrLevel, bankIds, allWords, activeLang) ?? 'A1.1'
+    const banked     = getBankedWords(bankIds, activeLang)
+    const subLevel   = getCurrentSubLevel(cefrLevel, bankIds, banked, activeLang) ?? 'A1.1'
     const full       = getFullPracticePool(bankIds, subLevel, activeLang)
 
-    const words = bankIds
-      .map(id => allWords.find(w => w.id === id && w.language === activeLang))
-      .filter(Boolean)
-      .map(w => w.baseForm)
+    const words = banked.map(w => w.baseForm)
 
     setPool(full)
     setWordBankWords(words)
@@ -93,20 +92,14 @@ export default function WorldReadingLane({ onBack }) {
         wordBankWords,
         lane: 'reading',
         maxWordsOverride: maxWords,
+        recentSentences,
       })
       setSentence(result)
       setHasGenerated(true)
+      setRecentSentences(prev => [...prev.slice(-4), result])
 
-      // ── Background cache fill ─────────────────────────────
-      // After a live generate, fill any thin buckets so future requests
-      // are served from cache. Fire-and-forget — never blocks the UI.
-      for (const struct of eligible) {
-        if (needsFill(activeLang, struct.id, 'reading')) {
-          generateForCache({ structure: struct, wordBankWords })
-            .then(cached => addToCache(activeLang, struct.id, 'reading', cached))
-            .catch(() => {})
-        }
-      }
+      // ── Background cache fill — disabled during prototyping ──
+      // Re-enable once generated sentences are production quality.
     } catch {
       setError(s.readingPractice.error)
     } finally {

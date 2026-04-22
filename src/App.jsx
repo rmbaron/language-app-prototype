@@ -13,15 +13,16 @@ import Onboarding from './Onboarding'
 import CelestialScreen from './CelestialScreen'
 import CelestialEditor from './CelestialEditor'
 import { loadState, getWordBank, ACTIVE_LIMIT } from './userStore'
-import { getDepthLevel, recordSession } from './learnerProfile'
+import { getDepthLevel, recordSession, getActiveLanguage } from './learnerProfile'
 import { runLayerOneBatch } from './wordEnrichment'
-import { prePopulateMockLayerTwo } from './wordLayerTwo'
 import { runLayerTwoBatch } from './wordEnrichmentTwo'
 import WordPipeline from './WordPipeline'
 import FlashcardMode from './FlashcardMode'
 import SentenceLab from './SentenceLab'
 import WorldReadingLane from './WorldReadingLane'
-import words from './wordData'
+import ProfileSwitcher from './ProfileSwitcher'
+import { getBankedWords } from './wordRegistry'
+
 
 export default function App() {
   const [view, setView] = useState('hub')
@@ -43,8 +44,7 @@ export default function App() {
 
   useEffect(() => {
     recordSession()
-    prePopulateMockLayerTwo('en')
-    // auto-batch disabled — run manually from Pipeline screen
+// auto-batch disabled — run manually from Pipeline screen
     // runLayerOneBatch('en')
     //   .then(() => runLayerTwoBatch('en'))
     //   .catch(() => {})
@@ -94,7 +94,7 @@ export default function App() {
   }
 
   if (flashcardOpen) {
-    const bankWords = words.filter(w => getWordBank().includes(w.id))
+    const bankWords = getBankedWords(getWordBank(), getActiveLanguage())
     return <FlashcardMode bankWords={bankWords} onExit={() => setFlashcardOpen(false)} />
   }
 
@@ -110,6 +110,8 @@ export default function App() {
         <SentenceLab onBack={() => setView('practice')} />
       ) : view === 'practice_reading' ? (
         <WorldReadingLane onBack={() => setView('practice')} />
+      ) : view === 'profiles' ? (
+        <ProfileSwitcher onBack={() => setView('hub')} />
       ) : selected && practicing ? (
         <WordPractice
           word={selected}

@@ -18,7 +18,7 @@
 //   getPracticePool(wordBankIds, currentSubLevel, lang)
 //     → structure objects from sentenceStructures the learner can use
 
-import allWords from './wordData'
+import { getBankedWords } from './wordRegistry'
 import { getStructures, getUnlockedStructures, SUB_LEVEL_ORDER } from './sentenceStructures'
 import { getAtom } from './grammarAtoms'
 
@@ -78,9 +78,7 @@ export function getUnlockedAtoms(wordBankIds, currentSubLevel, lang = 'en') {
   const atoms = new Set()
 
   // Atoms from the word bank
-  for (const id of wordBankIds) {
-    const word = allWords.find(w => w.id === id && w.language === lang)
-    if (!word) continue
+  for (const word of getBankedWords(wordBankIds, lang)) {
     const atom = deriveAtom(word)
     if (atom) atoms.add(atom)
   }

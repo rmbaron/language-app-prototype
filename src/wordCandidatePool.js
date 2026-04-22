@@ -16,50 +16,13 @@
 //   - Word must not be a form of a word whose base isn't in the bank yet
 //     (e.g. don't recommend "ran" before "run" is established)
 
-import words from './wordData'
-import { getLayerTwo, getLiveSeedWords } from './wordLayerTwo'
+import { getAllWords } from './wordRegistry'
+import { getLayerTwo } from './wordLayerTwo'
 import { getWordBank } from './userStore'
-import { getGrammarNodes, getOpenEndedLimit } from './grammarProgression'
-import { getUnlockedNodeIds } from './grammarStore'
 import { getCefrLevel, getActiveLanguage } from './learnerProfile'
 import { getSlotCoverage, getCurrentSubLevel, getCumulativeSlots, getLevels } from './cefrLevels'
 import { getWordAttributes } from './wordAttributes'
 import { getCurriculumBoosts } from './wordCurriculum'
-
-// ── Eligibility ───────────────────────────────────────────────
-
-function hasUnmetDependency(word, existingWordIds) {
-  for (const bankWord of words) {
-    if (existingWordIds.includes(bankWord.id)) continue
-    const isMeForm = (bankWord.forms ?? []).some(f => f.form === word.baseForm)
-    if (isMeForm) return true
-  }
-  return false
-}
-
-// ── Static scoring layer ──────────────────────────────────────
-//
-// Scores candidates using grammar tree and CEFR slot signals.
-// Meta score dimensions (frequencyTier, functionalWeight, etc.) removed —
-// the slot system is now the primary signal.
-
-// ── Grammar proximity boost ───────────────────────────────────
-//
-// Computes per-word and per-category score boosts by examining which
-// grammar function nodes are on the frontier (requires met, not yet unlocked).
-// Returns a context object consumed by scoreWord.
-//
-// Three signals:
-//   FRONTIER_BOOST    — carrier of a node the learner is ready to unlock next
-//   OPEN_ENDED_BOOST  — word in a category an unlocked open-ended node still wants more of
-//   Stage relevance   — frontier nodes more than 1 stage ahead get STAGE_FAR_FACTOR applied
-//   Function poverty  — if words-per-function > POVERTY_RATIO, singular carriers get POVERTY_BONUS
-
-const FRONTIER_BOOST   = 3.0
-const OPEN_ENDED_BOOST = 1.5
-const STAGE_FAR_FACTOR = 0.3   // fraction applied to nodes more than 1 stage ahead
-const POVERTY_BONUS    = 2.0   // extra boost for singular carriers when function-poor
-const POVERTY_RATIO    = 5     // words-per-function above this = function-poor
 
 // ── CEFR level boosts ─────────────────────────────────────────
 //
@@ -77,81 +40,6 @@ const SLOT_DEPTH_BOOST   = 1.5
 const STEERING_BOOST     = 2.5   // applied when learner has steered toward a category or interest
                                   // kept below SLOT_MISSING_BOOST (4.0) so critical missing slots
                                   // still outrank user steering rather than being drowned out
-
-function buildGrammarBoostContext(existingWordIds, allWords, activeLang) {
-  const grammarNodes = getGrammarNodes()
-  if (!grammarNodes.length) return { wordBoosts: new Map(), categoryBoosts: new Map() }
-
-  // Use grammarStore's shared unlock resolver — no duplicated logic here
-  const unlockedIds = getUnlockedNodeIds(existingWordIds, allWords, activeLang)
-  const unlocked = new Set(unlockedIds)
-
-  // Current stage: highest stage of any unlocked non-stub node (minimum 1)
-  const currentStage = grammarNodes
-    .filter(n => unlocked.has(n.id) && n.status !== 'stub' && n.stage)
-    .reduce((max, n) => Math.max(max, n.stage), 1)
-
-  // Function poverty: too many words relative to grammar functions unlocked
-  const activeUnlockedCount = unlockedIds.filter(id => {
-    const node = grammarNodes.find(n => n.id === id)
-    return node && node.status !== 'stub'
-  }).length
-  const functionPoor = activeUnlockedCount > 0 &&
-    (existingWordIds.length / activeUnlockedCount) > POVERTY_RATIO
-
-  // Category counts needed for open-ended limit checks
-  const bankCategoryCounts = {}
-  for (const id of existingWordIds) {
-    const w = allWords.find(w => w.id === id && w.language === activeLang)
-    if (w) {
-      const cat = w.classifications.grammaticalCategory
-      bankCategoryCounts[cat] = (bankCategoryCounts[cat] ?? 0) + 1
-    }
-  }
-
-  const wordBoosts     = new Map()
-  const categoryBoosts = new Map()
-
-  for (const node of grammarNodes) {
-    if (node.status === 'stub' || !node.carrier) continue
-    const requiresMet = node.requires.every(r => unlocked.has(r))
-
-    if (!unlocked.has(node.id) && requiresMet) {
-      // Stage relevance: discount nodes more than 1 stage ahead of current
-      const nodeStage = node.stage ?? currentStage
-      const stageFactor = (nodeStage - currentStage) > 1 ? STAGE_FAR_FACTOR : 1.0
-
-      // Function poverty: extra push for singular carriers when function-poor
-      const povertyBonus = (functionPoor && node.carrier.type === 'specific') ? POVERTY_BONUS : 0
-
-      const boost = (FRONTIER_BOOST + povertyBonus) * stageFactor
-
-      if (node.carrier.type === 'specific') {
-        for (const wordId of node.carrier.wordIds) {
-          if (!existingWordIds.includes(wordId)) {
-            wordBoosts.set(wordId, (wordBoosts.get(wordId) ?? 0) + boost)
-          }
-        }
-      } else if (node.carrier.type === 'category') {
-        const cat = node.carrier.category
-        categoryBoosts.set(cat, (categoryBoosts.get(cat) ?? 0) + boost)
-      }
-      // formType carriers unlock via existing words — no individual word to boost
-    }
-
-    if (unlocked.has(node.id) && node.openEnded && node.carrier.type === 'category') {
-      // Open-ended node: keep boosting category words until the learner has OPEN_ENDED_LIMIT
-      const cat = node.carrier.category
-      const currentCount = bankCategoryCounts[cat] ?? 0
-      const limit = getOpenEndedLimit()
-      if (currentCount < limit) {
-        categoryBoosts.set(cat, (categoryBoosts.get(cat) ?? 0) + OPEN_ENDED_BOOST)
-      }
-    }
-  }
-
-  return { wordBoosts, categoryBoosts }
-}
 
 // Builds per-word and per-category boost signals from CEFR slot coverage.
 // Returns { wordBoosts, categoryBoosts, levelId } consumed by scoreWord.
@@ -216,9 +104,8 @@ function buildSlotBoostContext(existingWordIds, allWords, activeLang) {
   return { wordBoosts, categoryBoosts, levelId }
 }
 
-function scoreWord(word, profile, existingWordIds, boostContext, slotContext, curriculumContext, steeringParams = {}) {
+function scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams = {}) {
   if (existingWordIds.includes(word.id)) return null
-  if (hasUnmetDependency(word, existingWordIds)) return null
 
   // ── Slot coverage boost ──────────────────────────────────────
   let slotBoost = 0
@@ -227,18 +114,10 @@ function scoreWord(word, profile, existingWordIds, boostContext, slotContext, cu
     slotBoost += slotContext.categoryBoosts.get(word.classifications.grammaticalCategory) ?? 0
   }
 
-  // ── Grammar tree boost (secondary signal — legacy) ───────────
-  let grammarBoost = 0
-  if (boostContext) {
-    grammarBoost += boostContext.wordBoosts.get(word.id) ?? 0
-    grammarBoost += boostContext.categoryBoosts.get(word.classifications.grammaticalCategory) ?? 0
-  }
-
-  // Words with no slot or grammar signal are normally excluded —
-  // except words explicitly cleared by the pipeline (contentReady: true),
-  // which are eligible by definition.
+  // Words with no slot signal are normally excluded —
+  // except words explicitly cleared by the pipeline (contentReady: true).
   const isLive = getLayerTwo(word.id)?.contentReady === true
-  if (slotBoost === 0 && grammarBoost === 0 && !isLive) return null
+  if (slotBoost === 0 && !isLive) return null
 
   // ── Curriculum boost (paradigm completion + consolidation momentum) ──
   let curriculumBoost = 0
@@ -248,37 +127,30 @@ function scoreWord(word, profile, existingWordIds, boostContext, slotContext, cu
   }
 
   // ── Steering boost ───────────────────────────────────────────
-  // Applied on top of existing signals — steers pool composition without
-  // overriding the slot/grammar gate. Interest steering is handled by the
-  // AI layer (getAICandidates); grammar steering is applied here in the static layer.
   let steeringBoost = 0
   if (steeringParams.grammarCategory &&
       word.classifications.grammaticalCategory === steeringParams.grammarCategory) {
     steeringBoost += STEERING_BOOST
   }
 
-  return { word, score: slotBoost + grammarBoost + curriculumBoost + steeringBoost, source: 'static' }
+  return { word, score: slotBoost + curriculumBoost + steeringBoost, source: 'static' }
 }
 
 function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
   const activeLang        = profile.expressed.stable.targetLanguage ?? 'en'
-  const allWords          = [...words, ...getLiveSeedWords(activeLang, new Set(words.map(w => w.id)))]
-  const boostContext      = buildGrammarBoostContext(existingWordIds, allWords, activeLang)
+  const allWords          = getAllWords(activeLang)
   const slotContext       = buildSlotBoostContext(existingWordIds, allWords, activeLang)
   const curriculumContext = getCurriculumBoosts(existingWordIds, allWords, activeLang)
 
   const candidates = allWords
     .filter(word => word.language === activeLang)
-    .map(word => scoreWord(word, profile, existingWordIds, boostContext, slotContext, curriculumContext, steeringParams))
+    .map(word => scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams))
     .filter(Boolean)
     .sort((a, b) => b.score - a.score)
 
   if (candidates.length > 0) return candidates
 
-  // Fallback: all slot/grammar signals are exhausted (e.g. learner has completed
-  // the current level). Try the next CEFR level's slot signals first; if that
-  // also yields nothing, surface all eligible words at a baseline score so the
-  // recommender is never silently empty.
+  // Fallback: slot signals exhausted. Try next CEFR level, then baseline.
   const allLevels  = getLevels()
   const currentIdx = allLevels.findIndex(l => l.id === (getCefrLevel() ?? 'A1'))
   const nextLevel  = allLevels[currentIdx + 1]
@@ -287,13 +159,12 @@ function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
     const nextSlotContext = buildSlotBoostContext(existingWordIds, allWords, activeLang)
     const nextCandidates  = allWords
       .filter(word => word.language === activeLang)
-      .map(word => scoreWord(word, profile, existingWordIds, boostContext, nextSlotContext, curriculumContext, steeringParams))
+      .map(word => scoreWord(word, profile, existingWordIds, nextSlotContext, curriculumContext, steeringParams))
       .filter(Boolean)
       .sort((a, b) => b.score - a.score)
     if (nextCandidates.length > 0) return nextCandidates
   }
 
-  // Last resort: all eligible words at a baseline score.
   return allWords
     .filter(word => word.language === activeLang && !existingWordIds.includes(word.id))
     .map(word => ({ word, score: 0.1, source: 'static' }))

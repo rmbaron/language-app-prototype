@@ -283,6 +283,28 @@ export default {
       playing:     'Playing...',
     },
 
+    reading: {
+      wrong:    'Not quite — try again.',
+      tryAgain: 'Try again',
+    },
+
+  },
+
+  profiles: {
+    title:          'Profiles',
+    defaultLabel:   'Dev default',
+    viewingAs:      name => `Viewing as: ${name}`,
+    returnToDefault: 'Return to default',
+    saveCurrentBtn: 'Create new user',
+    saveStateBtn:   'Save state',
+    namePlaceholder: 'Profile name',
+    saveBtn:        'Save',
+    cancelBtn:      'Cancel',
+    loadBtn:        'Load',
+    deleteBtn:      '✕',
+    empty:          'No saved profiles yet.',
+    cefrLabel:      'Level',
+    words:          n => `${n} word${n === 1 ? '' : 's'}`,
   },
 
 }

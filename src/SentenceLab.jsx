@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import allWords from './wordData'
+import { getAllWords } from './wordRegistry'
 import { getActiveLanguage, getCefrLevel } from './learnerProfile'
 import { getCurrentSubLevel, getCumulativeSlots } from './cefrLevels'
 import { getWordBank } from './userStore'

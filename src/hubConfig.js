@@ -20,6 +20,13 @@ export const HUB_DESTINATIONS = [
     available: true,
   },
   {
+    id: 'profiles',
+    label: 'Profiles',
+    description: 'Switch between learner states.',
+    size: 'large',
+    available: true,
+  },
+  {
     id: 'quickTranslate',
     label: 'Quick Translate',
     description: null,

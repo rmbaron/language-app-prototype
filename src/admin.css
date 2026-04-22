@@ -79,6 +79,10 @@
   letter-spacing: 0.05em;
 }
 
+.dev-toggle--profile-active {
+  background: #1a6b3c;
+}
+
 .rec-panel {
   position: fixed;
   bottom: 60px;

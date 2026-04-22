@@ -4,7 +4,7 @@ import { applyDesignToDOM } from './applyDesign'
 import { getPhase1Sequence } from './phase1Sequence'
 import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
 import { getStrings } from './uiStrings'
-import allWords from './wordData'
+import { getAllWords } from './wordRegistry'
 import GrammarSlot from './GrammarSlot'
 
 const FONTS = [
@@ -258,6 +258,7 @@ export default function CelestialEditor({ workspace = false, onJumpTo, onSequenc
   }
 
   // Current entry / word for stage-aware sections
+  const allWords      = getAllWords(getActiveLanguage())
   const currentEntry  = sequence[navWordIndex]
   const currentWord   = allWords.find(w => w.id === currentEntry?.wordId)
   const currentLane   = PHASE_TO_LANE[navPhase] ?? null

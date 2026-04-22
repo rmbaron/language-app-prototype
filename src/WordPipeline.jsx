@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { WORD_SEED } from './wordSeed.en'
 import { hasLayerOne, getLayerOne } from './wordLayerOne'
-import { hasLayerTwo, getLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
+import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, setLayerTwo, resetContentReady } from './wordLayerTwo'
 import { runLayerOneBatch, enrichWord } from './wordEnrichment'
 import { runLayerTwoBatch, enrichWordL2 } from './wordEnrichmentTwo'
-import { addContent, hasContent } from './contentStore'
+import { clearWordContent } from './contentStore'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -42,8 +42,9 @@ function Badge({ label, status }) {
   )
 }
 
-function LevelGroup({ level, words, onEnrich }) {
+function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
   const [open, setOpen] = useState(level !== 'Unleveled')
+  const [expanded, setExpanded] = useState(null)
 
   return (
     <div style={{ marginBottom: 12 }}>
@@ -73,14 +74,18 @@ function LevelGroup({ level, words, onEnrich }) {
             <span>word</span><span>L1</span><span>L2</span><span>L3</span><span></span>
           </div>
           {words.map(({ word, s }) => (
-            <div key={word.id} style={{
+            <div key={word.id}>
+            <div style={{
               display: 'grid',
               gridTemplateColumns: '120px 60px 60px 60px 60px',
               gap: '2px 8px',
               alignItems: 'center',
               padding: '2px 0 2px 20px',
             }}>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: '#ccc' }}>
+              <span
+                style={{ fontFamily: 'monospace', fontSize: 13, color: '#ccc', cursor: 'pointer' }}
+                onClick={() => setExpanded(expanded === word.id ? null : word.id)}
+              >
                 {word.baseForm}
               </span>
               <Badge label={s.l1 === 'none' ? '—' : s.l1} status={s.l1} />
@@ -99,7 +104,35 @@ function LevelGroup({ level, words, onEnrich }) {
                   <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11 }}
                     onClick={() => onEnrich(word.id, 'l3')}>L3</button>
                 )}
+                {s.l2 === 'api' && (
+                  <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11, color: '#cf6f6f' }}
+                    onClick={() => onClearL2(word.id)}>↺L2</button>
+                )}
+                {s.l3 === 'ready' && (
+                  <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11, color: '#cf6f6f' }}
+                    onClick={() => onClearL3(word.id)}>↺L3</button>
+                )}
               </div>
+            </div>
+            {expanded === word.id && (() => {
+              const l2 = getLayerTwo(word.id, 'en')
+              const l1 = getLayerOne(word.id, 'en')
+              return (
+                <div style={{
+                  margin: '2px 0 4px 20px', padding: '8px 10px', borderRadius: 4,
+                  background: '#0d0d0d', border: '1px solid #222', fontSize: 11,
+                  fontFamily: 'monospace', color: '#888', lineHeight: 1.6,
+                }}>
+                  {l1 && <div><span style={{ color: '#555' }}>cat:</span> {l1.grammaticalCategory} · <span style={{ color: '#555' }}>meaning:</span> {l1.meaning}</div>}
+                  {l2 && <>
+                    <div><span style={{ color: '#555' }}>atom:</span> {l2.grammaticalAtom} · <span style={{ color: '#555' }}>level:</span> {l2.cefrLevel} {l2.subLevel} · <span style={{ color: '#555' }}>freq:</span> {l2.frequency}</div>
+                    <div><span style={{ color: '#555' }}>structures:</span> {l2.structuresEnabled?.join(', ') ?? '—'}</div>
+                    <div><span style={{ color: '#555' }}>forms:</span> {l2.forms?.map(f => f.form).join(', ') ?? '—'}</div>
+                  </>}
+                  {!l1 && !l2 && <div style={{ color: '#444' }}>no data</div>}
+                </div>
+              )
+            })()}
             </div>
           ))}
         </div>
@@ -109,18 +142,71 @@ function LevelGroup({ level, words, onEnrich }) {
 }
 
 export default function WordPipeline({ onClose }) {
-  const [running, setRunning] = useState(null)
-  const [search, setSearch] = useState('')
-  const [, forceUpdate] = useState(0)
+  const [running, setRunning]         = useState(null)
+  const [batchReport, setBatchReport] = useState(null)
+  const [batchSize, setBatchSize]     = useState(10)
+  const [search, setSearch]           = useState('')
+  const [newWord, setNewWord]         = useState('')
+  const [addError, setAddError]       = useState(null)
+  const [, forceUpdate]               = useState(0)
+
+  async function handleAddWord() {
+    const trimmed = newWord.trim()
+    if (!trimmed) return
+    setAddError(null)
+    try {
+      const res = await fetch('/__add-seed-word', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseForm: trimmed, language: 'en' }),
+      })
+      const data = await res.json()
+      if (data.error) { setAddError(data.error); return }
+      setNewWord('')
+      forceUpdate(n => n + 1)
+    } catch {
+      setAddError('Failed to add word')
+    }
+  }
 
   async function runBatch(layer) {
     setRunning(layer)
+    setBatchReport(null)
+
+    const beforeIds = layer === 'l1'
+      ? WORD_SEED.filter(w => { const d = getLayerOne(w.id, 'en'); return !d || d.source !== 'api' }).map(w => w.id)
+      : WORD_SEED.filter(w => hasLayerOne(w.id, 'en') && !hasRealLayerTwo(w.id, 'en')).map(w => w.id)
+
     try {
-      if (layer === 'l1') await runLayerOneBatch('en')
-      if (layer === 'l2') await runLayerTwoBatch('en')
+      if (layer === 'l1') await runLayerOneBatch('en', batchSize)
+      if (layer === 'l2') await runLayerTwoBatch('en', batchSize)
+      if (layer === 'l3') {
+        const eligible = WORD_SEED.filter(w => {
+          const s = wordLayerStatuses(w)
+          return s.l2 === 'api' && s.l3 === 'none'
+        })
+        for (const word of eligible) {
+          markContentReady(word.id, 'en')
+        }
+      }
     } finally {
       setRunning(null)
       forceUpdate(n => n + 1)
+
+      if (layer !== 'l3') {
+        const isNowDone = id => layer === 'l1'
+          ? getLayerOne(id, 'en')?.source === 'api'
+          : hasRealLayerTwo(id, 'en')
+        const attempted  = beforeIds.slice(0, batchSize)
+        const notAttempted = beforeIds.slice(batchSize)
+        const enriched = attempted.filter(isNowDone)
+          .map(id => WORD_SEED.find(w => w.id === id)?.baseForm).filter(Boolean)
+        const failed = attempted.filter(id => !isNowDone(id))
+          .map(id => WORD_SEED.find(w => w.id === id)?.baseForm).filter(Boolean)
+        const remaining = notAttempted
+          .map(id => WORD_SEED.find(w => w.id === id)?.baseForm).filter(Boolean)
+        setBatchReport({ layer: layer.toUpperCase(), enriched, failed, remaining })
+      }
     }
   }
 
@@ -130,13 +216,23 @@ export default function WordPipeline({ onClose }) {
       if (layer === 'l1') await enrichWord(wordId, 'en')
       if (layer === 'l2') await enrichWordL2(wordId, 'en')
       if (layer === 'l3') {
-        const word = WORD_SEED.find(w => w.id === wordId)
-        addContent(wordId, 'reading', { text: `I want ${word.baseForm} today.` })
+        markContentReady(wordId, 'en')
       }
     } finally {
       setRunning(null)
       forceUpdate(n => n + 1)
     }
+  }
+
+  function handleClearL2(wordId) {
+    clearLayerTwo(wordId, 'en')
+    forceUpdate(n => n + 1)
+  }
+
+  function handleClearL3(wordId) {
+    clearWordContent(wordId)
+    resetContentReady(wordId, 'en')
+    forceUpdate(n => n + 1)
   }
 
   const query = search.trim().toLowerCase()
@@ -160,7 +256,7 @@ export default function WordPipeline({ onClose }) {
 
   const orderedGroups = LEVEL_ORDER
     .filter(lvl => groups[lvl]?.length)
-    .map(lvl => ({ level: lvl, words: groups[lvl] }))
+    .map(lvl => ({ level: lvl, words: groups[lvl].sort((a, b) => a.word.baseForm.localeCompare(b.word.baseForm)) }))
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 600, margin: '0 auto' }}>
@@ -173,25 +269,108 @@ export default function WordPipeline({ onClose }) {
         </span>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
         <input
           type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search words…"
+          value={newWord}
+          onChange={e => setNewWord(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAddWord()}
+          placeholder="Add word to seed…"
           style={{
             flex: 1, padding: '5px 10px', borderRadius: 4,
             background: '#1a1a1a', border: '1px solid #333',
             color: '#ccc', fontSize: 13, fontFamily: 'monospace',
           }}
         />
-        <button className="dev-toggle" onClick={() => runBatch('l1')} disabled={!!running}>
-          {running === 'l1' ? 'Running…' : 'Run L1'}
-        </button>
-        <button className="dev-toggle" onClick={() => runBatch('l2')} disabled={!!running}>
-          {running === 'l2' ? 'Running…' : 'Run L2'}
+        <button className="dev-toggle" onClick={handleAddWord} disabled={!newWord.trim()}>
+          Add
         </button>
       </div>
+      {addError && (
+        <p style={{ fontSize: 11, color: '#cf6f6f', margin: '0 0 8px' }}>{addError}</p>
+      )}
+
+      {(() => {
+        const pendingL1 = WORD_SEED.filter(w => { const d = getLayerOne(w.id, 'en'); return !d || d.source !== 'api' }).length
+        const pendingL2 = WORD_SEED.filter(w => hasLayerOne(w.id, 'en') && !hasRealLayerTwo(w.id, 'en')).length
+        const effectiveSize = Math.min(batchSize, Math.max(pendingL1, pendingL2))
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search words…"
+                style={{
+                  flex: 1, padding: '5px 10px', borderRadius: 4,
+                  background: '#1a1a1a', border: '1px solid #333',
+                  color: '#ccc', fontSize: 13, fontFamily: 'monospace',
+                }}
+              />
+              <button className="dev-toggle" onClick={() => runBatch('l3')} disabled={!!running}>
+                {running === 'l3' ? 'Running…' : 'Run L3'}
+              </button>
+              <button
+                className="dev-toggle"
+                style={{ background: '#3a1a1a' }}
+                disabled={!!running}
+                onClick={() => {
+                  WORD_SEED.filter(w => hasLayerTwo(w.id, 'en') && !hasRealLayerTwo(w.id, 'en'))
+                    .forEach(w => clearLayerTwo(w.id, 'en'))
+                  forceUpdate(n => n + 1)
+                }}
+              >
+                Clear mock L2
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="range" min={1} max={150} value={batchSize}
+                onChange={e => setBatchSize(Number(e.target.value))}
+                style={{ flex: 1 }}
+              />
+              <span style={{ fontSize: 12, color: '#666', minWidth: 24, textAlign: 'right' }}>
+                {batchSize}
+              </span>
+              <button className="dev-toggle" onClick={() => runBatch('l1')} disabled={!!running}>
+                {running === 'l1' ? 'Running…' : `Run L1 (${pendingL1} pending)`}
+              </button>
+              <button className="dev-toggle" onClick={() => runBatch('l2')} disabled={!!running}>
+                {running === 'l2' ? 'Running…' : `Run L2 (${pendingL2} pending)`}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
+      {batchReport && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 6,
+          background: '#111', border: '1px solid #2a2a2a', fontSize: 12,
+        }}>
+          <div style={{ color: '#888', marginBottom: 6, fontWeight: 600 }}>
+            {batchReport.layer} batch — {batchReport.enriched.length} enriched
+            {batchReport.failed.length > 0 && `, ${batchReport.failed.length} failed`}
+            {batchReport.remaining.length > 0 && `, ${batchReport.remaining.length} remaining`}
+          </div>
+          {batchReport.enriched.length > 0 && (
+            <div style={{ color: '#6fcf6f', marginBottom: 4, fontFamily: 'monospace' }}>
+              ✓ {batchReport.enriched.join(', ')}
+            </div>
+          )}
+          {batchReport.failed.length > 0 && (
+            <div style={{ color: '#cf6f6f', marginBottom: 4, fontFamily: 'monospace' }}>
+              ✕ {batchReport.failed.join(', ')}
+            </div>
+          )}
+          {batchReport.remaining.length > 0 && (
+            <div style={{ color: '#444', fontFamily: 'monospace' }}>
+              {batchReport.remaining.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ fontSize: 11, color: '#444', marginBottom: 16, display: 'flex', gap: 12 }}>
         <Badge label="api" status="api" /> api &nbsp;
@@ -201,7 +380,7 @@ export default function WordPipeline({ onClose }) {
       </div>
 
       {orderedGroups.map(({ level, words }) => (
-        <LevelGroup key={level} level={level} words={words} onEnrich={handleEnrich} />
+        <LevelGroup key={level} level={level} words={words} onEnrich={handleEnrich} onClearL2={handleClearL2} onClearL3={handleClearL3} />
       ))}
 
       {orderedGroups.length === 0 && (

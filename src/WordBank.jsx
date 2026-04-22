@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { getStrings } from './uiStrings'
 import { getInterfaceLanguage } from './learnerProfile'
-import words from './wordData'
+import { getBankedWords } from './wordRegistry'
+import { getActiveLanguage } from './learnerProfile'
 import WordCard from './WordCard'
 import { getWordBank, loadState, THRESHOLD, getWordStatuses, ACTIVE_LIMIT, removeFromWordBank } from './userStore'
 import { getWordProgress } from './wordProgress'
@@ -49,7 +50,7 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
   const bankIds   = getWordBank()              // eslint-disable-line react-hooks/exhaustive-deps
   const state     = loadState()                // eslint-disable-line react-hooks/exhaustive-deps
   const { attempts } = state
-  const bankWords = words.filter(w => bankIds.includes(w.id))
+  const bankWords = getBankedWords(bankIds, getActiveLanguage())
 
 
   const grammarState = loadGrammarState()

@@ -175,6 +175,13 @@ export function updateContent(wordId, laneId, itemId, fields) {
   saveWordData(wordId, wordData)
 }
 
+export function clearWordContent(wordId) {
+  saveWordData(wordId, {})
+  const idx = loadIndex()
+  delete idx[wordId]
+  saveIndex()
+}
+
 export function removeContent(wordId, laneId, itemId) {
   const wordData = loadWordData(wordId)
   const items = wordData[laneId]

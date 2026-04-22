@@ -1,8 +1,7 @@
 // Word Enrichment — Layer 2 batch processor
 //
 // Picks up where Layer 1 left off. Words with real Layer 1 data get
-// a full deep profile via API. Mock Layer 2 entries are overwritten
-// once real API data is available.
+// a full deep profile via API.
 //
 // Flow:
 //   1. Find seed words that have Layer 1 but not real (API-sourced) Layer 2
@@ -12,7 +11,7 @@
 
 import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
-import { setLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
+import { setLayerTwo, hasLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
 
 const BATCH_LIMIT = 5
 

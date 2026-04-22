@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import words from './wordData'
+import { getAllWords } from './wordRegistry'
+import { getActiveLanguage } from './learnerProfile'
 import { LANES } from './lanes'
 import { getContent, addContent, updateContent, removeContent, getPronunciation, setPronunciation, getContentIndex } from './contentStore'
 import { GRAMMATICAL_GROUPS, getGrammaticalGroup } from './classifications'
@@ -308,23 +309,24 @@ function PronunciationSection({ wordId }) {
 }
 
 export default function ContentManager({ onClose }) {
-  const [selectedWord, setSelectedWord] = useState(words[0].id)
+  const allWords = getAllWords(getActiveLanguage())
+  const [selectedWord, setSelectedWord] = useState(allWords[0].id)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const word = words.find(w => w.id === selectedWord)
+  const word = allWords.find(w => w.id === selectedWord)
 
   const contentIndex = getContentIndex()
 
-  const categoryCounts = words.reduce((acc, w) => {
-    const group = getGrammaticalGroup(w.classifications.grammaticalCategory)
-    acc[group] = (acc[group] ?? 0) + 1
+  const categoryCounts = allWords.reduce((acc, w) => {
+    const group = getGrammaticalGroup(w.classifications?.grammaticalCategory)
+    if (group) acc[group] = (acc[group] ?? 0) + 1
     return acc
   }, {})
 
   const categories = ['all', ...GRAMMATICAL_GROUPS.filter(g => categoryCounts[g.label]).map(g => g.label)]
 
-  const visibleWords = words.filter(w => {
-    const matchesCategory = categoryFilter === 'all' || getGrammaticalGroup(w.classifications.grammaticalCategory) === categoryFilter
+  const visibleWords = allWords.filter(w => {
+    const matchesCategory = categoryFilter === 'all' || getGrammaticalGroup(w.classifications?.grammaticalCategory) === categoryFilter
     const matchesSearch = w.baseForm.toLowerCase().includes(search.toLowerCase())
     return matchesCategory && matchesSearch
   })
@@ -332,9 +334,9 @@ export default function ContentManager({ onClose }) {
   function handleCategoryFilter(cat) {
     setCategoryFilter(cat)
     setSearch('')
-    const stillVisible = cat === 'all' || getGrammaticalGroup(words.find(w => w.id === selectedWord)?.classifications.grammaticalCategory) === cat
+    const stillVisible = cat === 'all' || getGrammaticalGroup(allWords.find(w => w.id === selectedWord)?.classifications?.grammaticalCategory) === cat
     if (!stillVisible) {
-      const first = words.find(w => getGrammaticalGroup(w.classifications.grammaticalCategory) === cat)
+      const first = allWords.find(w => getGrammaticalGroup(w.classifications?.grammaticalCategory) === cat)
       if (first) setSelectedWord(first.id)
     }
   }
@@ -353,7 +355,7 @@ export default function ContentManager({ onClose }) {
             className={`cm-category-btn ${categoryFilter === cat ? 'cm-category-btn--active' : ''}`}
             onClick={() => handleCategoryFilter(cat)}
           >
-            {cat === 'all' ? `all (${words.length})` : `${cat} (${categoryCounts[cat]})`}
+            {cat === 'all' ? `all (${allWords.length})` : `${cat} (${categoryCounts[cat]})`}
           </button>
         ))}
       </div>
@@ -386,14 +388,14 @@ export default function ContentManager({ onClose }) {
       <div className="cm-body">
         <div className="cm-word-meta">
           <span className="cm-word-title">{word.baseForm}</span>
-          <span className="cm-word-category">{word.classifications.grammaticalCategory}</span>
+          <span className="cm-word-category">{word.classifications?.grammaticalCategory ?? '—'}</span>
         </div>
 
         <PronunciationSection key={selectedWord} wordId={selectedWord} />
 
         <div className="cm-lanes">
           {LANES.map(lane => (
-            <LaneSection key={lane.id} wordId={selectedWord} lane={lane} />
+            <LaneSection key={`${selectedWord}-${lane.id}`} wordId={selectedWord} lane={lane} />
           ))}
         </div>
       </div>

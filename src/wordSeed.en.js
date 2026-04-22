@@ -70,6 +70,18 @@ export const WORD_SEED = [
   { id: 'what',     baseForm: 'what',     language: 'en' },
   { id: 'hello',    baseForm: 'hello',    language: 'en' },
 
+  // ── Numbers ───────────────────────────────────────────────────
+  { id: 'one',   baseForm: 'one',   language: 'en' },
+  { id: 'two',   baseForm: 'two',   language: 'en' },
+  { id: 'three', baseForm: 'three', language: 'en' },
+  { id: 'four',  baseForm: 'four',  language: 'en' },
+  { id: 'five',  baseForm: 'five',  language: 'en' },
+  { id: 'six',   baseForm: 'six',   language: 'en' },
+  { id: 'seven', baseForm: 'seven', language: 'en' },
+  { id: 'eight', baseForm: 'eight', language: 'en' },
+  { id: 'nine',  baseForm: 'nine',  language: 'en' },
+  { id: 'ten',   baseForm: 'ten',   language: 'en' },
+
   // ── Time / everyday ───────────────────────────────────────────
   { id: 'today',    baseForm: 'today',    language: 'en' },
   { id: 'tomorrow', baseForm: 'tomorrow', language: 'en' },
@@ -77,4 +89,165 @@ export const WORD_SEED = [
   { id: 'morning',  baseForm: 'morning',  language: 'en' },
   { id: 'night',    baseForm: 'night',    language: 'en' },
 
+  { id: 'tea', baseForm: 'tea', language: 'en' },
+  { id: 'coffee', baseForm: 'coffee', language: 'en' },
+  { id: 'bread', baseForm: 'bread', language: 'en' },
+  { id: 'bag', baseForm: 'bag', language: 'en' },
+  { id: 'room', baseForm: 'room', language: 'en' },
+  { id: 'music', baseForm: 'music', language: 'en' },
+  { id: 'help', baseForm: 'help', language: 'en' },
+  { id: 'phone', baseForm: 'phone', language: 'en' },
+  { id: 'bike', baseForm: 'bike', language: 'en' },
+  { id: 'cat', baseForm: 'cat', language: 'en' },
+  { id: 'dog', baseForm: 'dog', language: 'en' },
+  { id: 'money', baseForm: 'money', language: 'en' },
+  { id: 'juice', baseForm: 'juice', language: 'en' },
+  { id: 'rice', baseForm: 'rice', language: 'en' },
+  { id: 'apple', baseForm: 'apple', language: 'en' },
+  { id: 'ticket', baseForm: 'ticket', language: 'en' },
+
+  // ── Migrated from wordData ────────────────────────────────────
+
+  // Pronouns / function
+  { id: 'it',          baseForm: 'it',          language: 'en' },
+
+  // Core verbs
+  { id: 'know',        baseForm: 'know',        language: 'en' },
+  { id: 'think',       baseForm: 'think',       language: 'en' },
+  { id: 'love',        baseForm: 'love',        language: 'en' },
+  { id: 'hate',        baseForm: 'hate',        language: 'en' },
+  { id: 'say',         baseForm: 'say',         language: 'en' },
+  { id: 'speak',       baseForm: 'speak',       language: 'en' },
+  { id: 'read',        baseForm: 'read',        language: 'en' },
+  { id: 'write',       baseForm: 'write',       language: 'en' },
+  { id: 'live',        baseForm: 'live',        language: 'en' },
+  { id: 'give',        baseForm: 'give',        language: 'en' },
+  { id: 'take',        baseForm: 'take',        language: 'en' },
+  { id: 'make',        baseForm: 'make',        language: 'en' },
+  { id: 'get',         baseForm: 'get',         language: 'en' },
+  { id: 'sleep',       baseForm: 'sleep',       language: 'en' },
+  { id: 'look',        baseForm: 'look',        language: 'en' },
+  { id: 'play',        baseForm: 'play',        language: 'en' },
+  { id: 'open',        baseForm: 'open',        language: 'en' },
+  { id: 'close',       baseForm: 'close',       language: 'en' },
+  { id: 'walk',        baseForm: 'walk',        language: 'en' },
+  { id: 'run',         baseForm: 'run',         language: 'en' },
+
+  // Adjectives
+  { id: 'long',        baseForm: 'long',        language: 'en' },
+  { id: 'short',       baseForm: 'short',       language: 'en' },
+  { id: 'young',       baseForm: 'young',       language: 'en' },
+  { id: 'warm',        baseForm: 'warm',        language: 'en' },
+  { id: 'easy',        baseForm: 'easy',        language: 'en' },
+  { id: 'fast',        baseForm: 'fast',        language: 'en' },
+  { id: 'slow',        baseForm: 'slow',        language: 'en' },
+  { id: 'angry',       baseForm: 'angry',       language: 'en' },
+  { id: 'tired',       baseForm: 'tired',       language: 'en' },
+  { id: 'hungry',      baseForm: 'hungry',      language: 'en' },
+  { id: 'sick',        baseForm: 'sick',        language: 'en' },
+  { id: 'busy',        baseForm: 'busy',        language: 'en' },
+  { id: 'right',       baseForm: 'right',       language: 'en' },
+  { id: 'wrong',       baseForm: 'wrong',       language: 'en' },
+  { id: 'nice',        baseForm: 'nice',        language: 'en' },
+  { id: 'beautiful',   baseForm: 'beautiful',   language: 'en' },
+  { id: 'sorry',       baseForm: 'sorry',       language: 'en' },
+
+  // Colors
+  { id: 'red',         baseForm: 'red',         language: 'en' },
+  { id: 'blue',        baseForm: 'blue',        language: 'en' },
+  { id: 'green',       baseForm: 'green',       language: 'en' },
+  { id: 'yellow',      baseForm: 'yellow',      language: 'en' },
+  { id: 'black',       baseForm: 'black',       language: 'en' },
+  { id: 'white',       baseForm: 'white',       language: 'en' },
+  { id: 'gray',        baseForm: 'gray',        language: 'en' },
+  { id: 'brown',       baseForm: 'brown',       language: 'en' },
+  { id: 'orange',      baseForm: 'orange',      language: 'en' },
+  { id: 'pink',        baseForm: 'pink',        language: 'en' },
+  { id: 'purple',      baseForm: 'purple',      language: 'en' },
+
+  // People / family
+  { id: 'man',         baseForm: 'man',         language: 'en' },
+  { id: 'woman',       baseForm: 'woman',       language: 'en' },
+  { id: 'boy',         baseForm: 'boy',         language: 'en' },
+  { id: 'girl',        baseForm: 'girl',        language: 'en' },
+  { id: 'mother',      baseForm: 'mother',      language: 'en' },
+  { id: 'father',      baseForm: 'father',      language: 'en' },
+  { id: 'child',       baseForm: 'child',       language: 'en' },
+  { id: 'person',      baseForm: 'person',      language: 'en' },
+  { id: 'baby',        baseForm: 'baby',        language: 'en' },
+
+  // Food / drink
+  { id: 'milk',        baseForm: 'milk',        language: 'en' },
+  { id: 'egg',         baseForm: 'egg',         language: 'en' },
+
+  // Places
+  { id: 'home',        baseForm: 'home',        language: 'en' },
+  { id: 'city',        baseForm: 'city',        language: 'en' },
+  { id: 'street',      baseForm: 'street',      language: 'en' },
+  { id: 'country',     baseForm: 'country',     language: 'en' },
+  { id: 'park',        baseForm: 'park',        language: 'en' },
+  { id: 'restaurant',  baseForm: 'restaurant',  language: 'en' },
+
+  // Objects / time
+  { id: 'table',       baseForm: 'table',       language: 'en' },
+  { id: 'bed',         baseForm: 'bed',         language: 'en' },
+  { id: 'day',         baseForm: 'day',         language: 'en' },
+  { id: 'time',        baseForm: 'time',        language: 'en' },
+  { id: 'evening',     baseForm: 'evening',     language: 'en' },
+  { id: 'week',        baseForm: 'week',        language: 'en' },
+  { id: 'month',       baseForm: 'month',       language: 'en' },
+  { id: 'year',        baseForm: 'year',        language: 'en' },
+
+  // Modals / auxiliaries
+  { id: 'can',         baseForm: 'can',         language: 'en' },
+  { id: 'will',        baseForm: 'will',        language: 'en' },
+  { id: 'would',       baseForm: 'would',       language: 'en' },
+  { id: 'should',      baseForm: 'should',      language: 'en' },
+  { id: 'must',        baseForm: 'must',        language: 'en' },
+  { id: 'could',       baseForm: 'could',       language: 'en' },
+  { id: 'may',         baseForm: 'may',         language: 'en' },
+
+  // Question words
+  { id: 'who',         baseForm: 'who',         language: 'en' },
+  { id: 'how',         baseForm: 'how',         language: 'en' },
+  { id: 'when',        baseForm: 'when',        language: 'en' },
+  { id: 'why',         baseForm: 'why',         language: 'en' },
+  { id: 'which',       baseForm: 'which',       language: 'en' },
+
+  // Prepositions
+  { id: 'in',          baseForm: 'in',          language: 'en' },
+  { id: 'on',          baseForm: 'on',          language: 'en' },
+  { id: 'at',          baseForm: 'at',          language: 'en' },
+  { id: 'to',          baseForm: 'to',          language: 'en' },
+  { id: 'from',        baseForm: 'from',        language: 'en' },
+  { id: 'for',         baseForm: 'for',         language: 'en' },
+  { id: 'with',        baseForm: 'with',        language: 'en' },
+  { id: 'about',       baseForm: 'about',       language: 'en' },
+  { id: 'up',          baseForm: 'up',          language: 'en' },
+  { id: 'down',        baseForm: 'down',        language: 'en' },
+
+  // Determiners
+  { id: 'some',        baseForm: 'some',        language: 'en' },
+  { id: 'any',         baseForm: 'any',         language: 'en' },
+
+  // Conjunctions / discourse
+  { id: 'but',         baseForm: 'but',         language: 'en' },
+  { id: 'or',          baseForm: 'or',          language: 'en' },
+  { id: 'because',     baseForm: 'because',     language: 'en' },
+  { id: 'if',          baseForm: 'if',          language: 'en' },
+
+  // Adverbs / discourse
+  { id: 'very',        baseForm: 'very',        language: 'en' },
+  { id: 'really',      baseForm: 'really',      language: 'en' },
+  { id: 'also',        baseForm: 'also',        language: 'en' },
+  { id: 'maybe',       baseForm: 'maybe',       language: 'en' },
+  { id: 'just',        baseForm: 'just',        language: 'en' },
+  { id: 'more',        baseForm: 'more',        language: 'en' },
+
+  // Social
+  { id: 'please',      baseForm: 'please',      language: 'en' },
+  { id: 'yes',         baseForm: 'yes',         language: 'en' },
+  { id: 'goodbye',     baseForm: 'goodbye',     language: 'en' },
+  { id: 'do', baseForm: 'do', language: 'en' },
+  { id: 'pen', baseForm: 'pen', language: 'en' },
 ]

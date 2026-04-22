@@ -22,7 +22,7 @@ export const MIN_WORDS = 3
 // wordBankWords      — base form strings from the learner's word bank
 // lane               — which practice lane (for max words lookup)
 // maxWordsOverride — if provided, takes precedence over the lane config value
-export async function generatePracticeSentence({ eligibleStructures, wordBankWords, lane = 'reading', maxWordsOverride }) {
+export async function generatePracticeSentence({ eligibleStructures, wordBankWords, lane = 'reading', maxWordsOverride, recentSentences = [] }) {
   const maxWords = maxWordsOverride ?? LANE_MAX_WORDS[lane] ?? 5
 
   const res = await fetch('/__generate-sentence', {
@@ -33,6 +33,7 @@ export async function generatePracticeSentence({ eligibleStructures, wordBankWor
       wordBankWords,
       minWords: MIN_WORDS,
       maxWords,
+      recentSentences,
     }),
   })
 

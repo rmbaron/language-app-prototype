@@ -13,7 +13,7 @@
 // Pre-population: words already in wordData.en.js have their Layer 1
 // data derived from there automatically, so no API call is needed for them.
 
-import allWords from './wordData'
+import wordDataWords from './wordData'
 
 const KEY_PREFIX = 'lapp-l1'
 
@@ -46,7 +46,11 @@ export function hasLayerOne(wordId, lang = 'en') {
 // Returns seed words that don't yet have a Layer 1 entry.
 // These are the words the batch processor should enrich next.
 export function getMissingLayerOne(seedWords, lang = 'en') {
-  return seedWords.filter(w => w.language === lang && !hasLayerOne(w.id, lang))
+  return seedWords.filter(w => {
+    if (w.language !== lang) return false
+    const data = getLayerOne(w.id, lang)
+    return !data || data.source !== 'api'
+  })
 }
 
 // ── Pre-population from wordData ──────────────────────────────
@@ -56,7 +60,7 @@ export function getMissingLayerOne(seedWords, lang = 'en') {
 // Call this once at app start — it's a no-op for words already cached.
 
 export function prePopulateFromWordData(lang = 'en') {
-  const words = allWords.filter(w => w.language === lang)
+  const words = wordDataWords.filter(w => w.language === lang)
   for (const word of words) {
     if (hasLayerOne(word.id, lang)) continue
     const cat = word.classifications?.grammaticalCategory

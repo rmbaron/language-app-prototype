@@ -1,0 +1,215 @@
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #f5f5f5;
+}
+
+.onboarding-inner {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.onboarding-back {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+}
+
+.onboarding-back:hover {
+  color: #333;
+}
+
+.onboarding-progress {
+  display: flex;
+  gap: 8px;
+}
+
+.onboarding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: background 0.2s;
+}
+
+.onboarding-dot--active {
+  background: #1a1a1a;
+}
+
+.onboarding-dot--done {
+  background: #999;
+}
+
+.onboarding-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.onboarding-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.onboarding-subtitle {
+  font-size: 0.95rem;
+  color: #666;
+  margin-top: -12px;
+}
+
+.onboarding-body {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.onboarding-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboarding-option {
+  padding: 16px 20px;
+  background: #fff;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #1a1a1a;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.onboarding-option:hover {
+  border-color: #bbb;
+}
+
+.onboarding-option--selected {
+  border-color: #1a1a1a;
+  background: #f0f0f0;
+}
+
+.onboarding-option--card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onboarding-card-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.onboarding-card-desc {
+  font-size: 0.85rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.onboarding-option--selected .onboarding-card-desc {
+  color: #555;
+}
+
+.onboarding-level-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-option--level {
+  flex: 1;
+}
+
+.onboarding-tooltip-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  background: #fff;
+  color: #999;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.onboarding-tooltip-btn:hover,
+.onboarding-tooltip-btn--open {
+  border-color: #999;
+  color: #555;
+}
+
+.onboarding-tooltip-text {
+  width: 100%;
+  font-size: 0.85rem;
+  color: #666;
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.5;
+}
+
+.onboarding-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-note-label {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.onboarding-note-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #1a1a1a;
+  resize: none;
+  transition: border-color 0.15s;
+}
+
+.onboarding-note-input:focus {
+  outline: none;
+  border-color: #bbb;
+}
+
+.onboarding-continue {
+  width: 100%;
+  padding: 18px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.onboarding-continue:hover:not(:disabled) {
+  background: #333;
+}
+
+.onboarding-continue:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

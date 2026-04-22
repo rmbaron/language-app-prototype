@@ -27,7 +27,7 @@ import { getContent } from './contentStore'
 import { loadState, getWordBank, getPracticedWords } from './userStore'
 import { getTierProfile, KNOWN_FOR_CONTENT, KNOWN_FOR_DISTRACTORS } from './vocabTiers'
 import { getReferenceTier } from './wordReference'
-import words from './wordData'
+import { getAllWords } from './wordRegistry'
 
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -128,7 +128,7 @@ export function selectDistractors(targetWord, laneId, count = 3) {
   const wbActive = state[KNOWN_FOR_DISTRACTORS]?.[laneId] ?? []
   const targetCategory = targetWord.classifications?.grammaticalCategory
 
-  const candidates = words.filter(w => w.id !== targetWord.id)
+  const candidates = getAllWords(targetWord.language ?? 'en').filter(w => w.id !== targetWord.id)
 
   const wbWords = candidates.filter(w => wbActive.includes(w.id))
   const nonWbWords = candidates.filter(w => !wbActive.includes(w.id))
