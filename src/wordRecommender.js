@@ -13,7 +13,6 @@
 //   recency         — avoid repeating a recent suggestion (future)
 //   unlock proximity — prioritize words that unlock a module the learner is close to (future)
 
-import { loadState } from './userStore'
 import { loadProfile } from './learnerProfile'
 import { buildCandidatePool } from './wordCandidatePool'
 
@@ -84,7 +83,7 @@ function selectFromPool(pool, count) {
   // Future: unlock proximity boost — raise words that unlock a nearly-reachable module
   // candidates = applyUnlockProximityBoost(candidates, profile)
 
-  return candidates.slice(0, count).map(c => c.word)
+  return candidates.slice(0, count)
 }
 
 // ── Public API ────────────────────────────────────────────────
@@ -93,16 +92,14 @@ function selectFromPool(pool, count) {
 // count:  how many recommendations to return (default 5)
 // useAI:  whether to invoke the AI refinement layer in the candidate pool
 
-export async function getRecommendations(count = 5, useAI = false, steeringParams = {}) {
-  const state   = loadState()
-  const profile = loadProfile()
-
-  const pool = await buildCandidatePool(state, profile, useAI, steeringParams)
+export function getRecommendations(count = 5, steeringParams = {}) {
+  const lang = loadProfile().expressed?.stable?.targetLanguage ?? 'en'
+  const pool = buildCandidatePool(lang)
   return selectFromPool(pool, count)
 }
 
 // Returns the single top recommendation.
-export async function getTopRecommendation(useAI = false) {
-  const results = await getRecommendations(1, useAI)
+export function getTopRecommendation() {
+  const results = getRecommendations(1)
   return results[0] ?? null
 }

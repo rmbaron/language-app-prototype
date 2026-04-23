@@ -153,7 +153,7 @@ Reply with only the sentence.`
 const L1_SYSTEM = `You are classifying words for a language learning app.
 
 Return a JSON object with these fields:
-- grammaticalCategory: one of: noun, verb, adjective, adverb, pronoun, determiner, conjunction, preposition, interrogative, demonstrative, negation, interjection
+- grammaticalCategory: one of: noun, verb, adjective, adverb, pronoun, determiner, conjunction, preposition, interrogative, demonstrative, negation, interjection, numeral
 - meaning: a short definition (5–10 words) suitable for a language learner
 - semanticSubtype: a finer label within the category (e.g. noun → person/place/thing/abstract; verb → action/state/motion; adjective → size/quality/emotion/temperature/age; adverb → time/place/manner/frequency)
 

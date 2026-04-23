@@ -5,6 +5,7 @@ import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, resetContentR
 import { runLayerOneBatch, enrichWord } from './wordEnrichment'
 import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2 } from './wordEnrichmentTwo'
 import { clearWordContent } from './contentStore'
+import { getAtomIndex, getAtomIndexRebuiltAt, rebuildAtomIndex, findWordInIndex } from './atomIndex'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -66,7 +67,7 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
         <div style={{ marginTop: 4 }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '120px 60px 60px 60px 60px',
+            gridTemplateColumns: '140px 60px 60px 60px 60px',
             gap: '2px 8px',
             fontSize: 11,
             color: '#444',
@@ -74,20 +75,26 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
           }}>
             <span>word</span><span>L1</span><span>L2</span><span>L3</span><span></span>
           </div>
-          {words.map(({ word, s }) => (
+          {words.map(({ word, s }) => {
+            const indexed = findWordInIndex(word.id, 'en')
+            return (
             <div key={word.id}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 60px 60px 60px 60px',
+              gridTemplateColumns: '140px 60px 60px 60px 60px',
               gap: '2px 8px',
               alignItems: 'center',
               padding: '2px 0 2px 20px',
             }}>
               <span
-                style={{ fontFamily: 'monospace', fontSize: 13, color: '#ccc', cursor: 'pointer' }}
+                style={{ fontFamily: 'monospace', fontSize: 13, color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
                 onClick={() => setExpanded(expanded === word.id ? null : word.id)}
               >
                 {word.baseForm}
+                {indexed
+                  ? <span title={`indexed: ${indexed.atomId} / ${indexed.cefrLevel}`} style={{ width: 6, height: 6, borderRadius: '50%', background: '#5fcf5f', flexShrink: 0 }} />
+                  : <span title="not in atom index" style={{ width: 6, height: 6, borderRadius: '50%', background: '#333', flexShrink: 0 }} />
+                }
               </span>
               <Badge label={s.l1 === 'none' ? '—' : s.l1} status={s.l1} />
               <Badge label={s.l2 === 'none' ? '—' : s.l2} status={s.l2} />
@@ -135,7 +142,7 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
               )
             })()}
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
@@ -398,6 +405,109 @@ export default function WordPipeline({ onClose }) {
 
       {orderedGroups.length === 0 && (
         <p style={{ color: '#555', fontSize: 13 }}>No words match.</p>
+      )}
+
+      <AtomIndexPanel
+        running={running}
+        onRebuild={async () => {
+          setRunning('atom-index')
+          const enrichedWords = WORD_SEED
+            .map(w => {
+              const l2 = getLayerTwo(w.id, 'en')
+              return l2?.grammaticalAtom && l2?.cefrLevel
+                ? { id: w.id, atomId: l2.grammaticalAtom, cefrLevel: l2.cefrLevel }
+                : null
+            })
+            .filter(Boolean)
+          rebuildAtomIndex('en', enrichedWords)
+          setRunning(null)
+          forceUpdate(n => n + 1)
+        }}
+      />
+    </div>
+  )
+}
+
+const ATOM_INDEX_LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+
+function AtomIndexPanel({ running, onRebuild }) {
+  const [open, setOpen] = useState(false)
+  const [expandedAtom, setExpandedAtom] = useState(null)
+  const index = getAtomIndex('en')
+  const rebuiltAt = getAtomIndexRebuiltAt('en')
+  const totalWords = Object.values(index).reduce((sum, levels) =>
+    sum + Object.values(levels).reduce((s, ids) => s + ids.length, 0), 0
+  )
+
+  return (
+    <div style={{ marginTop: 32, borderTop: '1px solid #1a1a1a', paddingTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 12 : 0 }}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}
+        >
+          <span style={{ fontSize: 12, color: '#555' }}>{open ? '▼' : '▶'}</span>
+          <span style={{ fontWeight: 600, fontSize: 13, color: '#888' }}>Atom Index</span>
+        </button>
+        <span style={{ fontSize: 11, color: '#444' }}>{totalWords} words</span>
+        {rebuiltAt && (
+          <span style={{ fontSize: 11, color: '#333', marginLeft: 'auto' }}>
+            rebuilt {new Date(rebuiltAt).toLocaleTimeString()}
+          </span>
+        )}
+        <button
+          className="dev-toggle"
+          style={{ marginLeft: rebuiltAt ? 0 : 'auto' }}
+          disabled={!!running}
+          onClick={onRebuild}
+        >
+          {running === 'atom-index' ? 'Rebuilding…' : 'Rebuild'}
+        </button>
+      </div>
+
+      {open && (
+        <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
+          {Object.keys(index).length === 0 && (
+            <p style={{ color: '#444', fontSize: 12 }}>Index is empty — run L2 enrichment or rebuild.</p>
+          )}
+          {Object.entries(index)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([atomId, levels]) => {
+              const atomTotal = Object.values(levels).reduce((s, ids) => s + ids.length, 0)
+              const isExpanded = expandedAtom === atomId
+              return (
+                <div key={atomId} style={{ marginBottom: 6 }}>
+                  <button
+                    onClick={() => setExpandedAtom(isExpanded ? null : atomId)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', width: '100%', textAlign: 'left' }}
+                  >
+                    <span style={{ fontSize: 11, color: '#444' }}>{isExpanded ? '▼' : '▶'}</span>
+                    <span style={{ color: '#7a9a7a', minWidth: 180 }}>{atomId}</span>
+                    <span style={{ color: '#444' }}>{atomTotal}</span>
+                  </button>
+                  {isExpanded && (
+                    <div style={{ paddingLeft: 20, marginTop: 2 }}>
+                      {ATOM_INDEX_LEVEL_ORDER
+                        .filter(lvl => levels[lvl]?.length)
+                        .map(lvl => (
+                          <div key={lvl} style={{ marginBottom: 4 }}>
+                            <span style={{ color: '#555', minWidth: 32, display: 'inline-block' }}>{lvl}</span>
+                            <span style={{ color: '#666' }}>
+                              {levels[lvl]
+                                .map(id => WORD_SEED.find(w => w.id === id)?.baseForm ?? id)
+                                .sort()
+                                .join(', ')}
+                            </span>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          }
+        </div>
       )}
     </div>
   )

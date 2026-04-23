@@ -20,7 +20,7 @@ export default function RecommenderPanel() {
   const count = aiDecides ? (aiCount ?? 5) : manualCount
 
   useEffect(() => {
-    getRecommendations(count).then(setRecommendations)
+    setRecommendations(getRecommendations(count))
   }, [count])
 
   return (
@@ -60,9 +60,9 @@ export default function RecommenderPanel() {
         <p className="rec-empty">No recommendations — all words already in your bank.</p>
       ) : (
         <div className="rec-list">
-          {recommendations.map(word => {
+          {recommendations.map(({ word, isPioneer }) => {
             return (
-              <div key={word.id} className="rec-item">
+              <div key={word.id} className={`rec-item${isPioneer ? ' rec-item--pioneer' : ''}`}>
                 <div className="rec-item-top">
                   <span className="rec-item-word">{word.baseForm}</span>
                   <span className="rec-item-category">{word.classifications.grammaticalCategory}</span>

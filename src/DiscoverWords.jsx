@@ -64,10 +64,8 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
       grammarCategory: grammarFilter ?? undefined,
       interestTopic:   interestFilter ?? undefined,
     }
-    getRecommendations(count, false, steeringParams).then(recs => {
-      setRecommendations(recs)
-      setLoading(false)
-    })
+    setRecommendations(getRecommendations(count, steeringParams))
+    setLoading(false)
   }, [count, isSearching, grammarFilter, interestFilter])
 
   const allWords = getAllWords(getActiveLanguage())
@@ -87,11 +85,14 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
 
   const s = getStrings(getInterfaceLanguage())
 
-  const visiblePool = isSearching
-    ? searchResults
-    : recommendations.filter(w => !banked.has(w.id))
+  // Search results are bare words; wrap to unified shape for renderWord
+  const searchRecs = searchResults.map(word => ({ word, atom: null, isPioneer: false }))
 
-  const grammarButtons = [...new Set(visiblePool.map(w => w.classifications.grammaticalCategory))]
+  const visiblePool = isSearching
+    ? searchRecs
+    : recommendations.filter(rec => !banked.has(rec.word.id))
+
+  const grammarButtons = [...new Set(visiblePool.map(rec => rec.word.classifications.grammaticalCategory))]
     .filter(cat => s.common.categoriesPlural[cat])
     .map(cat => ({ cat, label: s.common.categoriesPlural[cat] }))
 
@@ -168,10 +169,10 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
     )
   }
 
-  function renderWord(word) {
+  function renderWord({ word, isPioneer }) {
     const slotInfo = getSlotInfo(word)
     return (
-      <div key={word.id} className="discover-item" onClick={() => setTrialWord(word)}>
+      <div key={word.id} className={`discover-item${isPioneer ? ' discover-item--pioneer' : ''}`} onClick={() => setTrialWord(word)}>
         <div className="discover-item-body">
           <div className="discover-item-top">
             <span className="discover-item-word">{word.baseForm}</span>

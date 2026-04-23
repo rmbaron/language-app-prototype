@@ -28,6 +28,11 @@ export function getAllWords(lang = 'en') {
   return [...base, ...getAllEnrichedSeedWords(lang, baseIds)]
 }
 
+// Resolve a single word object by ID. Returns null if not found.
+export function getWord(wordId, lang = 'en') {
+  return getAllWords(lang).find(w => w.id === wordId) ?? null
+}
+
 // Convenience: resolve word objects for a set of word bank IDs.
 // Returns only words found in the registry — silently drops unknown IDs.
 export function getBankedWords(bankIds, lang = 'en') {

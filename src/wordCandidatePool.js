@@ -3,233 +3,71 @@
 // Answers: "what words are eligible to be recommended right now?"
 // Does NOT decide what the user sees — that is wordRecommender.js.
 //
-// Two source layers, both feeding into the same pool:
-//   Static layer  — scores words using CEFR slot signals (free, always available)
-//   AI layer      — refines or adds candidates using a live AI call (costs gas, optional)
+// Architecture: atom-first, cluster-positioned.
+//   1. Read getLearnerGrammarState() once — cluster position, active atoms, pioneer gaps
+//   2. Pioneer gaps → surface designated pioneer words (flagged isPioneer: true)
+//   3. Active atoms → widen vocab within each unlocked atom class via atom index
 //
-// Payment model flexibility:
-//   free tier  → static layer only
-//   paid tier  → static layer + AI refinement
+// Nothing here reads L2 directly. Word eligibility comes from the atom index.
+// Grammar state comes from getLearnerGrammarState() which reads atomUnlockStore.
 //
-// Eligibility rules (applied before scoring):
-//   - Word must not already be in the learner's Word Bank
-//   - Word must not be a form of a word whose base isn't in the bank yet
-//     (e.g. don't recommend "ran" before "run" is established)
+// Content eligibility (contentReady) will be enforced here once that system
+// is redesigned around atoms. For now, all indexed words are eligible.
+//
+// Pioneer surfacing logic (when/how pioneers enter the stream) is TBD —
+// currently all pioneer gaps are included as candidates. Pacing design pending.
 
-import { getAllWords } from './wordRegistry'
-import { getLayerTwo } from './wordLayerTwo'
-import { getWordBank } from './userStore'
-import { getCefrLevel, getActiveLanguage } from './learnerProfile'
-import { getSlotCoverage, getCurrentSubLevel, getCumulativeSlots, getLevels } from './cefrLevels'
-import { getWordAttributes } from './wordAttributes'
-import { getCurriculumBoosts } from './wordCurriculum'
+import { getLearnerGrammarState } from './learnerGrammarState'
+import { getWordsForAtom } from './atomIndex'
+import { getWord } from './wordRegistry'
+import { getCefrLevel } from './learnerProfile'
 import { getAtomPioneer } from './atomPioneers'
+import { getGrammarClusters } from './grammarClustering'
 
-// ── CEFR level boosts ─────────────────────────────────────────
-//
-// Two questions, in order:
-//   1. Is this word at the learner's level?  (cefrLevel check)
-//   2. Does it fill a missing slot?          (slot coverage check)
-//
-// LEVEL_MATCH_BOOST   — word's cefrLevel matches the learner's current level
-// SLOT_MISSING_BOOST  — word fills a slot that has zero coverage in the bank
-// SLOT_DEPTH_BOOST    — word deepens an open-ended slot already covered
-// ABOVE_LEVEL_PENALTY — word is above the learner's level (fraction applied)
+// ── Candidate assembly ────────────────────────────────────────────────────────
 
-const SLOT_MISSING_BOOST = 4.0
-const SLOT_DEPTH_BOOST   = 1.5
-const STEERING_BOOST     = 2.5   // applied when learner has steered toward a category or interest
-                                  // kept below SLOT_MISSING_BOOST (4.0) so critical missing slots
-                                  // still outrank user steering rather than being drowned out
+export function buildCandidatePool(lang = 'en') {
+  const grammarState = getLearnerGrammarState(lang)
+  const { activeAtoms, pioneerGaps, clusters } = grammarState
+  const cefrLevel = getCefrLevel() ?? 'A1'
 
-// Builds per-word and per-category boost signals from CEFR slot coverage.
-// Returns { wordBoosts, categoryBoosts, levelId } consumed by scoreWord.
-function buildSlotBoostContext(existingWordIds, allWords, activeLang) {
-  // Default to A1 if no level is set — keeps the pool populated during dev
-  // testing and for users who haven't completed onboarding.
-  const levelId = getCefrLevel() ?? 'A1'
+  // Build a flat set of all banked word IDs from grammar state.
+  // This avoids reading the word bank directly.
+  const banked = new Set(
+    Object.values(clusters)
+      .flatMap(c => Object.values(c.atoms).flat())
+  )
 
-  // Gate by sub-level: only boost slots active at the learner's current position
-  const currentSub    = getCurrentSubLevel(levelId, existingWordIds, allWords, activeLang)
-  const activeSlotIds = new Set(getCumulativeSlots(levelId, currentSub))
+  const currentClusterAtoms = new Set(
+    getGrammarClusters(lang).find(c => c.id === grammarState.currentCluster)?.atoms ?? []
+  )
 
-  const allSlotCoverage = getSlotCoverage(levelId, existingWordIds, allWords, activeLang)
-  const slotCoverage    = allSlotCoverage.filter(s => activeSlotIds.has(s.id))
+  const candidates = []
 
-  const wordBoosts     = new Map()
-  const categoryBoosts = new Map()
+  // ── Pioneer candidates ────────────────────────────────────────
+  // Only surface pioneers for atoms in the current cluster.
+  // Pioneer ordering within a cluster is TBD — pacing design pending.
+  for (const { atomId, wordId } of pioneerGaps) {
+    if (!currentClusterAtoms.has(atomId)) continue
+    if (banked.has(wordId)) continue
+    const word = getWord(wordId, lang)
+    if (word) candidates.push({ word, atom: atomId, isPioneer: true })
+  }
 
-  for (const slot of slotCoverage) {
-    if (slot.coverageCheck?.type === 'structural') continue
-
-    if (!slot.covered) {
-      // Slot is completely missing — boost whatever fills it
-      if (slot.coverageCheck?.type === 'specificWords') {
-        for (const id of slot.coverageCheck.wordIds) {
-          if (!existingWordIds.includes(id)) {
-            wordBoosts.set(id, (wordBoosts.get(id) ?? 0) + SLOT_MISSING_BOOST)
-          }
-        }
-      } else if (slot.coverageCheck?.type === 'category') {
-        const cat = slot.coverageCheck.grammaticalCategory
-        categoryBoosts.set(cat, (categoryBoosts.get(cat) ?? 0) + SLOT_MISSING_BOOST)
-      } else if (slot.coverageCheck?.type === 'attribute') {
-        // Boost all words in the full word list whose attributes match this slot
-        const { key, value } = slot.coverageCheck
-        for (const w of allWords) {
-          if (w.language === activeLang && !existingWordIds.includes(w.id)) {
-            if (getWordAttributes(w.id)?.[key] === value) {
-              wordBoosts.set(w.id, (wordBoosts.get(w.id) ?? 0) + SLOT_MISSING_BOOST)
-            }
-          }
-        }
-      }
-    } else if (slot.openEnded) {
-      // Slot covered but open-ended — keep deepening
-      if (slot.coverageCheck?.type === 'category') {
-        const cat = slot.coverageCheck.grammaticalCategory
-        categoryBoosts.set(cat, (categoryBoosts.get(cat) ?? 0) + SLOT_DEPTH_BOOST)
-      } else if (slot.coverageCheck?.type === 'attribute') {
-        const { key, value } = slot.coverageCheck
-        for (const w of allWords) {
-          if (w.language === activeLang && !existingWordIds.includes(w.id)) {
-            if (getWordAttributes(w.id)?.[key] === value) {
-              wordBoosts.set(w.id, (wordBoosts.get(w.id) ?? 0) + SLOT_DEPTH_BOOST)
-            }
-          }
-        }
-      }
+  // ── Vocab-depth candidates ────────────────────────────────────
+  // For each unlocked atom, surface all level-appropriate words
+  // from the atom index that aren't already banked.
+  for (const atomId of activeAtoms) {
+    const indexed = getWordsForAtom(atomId, lang, cefrLevel)
+    for (const wordId of indexed) {
+      if (banked.has(wordId)) continue
+      const pioneer = getAtomPioneer(atomId, lang)
+      // Skip if this is a pioneer word — already handled above if needed
+      if (pioneer === wordId) continue
+      const word = getWord(wordId, lang)
+      if (word) candidates.push({ word, atom: atomId, isPioneer: false })
     }
   }
 
-  return { wordBoosts, categoryBoosts, levelId }
-}
-
-function scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams = {}, coveredAtoms = new Set()) {
-  if (existingWordIds.includes(word.id)) return null
-
-  // ── Atom pioneer gate ─────────────────────────────────────────
-  // If this atom class has never appeared in the word bank, only the
-  // designated pioneer for that atom may be surfaced by the recommender.
-  const wordAtom = getLayerTwo(word.id)?.grammaticalAtom
-  if (wordAtom && !coveredAtoms.has(wordAtom)) {
-    const pioneer = getAtomPioneer(wordAtom, profile.expressed?.stable?.targetLanguage ?? 'en')
-    if (pioneer !== null && word.id !== pioneer) return null
-    // pioneer === null means undesignated — block everything in this atom class
-    if (pioneer === null) return null
-  }
-
-  // ── Slot coverage boost ──────────────────────────────────────
-  let slotBoost = 0
-  if (slotContext) {
-    slotBoost += slotContext.wordBoosts.get(word.id) ?? 0
-    slotBoost += slotContext.categoryBoosts.get(word.classifications.grammaticalCategory) ?? 0
-  }
-
-  // Words with no slot signal are normally excluded —
-  // except words explicitly cleared by the pipeline (contentReady: true).
-  const isLive = getLayerTwo(word.id)?.contentReady === true
-  if (slotBoost === 0 && !isLive) return null
-
-  // ── Curriculum boost (paradigm completion + consolidation momentum) ──
-  let curriculumBoost = 0
-  if (curriculumContext) {
-    curriculumBoost += curriculumContext.wordBoosts.get(word.id) ?? 0
-    curriculumBoost += curriculumContext.categoryBoosts.get(word.classifications.grammaticalCategory) ?? 0
-  }
-
-  // ── Steering boost ───────────────────────────────────────────
-  let steeringBoost = 0
-  if (steeringParams.grammarCategory &&
-      word.classifications.grammaticalCategory === steeringParams.grammarCategory) {
-    steeringBoost += STEERING_BOOST
-  }
-
-  return { word, score: slotBoost + curriculumBoost + steeringBoost, source: 'static' }
-}
-
-function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
-  const activeLang        = profile.expressed.stable.targetLanguage ?? 'en'
-  const allWords          = getAllWords(activeLang)
-  const slotContext       = buildSlotBoostContext(existingWordIds, allWords, activeLang)
-  const curriculumContext = getCurriculumBoosts(existingWordIds, allWords, activeLang)
-
-  const coveredAtoms = new Set()
-  for (const id of existingWordIds) {
-    const atom = getLayerTwo(id)?.grammaticalAtom
-    if (atom) coveredAtoms.add(atom)
-  }
-
-  const candidates = allWords
-    .filter(word => word.language === activeLang)
-    .map(word => scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams, coveredAtoms))
-    .filter(Boolean)
-    .sort((a, b) => b.score - a.score)
-
-  if (candidates.length > 0) return candidates
-
-  // Fallback: slot signals exhausted. Try next CEFR level, then baseline.
-  const allLevels  = getLevels()
-  const currentIdx = allLevels.findIndex(l => l.id === (getCefrLevel() ?? 'A1'))
-  const nextLevel  = allLevels[currentIdx + 1]
-
-  if (nextLevel) {
-    const nextSlotContext = buildSlotBoostContext(existingWordIds, allWords, activeLang)
-    const nextCandidates  = allWords
-      .filter(word => word.language === activeLang)
-      .map(word => scoreWord(word, profile, existingWordIds, nextSlotContext, curriculumContext, steeringParams))
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score)
-    if (nextCandidates.length > 0) return nextCandidates
-  }
-
-  return allWords
-    .filter(word => word.language === activeLang && !existingWordIds.includes(word.id))
-    .map(word => ({ word, score: 0.1, source: 'static' }))
-}
-
-// ── AI refinement layer ───────────────────────────────────────
-//
-// Sends static candidates + learner context to the AI for refinement.
-// May reorder, substitute, or add candidates the static layer missed.
-// Returns enriched candidates tagged with source: 'ai'.
-//
-// Not yet implemented — returns null until wired to the API.
-
-async function getAICandidates(staticCandidates, profile, existingWordIds, steeringParams = {}) {
-  // TODO: implement AI refinement call
-  // Inputs to send:
-  //   staticCandidates        — top words from static scoring (as context/starting point)
-  //   profile                 — learner's goal, stage, preferences, depth level
-  //   existingWordIds         — current word bank (so AI doesn't suggest what's already there)
-  //   steeringParams.interestTopic   — user-defined interest domain (e.g. 'food', 'music')
-  //   steeringParams.grammarCategory — grammatical category the user wants more of
-  // Expected output: array of { word, score, source: 'ai' }
-  return null
-}
-
-// ── Public API ────────────────────────────────────────────────
-//
-// Returns a scored, eligible candidate pool ready for the recommender to select from.
-// useAI: toggles the AI refinement layer (default false until implemented)
-
-export async function buildCandidatePool(state, profile, useAI = false, steeringParams = {}) {
-  // Exclude words already in the Word Bank — not just practiced ones
-  const existingWordIds = getWordBank()
-
-  const staticCandidates = buildStaticCandidates(existingWordIds, profile, steeringParams)
-
-  if (useAI) {
-    const aiCandidates = await getAICandidates(staticCandidates, profile, existingWordIds, steeringParams)
-    if (aiCandidates) {
-      const aiIds = new Set(aiCandidates.map(c => c.word.id))
-      const merged = [
-        ...aiCandidates,
-        ...staticCandidates.filter(c => !aiIds.has(c.word.id)),
-      ]
-      return merged
-    }
-  }
-
-  return staticCandidates
+  return candidates
 }

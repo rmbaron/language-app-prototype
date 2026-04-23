@@ -12,6 +12,7 @@
 import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
 import { setLayerTwo, hasLayerTwo, hasRealLayerTwo, clearLayerTwo } from './wordLayerTwo'
+import { addWordToIndex, findWordInIndex, updateWordInIndex, rebuildAtomIndex } from './atomIndex'
 
 const BATCH_LIMIT = 5
 
@@ -43,7 +44,17 @@ export async function enrichWordL2(wordId, lang = 'en') {
   const layer1 = getLayerOne(word.id, lang)
   if (!layer1) return
   const result = await enrichOneWordL2(word.id, word.baseForm, lang, layer1)
-  if (result) setLayerTwo(word.id, lang, { ...result, source: 'api' })
+  if (result) {
+    const existing = findWordInIndex(word.id, lang)
+    setLayerTwo(word.id, lang, { ...result, source: 'api' })
+    if (result.grammaticalAtom && result.cefrLevel) {
+      if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
+        updateWordInIndex(word.id, { oldAtom: existing.atomId, oldLevel: existing.cefrLevel, newAtom: result.grammaticalAtom, newLevel: result.cefrLevel, lang })
+      } else {
+        addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
+      }
+    }
+  }
 }
 
 export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
@@ -59,7 +70,15 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
       if (!layer1) continue
       const result = await enrichOneWordL2(word.id, word.baseForm, lang, layer1)
       if (result) {
+        const existing = findWordInIndex(word.id, lang)
         setLayerTwo(word.id, lang, { ...result, source: 'api' })
+        if (result.grammaticalAtom && result.cefrLevel) {
+          if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
+            updateWordInIndex(word.id, { oldAtom: existing.atomId, oldLevel: existing.cefrLevel, newAtom: result.grammaticalAtom, newLevel: result.cefrLevel, lang })
+          } else {
+            addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
+          }
+        }
         console.log(`[enrichment-l2] enriched "${word.baseForm}"`)
       }
     } catch (err) {
@@ -90,7 +109,19 @@ export async function forceReEnrichAllL2(lang = 'en') {
     }
   }
 
-  console.log('[enrichment-l2] force re-enrich complete.')
+  // Rebuild the atom index from scratch after full re-enrichment.
+  // Collect all enriched word positions from L2 and pass them in.
+  const { getLayerTwo } = await import('./wordLayerTwo')
+  const enrichedWords = words
+    .map(w => {
+      const l2 = getLayerTwo(w.id, lang)
+      return l2?.grammaticalAtom && l2?.cefrLevel
+        ? { id: w.id, atomId: l2.grammaticalAtom, cefrLevel: l2.cefrLevel }
+        : null
+    })
+    .filter(Boolean)
+  rebuildAtomIndex(lang, enrichedWords)
+  console.log('[enrichment-l2] force re-enrich complete. Atom index rebuilt.')
 }
 
 // ── Manual trigger ────────────────────────────────────────────
