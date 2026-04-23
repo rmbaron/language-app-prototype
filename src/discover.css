@@ -117,6 +117,11 @@
   background: #f9fff9;
 }
 
+.discover-item--pioneer {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 1px #a78bfa, 0 0 8px 1px rgba(167, 139, 250, 0.25);
+}
+
 .discover-item-body {
   flex: 1;
 }

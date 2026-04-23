@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { getAllWords } from './wordRegistry'
+import { getAllWords, getWord } from './wordRegistry'
 import { getActiveLanguage } from './learnerProfile'
 import { LANES } from './lanes'
 import { getContent, addContent, updateContent, removeContent, getPronunciation, setPronunciation, getContentIndex } from './contentStore'
-import { GRAMMATICAL_GROUPS, getGrammaticalGroup } from './classifications'
+import { ATOMS } from './grammarAtoms.en'
+import { getGrammarClusters } from './grammarClustering'
+import { getAtomIndex } from './atomIndex'
 
 const isAudio = lane => lane.medium === 'audio'
 const isProductive = lane => lane.modality === 'productive'
@@ -131,7 +133,6 @@ function LaneSection({ wordId, lane }) {
       }
       let count = 0
       if (isAudio(lane)) {
-        // Accept array of strings or array of {text, audioUrl, level?} objects
         parsed.forEach(item => {
           if (typeof item === 'string' && item.trim()) {
             addContent(wordId, lane.id, { text: item.trim(), audioUrl: '', level: 1 })
@@ -308,37 +309,114 @@ function PronunciationSection({ wordId }) {
   )
 }
 
-export default function ContentManager({ onClose }) {
-  const allWords = getAllWords(getActiveLanguage())
-  const [selectedWord, setSelectedWord] = useState(allWords[0].id)
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [search, setSearch] = useState('')
-  const word = allWords.find(w => w.id === selectedWord)
+function WordChip({ word, contentIndex, onClick }) {
+  const hasContent = Object.keys(contentIndex[word.id] ?? {}).length > 0
+  return (
+    <button
+      className={`cm-word-chip${hasContent ? ' cm-word-chip--has-content' : ''}`}
+      onClick={onClick}
+    >
+      {word.baseForm}
+    </button>
+  )
+}
 
+function AtomSection({ atomId, atom, levelBuckets, lang, contentIndex, search, onSelectWord }) {
+  const levels = Object.keys(levelBuckets).sort()
+  const [selectedLevel, setSelectedLevel] = useState(levels[0] ?? 'A1')
+
+  if (search.trim()) {
+    const q = search.trim().toLowerCase()
+    const allWords = levels
+      .flatMap(l => levelBuckets[l].map(id => getWord(id, lang)))
+      .filter(Boolean)
+      .filter(w => w.baseForm.toLowerCase().includes(q))
+    if (allWords.length === 0) return null
+    return (
+      <div className="cm-atom-section">
+        <div className="cm-atom-header">
+          <span className="cm-atom-label">{atom?.label ?? atomId}</span>
+          <span className="cm-atom-count">{allWords.length}</span>
+        </div>
+        <div className="cm-atom-words">
+          {allWords.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} onClick={() => onSelectWord(w.id)} />)}
+        </div>
+      </div>
+    )
+  }
+
+  const words = (levelBuckets[selectedLevel] ?? [])
+    .map(id => getWord(id, lang))
+    .filter(Boolean)
+
+  return (
+    <div className="cm-atom-section">
+      <div className="cm-atom-header">
+        <span className="cm-atom-label">{atom?.label ?? atomId}</span>
+        <div className="cm-atom-level-tabs">
+          {levels.map(l => (
+            <button
+              key={l}
+              className={`cm-atom-level-tab${selectedLevel === l ? ' cm-atom-level-tab--active' : ''}`}
+              onClick={() => setSelectedLevel(l)}
+            >
+              {l} <span className="cm-atom-level-count">{levelBuckets[l]?.length ?? 0}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="cm-atom-words">
+        {words.length === 0
+          ? <span className="cm-atom-empty">No words at this level yet.</span>
+          : words.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} onClick={() => onSelectWord(w.id)} />)
+        }
+      </div>
+    </div>
+  )
+}
+
+export default function ContentManager({ onClose }) {
+  const lang = getActiveLanguage()
+  const allWords = getAllWords(lang)
+  const clusters = getGrammarClusters(lang)
+  const rawIndex = getAtomIndex(lang)
   const contentIndex = getContentIndex()
 
-  const categoryCounts = allWords.reduce((acc, w) => {
-    const group = getGrammaticalGroup(w.classifications?.grammaticalCategory)
-    if (group) acc[group] = (acc[group] ?? 0) + 1
-    return acc
-  }, {})
+  const [selectedCluster, setSelectedCluster] = useState(clusters[0]?.id ?? 1)
+  const [selectedWord, setSelectedWord] = useState(null)
+  const [search, setSearch] = useState('')
 
-  const categories = ['all', ...GRAMMATICAL_GROUPS.filter(g => categoryCounts[g.label]).map(g => g.label)]
+  const cluster = clusters.find(c => c.id === selectedCluster)
+  const word = selectedWord ? allWords.find(w => w.id === selectedWord) : null
 
-  const visibleWords = allWords.filter(w => {
-    const matchesCategory = categoryFilter === 'all' || getGrammaticalGroup(w.classifications?.grammaticalCategory) === categoryFilter
-    const matchesSearch = w.baseForm.toLowerCase().includes(search.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
-
-  function handleCategoryFilter(cat) {
-    setCategoryFilter(cat)
+  function selectCluster(id) {
+    setSelectedCluster(id)
+    setSelectedWord(null)
     setSearch('')
-    const stillVisible = cat === 'all' || getGrammaticalGroup(allWords.find(w => w.id === selectedWord)?.classifications?.grammaticalCategory) === cat
-    if (!stillVisible) {
-      const first = allWords.find(w => getGrammaticalGroup(w.classifications?.grammaticalCategory) === cat)
-      if (first) setSelectedWord(first.id)
-    }
+  }
+
+  if (word) {
+    return (
+      <div className="cm">
+        <div className="cm-header">
+          <p className="cm-heading">Content Manager</p>
+          <button className="cm-close" onClick={onClose}>✕ Close</button>
+        </div>
+        <div className="cm-body">
+          <button className="cm-back-btn" onClick={() => setSelectedWord(null)}>← Back</button>
+          <div className="cm-word-meta">
+            <span className="cm-word-title">{word.baseForm}</span>
+            <span className="cm-word-category">{word.classifications?.grammaticalCategory ?? '—'}</span>
+          </div>
+          <PronunciationSection key={selectedWord} wordId={selectedWord} />
+          <div className="cm-lanes">
+            {LANES.map(lane => (
+              <LaneSection key={`${selectedWord}-${lane.id}`} wordId={selectedWord} lane={lane} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -348,16 +426,20 @@ export default function ContentManager({ onClose }) {
         <button className="cm-close" onClick={onClose}>✕ Close</button>
       </div>
 
-      <div className="cm-category-filters">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            className={`cm-category-btn ${categoryFilter === cat ? 'cm-category-btn--active' : ''}`}
-            onClick={() => handleCategoryFilter(cat)}
-          >
-            {cat === 'all' ? `all (${allWords.length})` : `${cat} (${categoryCounts[cat]})`}
-          </button>
-        ))}
+      <div className="cm-nav-bar">
+        <span className="cm-level-badge">A1</span>
+        <div className="cm-cluster-tabs">
+          {clusters.map(c => (
+            <button
+              key={c.id}
+              className={`cm-cluster-tab${selectedCluster === c.id ? ' cm-cluster-tab--active' : ''}`}
+              onClick={() => selectCluster(c.id)}
+              title={c.description}
+            >
+              C{c.id} <span className="cm-cluster-tab-label">{c.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="cm-search-row">
@@ -370,34 +452,29 @@ export default function ContentManager({ onClose }) {
         />
       </div>
 
-      <div className="cm-word-tabs">
-        {visibleWords.length === 0
-          ? <span className="cm-tabs-empty">No words match.</span>
-          : visibleWords.map(w => (
-          <button
-            key={w.id}
-            className={`cm-word-tab ${w.id === selectedWord ? 'cm-word-tab--active' : ''}`}
-            onClick={() => setSelectedWord(w.id)}
-          >
-            {w.baseForm}
-            <span className={`cm-coverage-dot ${Object.keys(contentIndex[w.id] ?? {}).length > 0 ? 'cm-coverage-dot--has-content' : ''}`} />
-          </button>
-        ))}
-      </div>
-
-      <div className="cm-body">
-        <div className="cm-word-meta">
-          <span className="cm-word-title">{word.baseForm}</span>
-          <span className="cm-word-category">{word.classifications?.grammaticalCategory ?? '—'}</span>
-        </div>
-
-        <PronunciationSection key={selectedWord} wordId={selectedWord} />
-
-        <div className="cm-lanes">
-          {LANES.map(lane => (
-            <LaneSection key={`${selectedWord}-${lane.id}`} wordId={selectedWord} lane={lane} />
-          ))}
-        </div>
+      <div className="cm-atom-sections">
+        {(cluster?.atoms ?? []).map(atomId => {
+          const atom = ATOMS.find(a => a.id === atomId)
+          const levelBuckets = rawIndex[atomId] ?? {}
+          if (Object.keys(levelBuckets).length === 0 && !search.trim()) return (
+            <div key={atomId} className="cm-atom-section cm-atom-section--empty">
+              <span className="cm-atom-label">{atom?.label ?? atomId}</span>
+              <span className="cm-atom-empty">No indexed words yet.</span>
+            </div>
+          )
+          return (
+            <AtomSection
+              key={atomId}
+              atomId={atomId}
+              atom={atom}
+              levelBuckets={levelBuckets}
+              lang={lang}
+              contentIndex={contentIndex}
+              search={search}
+              onSelectWord={setSelectedWord}
+            />
+          )
+        })}
       </div>
     </div>
   )

@@ -12,7 +12,7 @@
 //  The word bank fills the slots."
 
 import { getWordBank } from './userStore'
-import { getLayerTwo } from './wordLayerTwo'
+import { findWordInIndex } from './atomIndex'
 import { getGrammarClusters } from './grammarClustering'
 import { getAtomPioneers } from './atomPioneers'
 import { getAtomUnlocks } from './atomUnlockStore'
@@ -44,14 +44,15 @@ export function getLearnerGrammarState(lang = 'en') {
   }
   const activeAtoms = [...activeAtomSet]
 
-  // Build atom → [wordIds] map from the word bank (vocabulary, not grammar state)
+  // Build atom → [wordIds] map from the word bank (vocabulary, not grammar state).
+  // Uses the atom index as the runtime atom layer — no L2 reads at runtime.
   const atomWords = {}
   for (const wordId of wordBank) {
-    const l2 = getLayerTwo(wordId, lang)
-    const atom = l2?.grammaticalAtom
-    if (!atom) continue
-    if (!atomWords[atom]) atomWords[atom] = []
-    atomWords[atom].push(wordId)
+    const found = findWordInIndex(wordId, lang)
+    if (!found) continue
+    const { atomId } = found
+    if (!atomWords[atomId]) atomWords[atomId] = []
+    atomWords[atomId].push(wordId)
   }
   // Structure-unlock atoms share the trigger atom's words
   for (const [atom, triggerAtom] of Object.entries(STRUCTURE_UNLOCKS)) {

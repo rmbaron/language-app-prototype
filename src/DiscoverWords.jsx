@@ -299,7 +299,7 @@ export default function DiscoverWords({ onBack, onWordAdded }) {
       {isSearching ? (
         searchResults.length === 0
           ? <p className="discover-empty">{s.discover.empty.search(search)}</p>
-          : <div className="discover-list">{searchResults.map(renderWord)}</div>
+          : <div className="discover-list">{searchRecs.map(renderWord)}</div>
       ) : loading ? (
         <p className="discover-empty">{s.discover.loading}</p>
       ) : recommendations.length === 0 ? (

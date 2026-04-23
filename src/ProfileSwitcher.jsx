@@ -11,14 +11,73 @@ import {
 import { getStrings } from './uiStrings'
 import { getWordBank, addToWordBank, removeFromWordBank } from './userStore'
 import { unlockAtom, lockAtom, lockAtoms } from './atomUnlockStore'
-import { getLayerTwo } from './wordLayerTwo'
+import { findWordInIndex } from './atomIndex'
 import { ATOMS } from './grammarAtoms.en'
 import { getAtomPioneers } from './atomPioneers'
 import { getGrammarClusters } from './grammarClustering'
 import { getLearnerGrammarState } from './learnerGrammarState'
 import { WORD_SEED } from './wordSeed.en'
+import { CONSTRUCTOR_TIERS, CONSTRUCTOR_BANDS } from './constructorTiers.en.js'
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+
+function AtomRow({ atomId, pioneers, unlockedAtoms }) {
+  const atom      = ATOMS.find(a => a.id === atomId)
+  const pioneerId = pioneers[atomId]
+  const pioneer   = pioneerId ? (WORD_SEED.find(w => w.id === pioneerId)?.baseForm ?? pioneerId) : null
+  const unlocked  = unlockedAtoms.has(atomId)
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', padding: '2px 0' }}>
+      <span style={{ fontSize: 8, color: unlocked ? '#5fcf5f' : '#333' }}>●</span>
+      <span style={{ color: unlocked ? '#bbb' : '#555', width: 190, fontSize: 12 }}>{atom?.label ?? atomId}</span>
+      <span style={{ color: unlocked ? '#eee' : '#666', fontWeight: unlocked ? 600 : 400, fontSize: 13 }}>
+        {pioneer ?? <span style={{ color: '#333', fontStyle: 'italic' }}>unset</span>}
+      </span>
+    </div>
+  )
+}
+
+function GrammarMap({ clusters, pioneers, unlockedAtoms }) {
+  return (
+    <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
+      {clusters.map(cluster => {
+        const tiers        = CONSTRUCTOR_TIERS.filter(t => t.band === cluster.id)
+        const tieredAtoms  = new Set(tiers.flatMap(t => t.atoms))
+        const untiredAtoms = cluster.atoms.filter(id => !tieredAtoms.has(id))
+        return (
+          <div key={cluster.id} style={{ marginBottom: 28 }}>
+            <div style={{ color: '#8f8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, paddingBottom: 4, borderBottom: '1px solid #222' }}>
+              C{cluster.id} — {cluster.label}
+            </div>
+            {tiers.map(tier => (
+              <div key={tier.id} style={{ marginBottom: 10 }}>
+                <div style={{ color: '#446', fontSize: 11, marginBottom: 4, paddingLeft: 4 }}>{tier.label}</div>
+                <div style={{ paddingLeft: 16 }}>
+                  {tier.atoms.length === 0
+                    ? <span style={{ color: '#333', fontSize: 11, fontStyle: 'italic' }}>structure only — no new atoms</span>
+                    : tier.atoms.map(atomId => (
+                        <AtomRow key={atomId} atomId={atomId} pioneers={pioneers} unlockedAtoms={unlockedAtoms} />
+                      ))
+                  }
+                </div>
+              </div>
+            ))}
+            {untiredAtoms.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ color: '#333', fontSize: 11, marginBottom: 4, paddingLeft: 4 }}>pioneer only</div>
+                <div style={{ paddingLeft: 16 }}>
+                  {untiredAtoms.map(atomId => (
+                    <AtomRow key={atomId} atomId={atomId} pioneers={pioneers} unlockedAtoms={unlockedAtoms} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function ProfileSwitcher({ onBack }) {
   const s = getStrings(getInterfaceLanguage())
@@ -45,8 +104,7 @@ export default function ProfileSwitcher({ onBack }) {
   function handleAtomClick(atomId) {
     const wordId = pioneers[atomId]
     if (!wordId) return
-    const l2 = getLayerTwo(wordId, lang)
-    if (!l2 || l2.grammaticalAtom !== atomId) return
+    if (findWordInIndex(wordId, lang)?.atomId !== atomId) return
     addToWordBank(wordId)
     unlockAtom(atomId, wordId)
     forceUpdate(n => n + 1)
@@ -76,29 +134,15 @@ export default function ProfileSwitcher({ onBack }) {
     setProfiles(listProfiles())
   }
 
-  if (tab === 'pioneers') {
+  if (tab === 'map') {
     return (
       <div className="profile-switcher">
         <button className="profile-back" onClick={onBack}>{s.common.back}</button>
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #222' }}>
           <button onClick={() => setTab('profiles')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 16px', fontSize: 13, color: '#555' }}>Profiles</button>
-          <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#ccc', borderBottom: '2px solid #ccc' }}>Atom Pioneers</button>
+          <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#ccc', borderBottom: '2px solid #ccc' }}>Grammar Map</button>
         </div>
-        <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
-          {ATOMS.map(atom => {
-            const wordId  = pioneers[atom.id]
-            const baseForm = wordId ? (WORD_SEED.find(w => w.id === wordId)?.baseForm ?? wordId) : null
-            return (
-              <div key={atom.id} style={{ display: 'flex', gap: 16, padding: '4px 0', borderBottom: '1px solid #111', alignItems: 'baseline' }}>
-                <span style={{ width: 200, color: '#666', fontSize: 12 }}>{atom.label}</span>
-                {baseForm
-                  ? <span style={{ color: '#ccc' }}>{baseForm}</span>
-                  : <span style={{ color: '#555', fontStyle: 'italic' }}>unset</span>
-                }
-              </div>
-            )
-          })}
-        </div>
+        <GrammarMap clusters={clusters} pioneers={pioneers} unlockedAtoms={unlockedAtoms} />
       </div>
     )
   }
@@ -108,7 +152,7 @@ export default function ProfileSwitcher({ onBack }) {
       <button className="profile-back" onClick={onBack}>{s.common.back}</button>
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #222' }}>
         <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#ccc', borderBottom: '2px solid #ccc' }}>Profiles</button>
-        <button onClick={() => setTab('pioneers')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 16px', fontSize: 13, color: '#555' }}>Atom Pioneers</button>
+        <button onClick={() => setTab('map')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 16px', fontSize: 13, color: '#555' }}>Grammar Map</button>
       </div>
 
       <div className="profile-switcher-header">
@@ -165,7 +209,7 @@ export default function ProfileSwitcher({ onBack }) {
                   if (!atom) return null
                   const unlocked      = unlockedAtoms.has(atomId)
                   const pioneerWordId = pioneers[atomId]
-                  const canUnlock     = !unlocked && pioneerWordId && getLayerTwo(pioneerWordId, lang)?.grammaticalAtom === atomId
+                  const canUnlock     = !unlocked && pioneerWordId && findWordInIndex(pioneerWordId, lang)?.atomId === atomId
                   return (
                     <div
                       key={atomId}

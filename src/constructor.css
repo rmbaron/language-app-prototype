@@ -34,6 +34,23 @@
   gap: 16px;
 }
 
+.constructor-band {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.constructor-band-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #446;
+  padding: 4px 0;
+  border-bottom: 1px solid #1e1e1e;
+  margin-top: 8px;
+}
+
 .constructor-tier-section {
   padding: 12px;
   border: 1px solid #1e1e1e;

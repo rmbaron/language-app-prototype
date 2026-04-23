@@ -15,36 +15,7 @@ import {
   validateSentence,
 } from './constructorEngine'
 import { ALL_SLOTS_BY_ID } from './sentenceStructure.en.js'
-
-// Each tier introduces exactly one slot. slotIds lists what's visible at that tier.
-// Slot visibility is explicit — decoupled from atom unlocks so every slot gets its own test.
-const TEST_TIERS = [
-  { id: 1,  label: 'T1: Subject + Verb',           targetSlotId: 'verb',              atoms: ['personal_pronoun', 'lexical_verb'],                     slotIds: ['subject_noun', 'verb'],
-    examples: ['I eat.', 'She runs.', 'We sleep.', 'You work.'] },
-  { id: 2,  label: 'T2: + Object',                 targetSlotId: 'object',            atoms: ['noun', 'object_pronoun'],                               slotIds: ['subject_noun', 'verb', 'object'],
-    examples: ['I want food.', 'She likes him.', 'We eat dinner.', 'I see her.'],
-    freeSlots: ['subject_noun'] },
-  { id: 3,  label: 'T3: + Copula / Complement',    targetSlotId: 'complement',        atoms: ['copula', 'adjective'],                                  slotIds: ['subject_noun', 'verb', 'complement'],
-    examples: ['I am happy.', 'She is tired.', 'We are friends.', 'You are good.'],
-    slotOverrides: { verb: { accepts: ['copula'] } }, freeSlots: ['subject_noun'] },
-  { id: 4,  label: 'T4: + Determiner',             targetSlotId: 'determiner',        atoms: ['determiner', 'possessive_determiner', 'demonstrative'], slotIds: ['determiner', 'subject_noun', 'verb', 'object'],
-    examples: ['The friend eats.', 'My book is here.', 'This food is good.', 'A teacher helps.'] },
-  { id: 5,  label: 'T5: + Attributive Adjective',  targetSlotId: 'subject_adjective', atoms: [],                                                       slotIds: ['determiner', 'subject_adjective', 'subject_noun', 'verb', 'object'],
-    examples: ['A good friend helps.', 'The tired teacher sleeps.', 'My happy dog eats food.'] },
-  { id: 6,  label: 'T6: + Modal',                  targetSlotId: 'modal',             atoms: ['modal_auxiliary'],                                      slotIds: ['subject_noun', 'modal', 'verb', 'object'],
-    examples: ['I can help.', 'She will eat.', 'We should sleep.', 'You must go.'] },
-  { id: 7,  label: 'T7: + Negation',               targetSlotId: 'negation',          atoms: ['negation_marker', 'auxiliary'],                         slotIds: ['subject_noun', 'negation', 'verb', 'object'],
-    examples: ['I do not eat.', 'She does not like food.', 'We do not sleep.'] },
-  { id: 8,  label: 'T8: + Adverbial',              targetSlotId: 'adverbial',         atoms: ['adverb', 'preposition'],                                slotIds: ['subject_noun', 'verb', 'object', 'adverbial'],
-    examples: ['I eat here.', 'She sleeps now.', 'We work there.', 'I eat at home.'],
-    freeSlots: ['subject_noun'] },
-  { id: 9,  label: 'T9: + Perfect',                targetSlotId: 'perfect',           atoms: [],                                                       slotIds: ['subject_noun', 'perfect', 'verb', 'object'],
-    examples: ['I have eaten.', 'She has slept.', 'We have worked.', 'You have helped.'],
-    forceWords: { perfect: ['have'] } },
-  { id: 10, label: 'T10: + Progressive',           targetSlotId: 'progressive',       atoms: [],                                                       slotIds: ['subject_noun', 'progressive', 'verb', 'object'],
-    examples: ['I am eating.', 'She is sleeping.', 'We are working.', 'You are helping.'],
-    forceWords: { progressive: ['be'] } },
-]
+import { CONSTRUCTOR_TIERS as TEST_TIERS, CONSTRUCTOR_BANDS as BANDS } from './constructorTiers.en.js'
 
 function seedAllTiers() {
   for (const [atom, wordIds] of Object.entries(CONSTRUCTOR_TEST_SEED)) {
@@ -78,16 +49,23 @@ export default function Constructor({ targetSlotId, onBack }) {
       </div>
 
       <div className="constructor-tiers">
-        {TEST_TIERS.map(tier => {
-            return (
-            <TierConstructor
-              key={tier.id}
-              tier={tier}
-              bankWords={bankWords}
-              lang={lang}
-              targetSlotId={tier.targetSlotId}
-              s={s}
-            />
+        {BANDS.map(band => {
+          const tiers = TEST_TIERS.filter(t => t.band === band.id)
+          if (tiers.length === 0) return null
+          return (
+            <div key={band.id} className="constructor-band">
+              <div className="constructor-band-header">{band.label}</div>
+              {tiers.map(tier => (
+                <TierConstructor
+                  key={tier.id}
+                  tier={tier}
+                  bankWords={bankWords}
+                  lang={lang}
+                  targetSlotId={tier.targetSlotId}
+                  s={s}
+                />
+              ))}
+            </div>
           )
         })}
       </div>
