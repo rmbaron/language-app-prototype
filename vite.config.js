@@ -209,7 +209,8 @@ Grammar atoms — pick the single best one for grammaticalAtom:
 ${atomList}
 
 Return a JSON object with these fields:
-- grammaticalAtom: one atom ID from the list above
+- grammaticalAtom: one atom ID from the list above — the primary grammatical classification
+- alternateAtoms: array of { atom, when } objects for any secondary grammatical functions this word can serve. "atom" is an atom ID from the list above. "when" is a short phrase describing the context in which this alternate function applies (e.g. "introducing a dependent clause", "used as progressive auxiliary", "used as perfect auxiliary"). Empty array if the word has only one grammatical function.
 - cefrLevel: earliest CEFR level where this word is useful (e.g. "A1")
 - subLevel: earliest sub-level (e.g. "A1.1", "A1.2", "A1.3")
 - frequency: "core" | "high" | "medium" | "low" (relative to its CEFR level)
@@ -220,7 +221,7 @@ Reply with only valid JSON. No explanation.`
 })()
 
 // Dev-only plugin: accepts POST /__enrich-word-l2 and calls the Claude API.
-// Returns Layer 2 data: { grammaticalAtom, cefrLevel, subLevel, frequency, forms, contentReady }
+// Returns Layer 2 data: { grammaticalAtom, alternateAtoms, cefrLevel, subLevel, frequency, forms, contentReady }
 function wordEnricherL2() {
   return {
     name: 'word-enricher-l2',
@@ -238,7 +239,7 @@ function wordEnricherL2() {
             const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
             const message = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 500,
+              max_tokens: 800,
               system: [{ type: 'text', text: L2_SYSTEM, cache_control: { type: 'ephemeral' } }],
               messages: [{ role: 'user', content: `Word: "${baseForm}" (${lang === 'en' ? 'English' : lang})\nLayer 1 data: ${JSON.stringify(layer1)}` }],
             })
@@ -300,6 +301,73 @@ function seedWordAdder() {
   }
 }
 
+// Dev-only plugin: accepts POST /__generate-constructor and returns a generated sentence.
+// Input:  { targetSlotId, targetWord, targetSlotRole, filledSlots, slotWords, lang }
+//   targetWord  — the exact word the learner placed in the target slot
+//   filledSlots — { slotId: wordId } all slots the learner has filled (including target)
+//   slotWords   — { slotId: [baseForm, ...] } eligible words per slot from the word bank
+// Output: { sentence }
+function constructorGenerator() {
+  return {
+    name: 'constructor-generator',
+    configureServer(server) {
+      server.middlewares.use('/__generate-constructor', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+        const chunks = []
+        req.on('data', chunk => chunks.push(chunk))
+        req.on('end', async () => {
+          try {
+            const { targetSlotId, targetWord, targetSlotRole, filledSlots = {}, slotWords, lang } =
+              JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+
+            const filledOthers = Object.entries(filledSlots)
+              .filter(([slot]) => slot !== targetSlotId)
+
+            const filledBlock = filledOthers.length > 0
+              ? `The learner has also filled these slots — use exactly these words:\n${filledOthers.map(([slot, word]) => `  ${slot}: "${word}"`).join('\n')}\n`
+              : ''
+
+            const unfilledSlotWords = Object.entries(slotWords)
+              .filter(([slot]) => slot !== targetSlotId && !filledSlots[slot])
+
+            const optionsBlock = unfilledSlotWords.length > 0
+              ? `For unfilled slots, choose from these options only:\n${unfilledSlotWords.map(([slot, words]) => `  ${slot}: ${words.join(', ')}`).join('\n')}\n`
+              : ''
+
+            const prompt = `Generate one A1-level English sentence.
+
+Target (the concept being tested — must appear, inflected as needed):
+"${targetWord}" in the ${targetSlotId} position — ${targetSlotRole}
+${filledOthers.length > 0 ? `
+Also use these words, inflected as needed for grammatical agreement:
+${filledOthers.map(([slot, word]) => `  ${slot}: "${word}"`).join('\n')}` : ''}
+${unfilledSlotWords.length > 0 ? `
+For any remaining slots, use only words from this list — no invented words:
+${unfilledSlotWords.map(([slot, words]) => `  ${slot}: ${words.join(', ')}`).join('\n')}` : ''}
+If a constraint genuinely conflicts with grammar, honor the target slot above all else.
+Return only the sentence.`
+
+            const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+            const message = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 60,
+              messages: [{ role: 'user', content: prompt }],
+            })
+
+            const sentence = message.content[0]?.text?.trim() ?? ''
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ sentence }))
+          } catch (err) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: err.message }))
+          }
+        })
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -309,5 +377,6 @@ export default defineConfig({
     wordEnricherL1(),
     wordEnricherL2(),
     seedWordAdder(),
+    constructorGenerator(),
   ],
 })

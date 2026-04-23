@@ -16,9 +16,15 @@
 export const ATOMS = [
   {
     id: 'personal_pronoun',
-    label: 'Personal pronoun',
-    description: 'Pronoun referring to a person or thing. Base forms are nominative (I, he, she, we, they); object forms (me, him, her, us, them) are inflected forms of the same words. The slot role determines which form is used — not the atom.',
-    examples: ['I', 'you', 'he', 'she', 'it', 'we', 'they'],
+    label: 'Personal pronoun (subject)',
+    description: 'Subject-position pronoun (nominative case). Fills the subject slot. I, you, he, she, we, they.',
+    examples: ['I', 'you', 'he', 'she', 'we', 'they'],
+  },
+  {
+    id: 'object_pronoun',
+    label: 'Object pronoun',
+    description: 'Object-position pronoun (accusative case). Fills the object slot. Me, him, her, us, them. "You" and "it" are invariant — they fill both positions but are classified as personal_pronoun; they appear in object slot via alternateAtoms at A2+.',
+    examples: ['me', 'him', 'her', 'us', 'them'],
   },
   {
     id: 'noun',
@@ -35,14 +41,26 @@ export const ATOMS = [
   {
     id: 'copula',
     label: 'Copula',
-    description: 'The "be" verb linking subject to adjective, noun, or location.',
-    examples: ['am', 'is', 'are'],
+    description: 'The verb "be" — always classify "be" as copula, never as lexical_verb. Links subject to adjective, noun, or location. Inflected forms: am, is, are, was, were.',
+    examples: ['be', 'am', 'is', 'are'],
   },
   {
     id: 'auxiliary',
-    label: 'Auxiliary',
+    label: 'Auxiliary (do-support)',
     description: 'Do-support helper verb used in questions and negatives. Contracted negative forms (don\'t, doesn\'t) are inflected forms of do/does.',
     examples: ['do', 'does'],
+  },
+  {
+    id: 'perfect_auxiliary',
+    label: 'Perfect auxiliary',
+    description: 'Used ONLY in alternateAtoms, never as a primary grammaticalAtom. Marks "have" as a perfect aspect auxiliary. "have" primary atom is lexical_verb — perfect_auxiliary is its secondary function. e.g. "I have eaten". No other English word takes this atom — not "get", not "do", not "be".',
+    examples: ['have', 'has'],
+  },
+  {
+    id: 'progressive_auxiliary',
+    label: 'Progressive auxiliary',
+    description: 'Used ONLY in alternateAtoms, never as a primary grammaticalAtom. Marks "be" as a progressive aspect auxiliary. "be" primary atom is copula — progressive_auxiliary is its secondary function. e.g. "I am eating". No other English word takes this atom — not "get", not "have", not "do".',
+    examples: ['am', 'is', 'are'],
   },
   {
     id: 'modal_auxiliary',

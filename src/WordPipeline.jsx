@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { WORD_SEED } from './wordSeed.en'
 import { hasLayerOne, getLayerOne } from './wordLayerOne'
-import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, setLayerTwo, resetContentReady } from './wordLayerTwo'
+import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, resetContentReady, markContentReady } from './wordLayerTwo'
 import { runLayerOneBatch, enrichWord } from './wordEnrichment'
-import { runLayerTwoBatch, enrichWordL2 } from './wordEnrichmentTwo'
+import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2 } from './wordEnrichmentTwo'
 import { clearWordContent } from './contentStore'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+
 
 function wordLayerStatuses(word) {
   const l1data = getLayerOne(word.id, 'en')
@@ -126,7 +127,7 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                   {l1 && <div><span style={{ color: '#555' }}>cat:</span> {l1.grammaticalCategory} · <span style={{ color: '#555' }}>meaning:</span> {l1.meaning}</div>}
                   {l2 && <>
                     <div><span style={{ color: '#555' }}>atom:</span> {l2.grammaticalAtom} · <span style={{ color: '#555' }}>level:</span> {l2.cefrLevel} {l2.subLevel} · <span style={{ color: '#555' }}>freq:</span> {l2.frequency}</div>
-                    <div><span style={{ color: '#555' }}>structures:</span> {l2.structuresEnabled?.join(', ') ?? '—'}</div>
+                    {l2.alternateAtoms?.length > 0 && <div><span style={{ color: '#555' }}>alt atoms:</span> {l2.alternateAtoms.map(a => `${a.atom} (${a.when})`).join(' · ')}</div>}
                     <div><span style={{ color: '#555' }}>forms:</span> {l2.forms?.map(f => f.form).join(', ') ?? '—'}</div>
                   </>}
                   {!l1 && !l2 && <div style={{ color: '#444' }}>no data</div>}
@@ -293,7 +294,6 @@ export default function WordPipeline({ onClose }) {
       {(() => {
         const pendingL1 = WORD_SEED.filter(w => { const d = getLayerOne(w.id, 'en'); return !d || d.source !== 'api' }).length
         const pendingL2 = WORD_SEED.filter(w => hasLayerOne(w.id, 'en') && !hasRealLayerTwo(w.id, 'en')).length
-        const effectiveSize = Math.min(batchSize, Math.max(pendingL1, pendingL2))
         return (
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -322,6 +322,19 @@ export default function WordPipeline({ onClose }) {
                 }}
               >
                 Clear mock L2
+              </button>
+              <button
+                className="dev-toggle"
+                style={{ background: '#1a2a3a' }}
+                disabled={!!running}
+                onClick={async () => {
+                  setRunning('l2-force')
+                  await forceReEnrichAllL2('en')
+                  setRunning(null)
+                  forceUpdate(n => n + 1)
+                }}
+              >
+                {running === 'l2-force' ? 'Re-enriching…' : 'Re-enrich all L2'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

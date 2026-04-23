@@ -8,7 +8,7 @@
 // New words added here will be picked up by the Layer 1 batch processor
 // and enriched via API the next time it runs.
 
-export const WORD_SEED = [
+const _RAW_SEED = [
 
   // ── People / reference ────────────────────────────────────────
   { id: 'i',        baseForm: 'I',        language: 'en' },
@@ -17,6 +17,11 @@ export const WORD_SEED = [
   { id: 'she',      baseForm: 'she',      language: 'en' },
   { id: 'we',       baseForm: 'we',       language: 'en' },
   { id: 'they',     baseForm: 'they',     language: 'en' },
+  { id: 'me',       baseForm: 'me',       language: 'en' },
+  { id: 'him',      baseForm: 'him',      language: 'en' },
+  { id: 'her',      baseForm: 'her',      language: 'en' },
+  { id: 'us',       baseForm: 'us',       language: 'en' },
+  { id: 'them',     baseForm: 'them',     language: 'en' },
   { id: 'my',       baseForm: 'my',       language: 'en' },
   { id: 'your',     baseForm: 'your',     language: 'en' },
   { id: 'this',     baseForm: 'this',     language: 'en' },
@@ -251,3 +256,10 @@ export const WORD_SEED = [
   { id: 'do', baseForm: 'do', language: 'en' },
   { id: 'pen', baseForm: 'pen', language: 'en' },
 ]
+
+const _seen = new Set()
+export const WORD_SEED = _RAW_SEED.filter(w => {
+  if (_seen.has(w.id)) return false
+  _seen.add(w.id)
+  return true
+})
