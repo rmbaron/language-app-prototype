@@ -11,7 +11,7 @@
 
 import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
-import { setLayerTwo, hasLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
+import { setLayerTwo, hasLayerTwo, hasRealLayerTwo, clearLayerTwo } from './wordLayerTwo'
 
 const BATCH_LIMIT = 5
 
@@ -68,10 +68,36 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
   }
 }
 
+// Force re-enrichment: clears existing Layer 2 for all seed words that have Layer 1,
+// then re-enriches them. Use this when the Layer 2 prompt changes and existing
+// data needs to be refreshed (e.g. after adding alternateAtoms field).
+export async function forceReEnrichAllL2(lang = 'en') {
+  const words = WORD_SEED.filter(w => w.language === lang && hasLayerOne(w.id, lang))
+  console.log(`[enrichment-l2] force re-enriching ${words.length} words...`)
+
+  for (const word of words) {
+    try {
+      clearLayerTwo(word.id, lang)
+      const layer1 = getLayerOne(word.id, lang)
+      if (!layer1) continue
+      const result = await enrichOneWordL2(word.id, word.baseForm, lang, layer1)
+      if (result) {
+        setLayerTwo(word.id, lang, { ...result, source: 'api' })
+        console.log(`[enrichment-l2] re-enriched "${word.baseForm}"`)
+      }
+    } catch (err) {
+      console.warn(`[enrichment-l2] failed for "${word.baseForm}":`, err.message)
+    }
+  }
+
+  console.log('[enrichment-l2] force re-enrich complete.')
+}
+
 // ── Manual trigger ────────────────────────────────────────────
 
 if (typeof window !== 'undefined') {
-  window.__enrichL2Batch = () => runLayerTwoBatch('en')
+  window.__enrichL2Batch      = () => runLayerTwoBatch('en')
+  window.__forceReEnrichAllL2 = () => forceReEnrichAllL2('en')
   window.__enrichWordL2 = async (wordId) => {
     await enrichWordL2(wordId, 'en')
     const { getLayerTwo } = await import('./wordLayerTwo')

@@ -27,6 +27,13 @@ export const HUB_DESTINATIONS = [
     available: true,
   },
   {
+    id: 'constructor',
+    label: 'Constructor',
+    description: 'Build sentences from your word bank.',
+    size: 'large',
+    available: true,
+  },
+  {
     id: 'quickTranslate',
     label: 'Quick Translate',
     description: null,

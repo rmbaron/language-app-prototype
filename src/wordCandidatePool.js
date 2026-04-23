@@ -23,6 +23,7 @@ import { getCefrLevel, getActiveLanguage } from './learnerProfile'
 import { getSlotCoverage, getCurrentSubLevel, getCumulativeSlots, getLevels } from './cefrLevels'
 import { getWordAttributes } from './wordAttributes'
 import { getCurriculumBoosts } from './wordCurriculum'
+import { getAtomPioneer } from './atomPioneers'
 
 // ── CEFR level boosts ─────────────────────────────────────────
 //
@@ -104,8 +105,19 @@ function buildSlotBoostContext(existingWordIds, allWords, activeLang) {
   return { wordBoosts, categoryBoosts, levelId }
 }
 
-function scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams = {}) {
+function scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams = {}, coveredAtoms = new Set()) {
   if (existingWordIds.includes(word.id)) return null
+
+  // ── Atom pioneer gate ─────────────────────────────────────────
+  // If this atom class has never appeared in the word bank, only the
+  // designated pioneer for that atom may be surfaced by the recommender.
+  const wordAtom = getLayerTwo(word.id)?.grammaticalAtom
+  if (wordAtom && !coveredAtoms.has(wordAtom)) {
+    const pioneer = getAtomPioneer(wordAtom, profile.expressed?.stable?.targetLanguage ?? 'en')
+    if (pioneer !== null && word.id !== pioneer) return null
+    // pioneer === null means undesignated — block everything in this atom class
+    if (pioneer === null) return null
+  }
 
   // ── Slot coverage boost ──────────────────────────────────────
   let slotBoost = 0
@@ -142,9 +154,15 @@ function buildStaticCandidates(existingWordIds, profile, steeringParams = {}) {
   const slotContext       = buildSlotBoostContext(existingWordIds, allWords, activeLang)
   const curriculumContext = getCurriculumBoosts(existingWordIds, allWords, activeLang)
 
+  const coveredAtoms = new Set()
+  for (const id of existingWordIds) {
+    const atom = getLayerTwo(id)?.grammaticalAtom
+    if (atom) coveredAtoms.add(atom)
+  }
+
   const candidates = allWords
     .filter(word => word.language === activeLang)
-    .map(word => scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams))
+    .map(word => scoreWord(word, profile, existingWordIds, slotContext, curriculumContext, steeringParams, coveredAtoms))
     .filter(Boolean)
     .sort((a, b) => b.score - a.score)
 

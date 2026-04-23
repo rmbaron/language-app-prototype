@@ -290,6 +290,29 @@ export default {
 
   },
 
+  constructor: {
+    title:           'Constructor',
+    comingSoon:      'Sentence builder coming soon.',
+    generate:        'Generate',
+    generating:      'Generating...',
+    empty:           '—',
+    testPanel:       'Grammar unlocks',
+    testPanelToggle: 'Test',
+    slots: {
+      subject_noun:    'Subject',
+      modal:           'Modal',
+      perfect:         'Perfect',
+      progressive:     'Progressive',
+      negation:        'Negation',
+      verb:            'Verb',
+      object:          'Object',
+      complement:      'Complement',
+      adverbial:       'Adverbial',
+      subject_adjective: 'Adjective',
+      determiner:      'Determiner',
+    },
+  },
+
   profiles: {
     title:          'Profiles',
     defaultLabel:   'Dev default',

@@ -217,6 +217,8 @@ Return a JSON object with these fields:
 - forms: array of { form, type } objects for all inflected forms (e.g. third_person_present, past, present_participle, future, plural, comparative, superlative, object, possessive, reflexive, vowel_variant, contracted_negative, contracted_negative_third, subject_contraction). For auxiliary, modal, and copula verbs always include contracted negative forms (e.g. don't, doesn't, can't, won't, isn't, aren't) and subject contractions where natural (e.g. I'm, you're, he's for "be"). Empty array if the word does not inflect.
 - contentReady: false
 
+Important: for pronouns, distinguish carefully — personal_pronoun is subject case only (I, you, he, she, we, they); object_pronoun is object case only (me, him, her, us, them). Do not classify object-case pronouns as personal_pronoun.
+
 Reply with only valid JSON. No explanation.`
 })()
 

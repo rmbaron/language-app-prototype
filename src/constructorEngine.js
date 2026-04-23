@@ -7,7 +7,7 @@
 // from this; how slots are rendered is entirely separate.
 
 import { PREDICATE_PHRASE } from './sentenceStructure.en.js'
-import { getUnlockedGrammarConcepts } from './learnerProfile'
+import { getLearnerGrammarState } from './learnerGrammarState'
 import { getLayerTwo } from './wordLayerTwo'
 
 // The subject slot is always present — a learner has a subject from day one.
@@ -22,7 +22,7 @@ const BASE_SUBJECT_SLOT = {
 // Pass overrideUnlocks to compute slots for a specific virtual unlock set (e.g. per-tier testing).
 // Output: { subject: slot, predicate: slot[] }
 export function getActiveSlots(overrideUnlocks) {
-  const unlocks = overrideUnlocks ?? getUnlockedGrammarConcepts()
+  const unlocks = overrideUnlocks ?? getLearnerGrammarState().activeAtoms
 
   // First pass: which slots does the learner's unlocks activate?
   const activated = new Set(

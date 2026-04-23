@@ -4,33 +4,21 @@ import {
   deleteProfile, saveActiveProfileSnapshot,
   getActiveProfileId, getActiveProfileName, getActiveProfileCefrLevel,
 } from './profileStore'
-import { getInterfaceLanguage } from './learnerProfile'
+import {
+  getInterfaceLanguage,
+  getActiveLanguage,
+} from './learnerProfile'
 import { getStrings } from './uiStrings'
-import { getWordBank, addToWordBank } from './userStore'
+import { getWordBank, addToWordBank, removeFromWordBank } from './userStore'
+import { unlockAtom, lockAtom, lockAtoms } from './atomUnlockStore'
 import { getLayerTwo } from './wordLayerTwo'
 import { ATOMS } from './grammarAtoms.en'
+import { getAtomPioneers } from './atomPioneers'
+import { getGrammarClusters } from './grammarClustering'
+import { getLearnerGrammarState } from './learnerGrammarState'
+import { WORD_SEED } from './wordSeed.en'
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-
-const ATOM_CANONICAL_WORD = {
-  personal_pronoun:     'i',
-  noun:                 'food',
-  lexical_verb:         'want',
-  copula:               'be',
-  auxiliary:            'do',
-  modal_auxiliary:      'can',
-  adjective:            'good',
-  determiner:           'a',
-  numeral:              'one',
-  demonstrative:        'this',
-  possessive_determiner:'my',
-  preposition:          'in',
-  interrogative:        'what',
-  negation_marker:      'not',
-  conjunction:          'and',
-  adverb:               'here',
-  interjection:         'hello',
-}
 
 export default function ProfileSwitcher({ onBack }) {
   const s = getStrings(getInterfaceLanguage())
@@ -40,6 +28,7 @@ export default function ProfileSwitcher({ onBack }) {
   const [saving, setSaving]       = useState(false)
   const [newName, setNewName]     = useState('')
   const [newCefr, setNewCefr]     = useState('A1')
+  const [tab, setTab]             = useState('profiles')
 
   const activeId    = getActiveProfileId()
   const activeName  = getActiveProfileName()
@@ -47,18 +36,27 @@ export default function ProfileSwitcher({ onBack }) {
 
   const [, forceUpdate] = useState(0)
 
-  const unlockedAtoms = new Set(
-    getWordBank()
-      .map(id => getLayerTwo(id, 'en')?.grammaticalAtom)
-      .filter(Boolean)
-  )
+  const lang          = getActiveLanguage()
+  const pioneers      = getAtomPioneers(lang)
+  const clusters      = getGrammarClusters(lang)
+  const grammarState  = getLearnerGrammarState(lang)
+  const unlockedAtoms = new Set(grammarState.activeAtoms)
 
   function handleAtomClick(atomId) {
-    const wordId = ATOM_CANONICAL_WORD[atomId]
+    const wordId = pioneers[atomId]
     if (!wordId) return
-    const l2 = getLayerTwo(wordId, 'en')
+    const l2 = getLayerTwo(wordId, lang)
     if (!l2 || l2.grammaticalAtom !== atomId) return
     addToWordBank(wordId)
+    unlockAtom(atomId, wordId)
+    forceUpdate(n => n + 1)
+  }
+
+  function handleRewindToCluster(clusterId) {
+    const atomsToLock = clusters
+      .filter(c => c.id >= clusterId)
+      .flatMap(c => c.atoms)
+    lockAtoms(atomsToLock)
     forceUpdate(n => n + 1)
   }
 
@@ -78,9 +76,40 @@ export default function ProfileSwitcher({ onBack }) {
     setProfiles(listProfiles())
   }
 
+  if (tab === 'pioneers') {
+    return (
+      <div className="profile-switcher">
+        <button className="profile-back" onClick={onBack}>{s.common.back}</button>
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #222' }}>
+          <button onClick={() => setTab('profiles')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 16px', fontSize: 13, color: '#555' }}>Profiles</button>
+          <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#ccc', borderBottom: '2px solid #ccc' }}>Atom Pioneers</button>
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
+          {ATOMS.map(atom => {
+            const wordId  = pioneers[atom.id]
+            const baseForm = wordId ? (WORD_SEED.find(w => w.id === wordId)?.baseForm ?? wordId) : null
+            return (
+              <div key={atom.id} style={{ display: 'flex', gap: 16, padding: '4px 0', borderBottom: '1px solid #111', alignItems: 'baseline' }}>
+                <span style={{ width: 200, color: '#666', fontSize: 12 }}>{atom.label}</span>
+                {baseForm
+                  ? <span style={{ color: '#ccc' }}>{baseForm}</span>
+                  : <span style={{ color: '#555', fontStyle: 'italic' }}>unset</span>
+                }
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="profile-switcher">
       <button className="profile-back" onClick={onBack}>{s.common.back}</button>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #222' }}>
+        <button style={{ background: 'none', border: 'none', padding: '8px 16px', fontSize: 13, color: '#ccc', borderBottom: '2px solid #ccc' }}>Profiles</button>
+        <button onClick={() => setTab('pioneers')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px 16px', fontSize: 13, color: '#555' }}>Atom Pioneers</button>
+      </div>
 
       <div className="profile-switcher-header">
         <h2 className="profile-switcher-title">{ps.title}</h2>
@@ -107,25 +136,51 @@ export default function ProfileSwitcher({ onBack }) {
         <div className="profile-state-meta">
           <span className="profile-state-label">Current state</span>
           {cefrLevel && <span className="profile-state-cefr">{cefrLevel}</span>}
-          <span className="profile-state-atoms-count">{unlockedAtoms.size} / {ATOMS.length} atoms</span>
+          <span className="profile-state-atoms-count">Cluster {grammarState.currentCluster}</span>
+          <span className="profile-state-atoms-count">{unlockedAtoms.size} / {clusters.reduce((n, c) => n + c.atoms.length, 0)} atoms</span>
         </div>
-        <div className="profile-atom-grid">
-          {ATOMS.map(atom => {
-            const unlocked = unlockedAtoms.has(atom.id)
-            const canonicalId = ATOM_CANONICAL_WORD[atom.id]
-            const canUnlock = !unlocked && canonicalId && getLayerTwo(canonicalId, 'en')?.grammaticalAtom === atom.id
-            return (
-              <div
-                key={atom.id}
-                className={`profile-atom${unlocked ? ' profile-atom--unlocked' : ''}${canUnlock ? ' profile-atom--available' : ''}`}
-                title={unlocked ? atom.description : canUnlock ? `Click to unlock via "${canonicalId}"` : atom.description}
-                onClick={canUnlock ? () => handleAtomClick(atom.id) : undefined}
-              >
-                {atom.label}
+
+        {clusters.map(cluster => {
+          const cState    = grammarState.clusters[cluster.id]
+          const complete  = cState?.complete ?? false
+          const isCurrent = cluster.id === grammarState.currentCluster
+          return (
+            <div key={cluster.id} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: isCurrent ? '#8f8' : complete ? '#7a8' : '#444', fontFamily: 'monospace', textDecoration: isCurrent ? 'underline' : 'none' }}>
+                  C{cluster.id} — {cluster.label}
+                </span>
+                {complete && <span style={{ fontSize: 10, color: isCurrent ? '#8f8' : '#7a8' }}>✓</span>}
+                {complete && (
+                  <button
+                    onClick={() => handleRewindToCluster(cluster.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#444', padding: '0 4px' }}
+                    title={`Rewind to start of Cluster ${cluster.id}`}
+                  >↩</button>
+                )}
               </div>
-            )
-          })}
-        </div>
+              <div className="profile-atom-grid">
+                {cluster.atoms.map(atomId => {
+                  const atom          = ATOMS.find(a => a.id === atomId)
+                  if (!atom) return null
+                  const unlocked      = unlockedAtoms.has(atomId)
+                  const pioneerWordId = pioneers[atomId]
+                  const canUnlock     = !unlocked && pioneerWordId && getLayerTwo(pioneerWordId, lang)?.grammaticalAtom === atomId
+                  return (
+                    <div
+                      key={atomId}
+                      className={`profile-atom${unlocked ? ' profile-atom--unlocked' : ''}${canUnlock ? ' profile-atom--available' : ''}`}
+                      title={unlocked ? `Click to lock "${pioneerWordId}" and remove from bank` : canUnlock ? `Click to unlock via "${pioneerWordId}"` : atom.description}
+                      onClick={unlocked ? () => { lockAtom(atomId); if (pioneerWordId) removeFromWordBank(pioneerWordId); forceUpdate(n => n + 1) } : canUnlock ? () => handleAtomClick(atomId) : undefined}
+                    >
+                      {atom.label}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="profile-switcher-save-area">

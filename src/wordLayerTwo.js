@@ -1,8 +1,11 @@
 // Word Layer 2 — deep word profile cache
 //
 // Stores the fuller picture of what the system knows about a word:
-//   grammaticalAtom     — atom ID from grammarAtoms system
+//   grammaticalAtom     — atom ID from grammarAtoms system — primary classification
 //                         (e.g. 'be' → 'copula', 'want' → 'lexical_verb')
+//   alternateAtoms      — array of { atom, when } for secondary grammatical functions
+//                         (e.g. 'be' → [{ atom: 'auxiliary', when: 'used as progressive auxiliary' }])
+//                         empty array if the word has only one grammatical function
 //   cefrLevel           — earliest CEFR level where this word is useful ('A1')
 //   subLevel            — earliest sub-level ('A1.1', 'A1.2', etc.)
 //   frequency           — how common at this level: 'core' | 'high' | 'medium' | 'low'

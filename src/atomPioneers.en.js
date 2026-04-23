@@ -10,6 +10,7 @@
 
 export const ATOM_PIONEERS = {
   personal_pronoun:      'i',       // I
+  object_pronoun:        'me',      // me
   noun:                  'food',    // food
   lexical_verb:          'want',    // want
   copula:                'be',      // be (am / is / are)

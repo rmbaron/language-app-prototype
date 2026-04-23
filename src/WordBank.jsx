@@ -7,8 +7,6 @@ import WordCard from './WordCard'
 import { getWordBank, loadState, THRESHOLD, getWordStatuses, ACTIVE_LIMIT, removeFromWordBank } from './userStore'
 import { getWordProgress } from './wordProgress'
 import { LANES } from './lanes'
-import { getNextMilestone, getRecentAchievements, getUpcomingMilestones } from './milestones'
-import { loadGrammarState } from './grammarStore'
 import {
   GRAMMATICAL_GROUPS,
   BROAD_THEMES,
@@ -39,8 +37,6 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('az')
-  const [achievedOpen, setAchievedOpen] = useState(false)
-  const [upcomingOpen, setUpcomingOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [devSelectMode, setDevSelectMode] = useState(false)
   const [selectedIds, setSelectedIds]     = useState(new Set())
@@ -52,11 +48,6 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
   const { attempts } = state
   const bankWords = getBankedWords(bankIds, getActiveLanguage())
 
-
-  const grammarState = loadGrammarState()
-  const nextMilestone = getNextMilestone(state, grammarState)
-  const recentAchievements = getRecentAchievements(state, grammarState)
-  const upcomingMilestones = getUpcomingMilestones(state, grammarState, 3)
 
   const thematicTier = getThematicTier(bankWords.length)
   const wordStatuses = getWordStatuses()
@@ -290,52 +281,6 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
       </div>{/* end word-bank-left */}
 
       <div className="word-bank-right">
-        {nextMilestone && (
-          <div className="milestone-next">
-            <p className="milestone-next-count">
-              {s.wordBank.milestones.wordsToGo(nextMilestone.wordsToGo)}
-            </p>
-            <p className="milestone-next-desc">{nextMilestone.description}</p>
-
-            {upcomingMilestones.length > 0 && (
-              <div className="milestone-upcoming">
-                <button
-                  className="milestone-toggle-btn"
-                  onClick={() => setUpcomingOpen(o => !o)}
-                >
-                  {upcomingOpen ? s.wordBank.milestones.hideAhead : s.wordBank.milestones.seeAhead}
-                </button>
-                {upcomingOpen && (
-                  <div className="milestone-upcoming-list">
-                    {upcomingMilestones.map(m => (
-                      <div key={m.id} className="milestone-upcoming-item">
-                        <span className="milestone-upcoming-label">{m.label}</span>
-                        <span className="milestone-upcoming-desc">{m.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {recentAchievements.length > 0 && (
-          <div className="milestone-achieved">
-            <button
-              className="milestone-toggle-btn milestone-achieved-heading"
-              onClick={() => setAchievedOpen(o => !o)}
-            >
-              {s.wordBank.milestones.achieved(recentAchievements.length)} {achievedOpen ? '▴' : '▾'}
-            </button>
-            {achievedOpen && recentAchievements.map(m => (
-              <div key={m.id} className="milestone-achieved-item">
-                <span className="milestone-achieved-check">✓</span>
-                <span className="milestone-achieved-label">{m.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       </div>{/* end word-bank-layout */}

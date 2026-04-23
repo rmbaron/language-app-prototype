@@ -35,6 +35,7 @@ function defaults() {
         successRates: Object.fromEntries(LANES.map(l => [l.id, null])), // null until enough data
         progressionSpeed: null,   // future — how fast words move through pools
         currentDepthLevel: 1,     // derived holistically, used by all lane components
+        grammarUnlocks: [],       // grammar concept IDs the app has green-flagged for this learner
       },
 
     },
@@ -118,6 +119,7 @@ export function getDepthLevel() {
   const profile = loadProfile()
   return profile.observed.performance.currentDepthLevel ?? 1
 }
+
 
 // ── Expressed: stable ─────────────────────────────────────────
 

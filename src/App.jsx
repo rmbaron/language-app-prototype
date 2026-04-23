@@ -21,6 +21,7 @@ import FlashcardMode from './FlashcardMode'
 import SentenceLab from './SentenceLab'
 import WorldReadingLane from './WorldReadingLane'
 import ProfileSwitcher from './ProfileSwitcher'
+import Constructor from './Constructor'
 import { getBankedWords } from './wordRegistry'
 
 
@@ -110,6 +111,8 @@ export default function App() {
         <SentenceLab onBack={() => setView('practice')} />
       ) : view === 'practice_reading' ? (
         <WorldReadingLane onBack={() => setView('practice')} />
+      ) : view === 'constructor' ? (
+        <Constructor onBack={() => setView('hub')} />
       ) : view === 'profiles' ? (
         <ProfileSwitcher onBack={() => setView('hub')} />
       ) : selected && practicing ? (

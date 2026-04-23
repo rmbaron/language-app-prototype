@@ -16,6 +16,7 @@ const LEARNER_STATIC_KEYS = [
   'lapp-user-v2',
   'lapp-profile',
   'lapp-content-index',
+  'lapp-atom-unlocks',
 ]
 
 const CONTENT_WORD_PREFIX = 'lapp-content-word-'
