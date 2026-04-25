@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding-bottom: 80px;
   background: #1a1a2e;
   color: #d0d0e8;
   font-family: var(--font-mono, monospace);
@@ -427,4 +428,13 @@
   font-family: inherit;
   line-height: 1.7;
   margin: 0;
+}
+
+.im-snapshot-editable {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  color: #aaaacc;
+  border-color: #2a2a4a;
+  outline: none;
 }

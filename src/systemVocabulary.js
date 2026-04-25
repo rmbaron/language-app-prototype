@@ -14,6 +14,7 @@
 
 import { getGrammarClusters } from './grammarClustering'
 import { SYSTEM_WORDS } from './systemWords.en'
+import { CONSTRUCTOR_TIERS } from './constructorTiers.en'
 
 // Concise labels for AI prompt blocks — shorter than full atom labels
 export const PROMPT_LABEL = {
@@ -120,19 +121,112 @@ export function buildLearnerIntroduction(inventory, portrait = null) {
   return lines.join('\n')
 }
 
-// ── Layer 4 — World folder ───────────────────────────────────
-// Serializes the ON words organized by atom class.
-// This is the circuit — not a constraint description, the actual world.
-// Only active atoms with banked words appear. Nothing OFF is mentioned.
-export function buildWorldFolder(inventory) {
-  const { grammarPosition } = inventory
-  const { activeAtoms, atomWords } = grammarPosition
+// ── Layer 3 — Level channel ──────────────────────────────────
+// Tells the AI the shape of the communication channel to this person.
+// Separate from the portrait (Layer 2) — the AI's understanding of the person
+// is not constrained by their level. Only the channel is.
+// The portrait is complete. Only how much of it can currently be transmitted is limited.
+
+export function buildLevelChannel(cefrLevel, currentCluster = null) {
   const lines = []
+
+  if (currentCluster !== null) {
+    const currentTiers = CONSTRUCTOR_TIERS.filter(t => t.band === currentCluster)
+    const nextTiers    = CONSTRUCTOR_TIERS.filter(t => t.band === currentCluster + 1)
+
+    const examples = currentTiers.flatMap(t => t.examples).slice(0, 4).join(' / ')
+    lines.push(`You are speaking with someone at ${cefrLevel}. This is what they can follow:`)
+    lines.push(`\n${examples}`)
+
+    if (nextTiers.length > 0) {
+      const notYet = nextTiers[0].examples[0]
+      lines.push(`\nNot yet: "${notYet}"`)
+    }
+  } else {
+    lines.push(`You are speaking with someone at ${cefrLevel}.`)
+  }
+
+  lines.push(`\nStay inside this. If you reach further, you lose them — and losing them is the one thing you won't do.`)
+
+  return lines.join('\n')
+}
+
+// ── Layer 4 — World folder ───────────────────────────────────
+// Communicates the shape and vocabulary of the learner's current world.
+// Not a constraint list — a precise description of where they live right now,
+// so the AI can reach them with maximum efficiency.
+export function buildWorldFolder(inventory) {
+  const { grammarPosition, identity } = inventory
+  const { activeAtoms, atomWords, currentCluster } = grammarPosition
+  const lang = identity?.lang ?? 'en'
+
+  const clusters = getGrammarClusters(lang)
+  const clusterData = clusters.find(c => c.id === currentCluster)
+
+  // Highest-band tiers available at this cluster level — show the AI what a full sentence looks like
+  const availableTiers = CONSTRUCTOR_TIERS.filter(t => t.band <= currentCluster)
+  const topTier = availableTiers[availableTiers.length - 1]
+
+  const lines = []
+
+  if (clusterData) {
+    lines.push(`This person is at Cluster ${currentCluster} — ${clusterData.label}: ${clusterData.description}.`)
+  }
+
+  if (topTier) {
+    lines.push(`The sentences their world can currently hold: ${topTier.examples.slice(0, 3).join(' / ')}`)
+  }
+
+  lines.push(`\nTheir vocabulary:`)
   for (const atomId of activeAtoms) {
     const words = atomWords[atomId] ?? []
     if (words.length > 0)
-      lines.push(`${PROMPT_LABEL[atomId] ?? atomId}: ${words.join(', ')}`)
+      lines.push(`  ${PROMPT_LABEL[atomId] ?? atomId}: ${words.join(', ')}`)
   }
+
+  lines.push(`\nKnowing this precisely is what lets you reach them. Everything outside this world — they won't follow you there.`)
+
+  return lines.join('\n')
+}
+
+// ── Layer 5 — Directive ──────────────────────────────────────
+// What to do with the context assembled in Layers 1–4.
+// Task-specific: the Friend, Reading Lane, Writing Lab, and layer test
+// all want different things from the same setup.
+// Also carries immediate situational context — the conversational moment,
+// topic, or prior exchange — things that don't belong in the portrait
+// but shape what to say right now.
+//
+// task: 'speak' | 'read' | 'write-prompt' | 'friend' | 'layer-test'
+// options: { scope, context, format }
+//   scope:   'sentence' | 'paragraph' (default: 'sentence')
+//   context: prior exchange or topic string (optional)
+//   format:  additional format instruction (optional)
+
+export function buildDirective(task, options = {}) {
+  const { scope = 'sentence', context = null, format = null } = options
+  const lines = []
+
+  if (context) lines.push(context)
+
+  if (task === 'speak') {
+    const length = scope === 'paragraph' ? 'Three to five sentences.' : 'Two or three sentences.'
+    lines.push(`Now speak to them. ${length} Direct speech only. No commentary on the constraint.`)
+  } else if (task === 'friend') {
+    lines.push(`Continue the conversation. One or two exchanges. Speak naturally within their world — no more, no less.`)
+  } else if (task === 'read') {
+    lines.push(`Generate one sentence for them to read. It should feel like something worth reading — not a drill, a moment.`)
+  } else if (task === 'write-prompt') {
+    lines.push(`Generate a writing prompt within their world. It should invite them to express something true about themselves.`)
+  } else if (task === 'layer-test') {
+    const length = scope === 'paragraph' ? 'Up to a paragraph (3–5 sentences). Let the thought breathe.' : 'Two or three sentences.'
+    lines.push(`Now speak to them. ${length} Direct speech only. No commentary on the constraint.`)
+  } else {
+    lines.push(`Now speak to them. Direct speech only.`)
+  }
+
+  if (format) lines.push(format)
+
   return lines.join('\n')
 }
 
@@ -161,7 +255,7 @@ export function buildSnapshot(inventory) {
 // Pre-formatted constraint block ready to inject into any AI prompt.
 // Atom-sorted so the AI can reason about structural possibility from shape.
 function buildPromptBlock({ mode, cefrLevel, circle2, circle3Set, gap }) {
-  const lines = [`LEVEL: ${cefrLevel}`]
+  const lines = []
 
   if (mode === 'additions') {
     lines.push('AVAILABLE')

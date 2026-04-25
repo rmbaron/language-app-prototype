@@ -15,6 +15,7 @@ import './admin.css'
 import './celestial.css'
 import './editor.css'
 import './profiles.css'
+import './aitext.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

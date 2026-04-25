@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useInventory } from './InventoryContext'
 import { getStrings } from './uiStrings'
-import { PROMPT_LABEL, buildCircle2, buildSnapshot, saveSnapshot, loadSnapshot, buildLearnerIntroduction, buildWorldFolder } from './systemVocabulary'
+import { PROMPT_LABEL, buildCircle2, buildSnapshot, saveSnapshot, loadSnapshot, buildLearnerIntroduction, buildWorldFolder, buildLevelChannel, buildDirective } from './systemVocabulary'
+import AIText from './AIText'
+import { scanAIText, buildBankSurfaceSet } from './wordScanner'
 import { buildAISystemPrompt } from './aiIdentity'
 import { GRAMMAR_CLUSTERS } from './grammarClustering.en'
 import { CONSTRUCTOR_TIERS } from './constructorTiers.en'
@@ -95,7 +97,11 @@ export default function InventoryMirror({ onBack }) {
   const [showL1,        setShowL1]        = useState(false)
   const [showL2,        setShowL2]        = useState(false)
   const [showL3,        setShowL3]        = useState(false)
+  const [editableL3,    setEditableL3]    = useState(null)
   const [showL4,        setShowL4]        = useState(false)
+  const [editableL4,    setEditableL4]    = useState(null)
+  const [showL5,        setShowL5]        = useState(false)
+  const [editableL5,    setEditableL5]    = useState(null)
   const [layerCopied,   setLayerCopied]   = useState(false)
 
   // Portrait test inputs
@@ -145,33 +151,26 @@ export default function InventoryMirror({ onBack }) {
   }
 
   function computeL3Prompt() {
-    const scopeInstruction = layerScope === 'paragraph'
-      ? 'Up to a paragraph (3–5 sentences). Let the thought breathe.'
-      : 'One sentence only.'
-    return `${computeL2Prompt()}\n\nSpeak at ${cefrLevel} level — vocabulary and structures natural at that level, nothing more complex. Full intelligence within that range. ${scopeInstruction}`
+    return `${computeL2Prompt()}\n\n${buildLevelChannel(cefrLevel, currentCluster)}`
   }
 
   function buildMirrorWorldFolder() {
     return buildWorldFolder({
-      grammarPosition: { activeAtoms: [...toggledOnAtoms], atomWords },
+      grammarPosition: { activeAtoms: [...toggledOnAtoms], atomWords, currentCluster },
       identity,
     })
   }
 
   function computeL4Prompt() {
-    const worldFolder = buildMirrorWorldFolder()
-    const tierDesc = layerTier
-      ? CONSTRUCTOR_TIERS.find(t => t.id === layerTier)
-      : (eligibleTiers.length > 0 ? eligibleTiers[0] : null)
-    const tierSection = tierDesc
-      ? `\n\nStructure: ${tierDesc.label}\nExamples: ${tierDesc.examples.join(' / ')}`
-      : ''
-    const meetingOnly = computeL2Prompt().split('\nYou bring your full intelligence')[0]
-    return `${meetingOnly}\n\nThis person is learning English. We have measured precisely which words and grammatical structures they have learned — no more, no less. Speaking within exactly that range is what helps them most right now. This is not an approximation.\n\n${worldFolder}${tierSection}\n\nSpeak to this person as a genuine presence — not as a teacher, not simplified, but within their exact world.`
+    return `${computeL2Prompt()}\n\n${buildLevelChannel(cefrLevel, currentCluster)}\n\n${buildMirrorWorldFolder()}`
+  }
+
+  function computeL5Prompt() {
+    return buildDirective('layer-test', { scope: layerScope })
   }
 
   function buildCurrentPromptBlock() {
-    const lines = [`LEVEL: ${cefrLevel}`, 'AVAILABLE']
+    const lines = ['AVAILABLE']
     for (const atomId of toggledOnAtoms) {
       const banked = atomWords[atomId] ?? []
       if (banked.length > 0) {
@@ -248,7 +247,7 @@ export default function InventoryMirror({ onBack }) {
       const res = await fetch('/__generate-layer-test', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, lang, learnerBlock, tierBlock, cefrLevel, promptBlock, scope: layerScope }),
+        body: JSON.stringify({ mode, lang, learnerBlock, tierBlock, cefrLevel, currentCluster, promptBlock, scope: layerScope, directiveOverride: showL5 ? editableL5 : null, rawUserMessage: mode === 'l1l2l3l4' && showL4 ? editableL4 : mode === 'l1l2l3' && showL3 ? editableL3 : null }),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -373,12 +372,21 @@ export default function InventoryMirror({ onBack }) {
                 onClick={() => handleLayerGenerate('l1l2l3')}>
                 {layerState === 'loading' && layerResultMode === 'l1l2l3' ? 'generating…' : 'generate'}
               </button>
-              <button className="im-words-btn" onClick={() => setShowL3(p => !p)}>
+              <button className="im-words-btn" onClick={() => {
+                if (!showL3) setEditableL3(computeL3Prompt())
+                setShowL3(p => !p)
+              }}>
                 {showL3 ? 'hide prompt' : 'show prompt'}
               </button>
               <span className="im-tier-chip-desc">{cefrLevel} level constraint</span>
             </div>
-            {showL3 && <pre className="im-snapshot-block">{computeL3Prompt()}</pre>}
+            {showL3 && (
+              <textarea
+                className="im-snapshot-block im-snapshot-editable"
+                value={editableL3 ?? ''}
+                onChange={e => setEditableL3(e.target.value)}
+              />
+            )}
             {layerState === 'result' && layerResultMode === 'l1l2l3' && layerResult && (
               <div className="im-generate-result">
                 <div className="im-generate-sentence">{layerResult}</div>
@@ -396,7 +404,10 @@ export default function InventoryMirror({ onBack }) {
                 onClick={() => handleLayerGenerate('l1l2l3l4')}>
                 {layerState === 'loading' && layerResultMode === 'l1l2l3l4' ? 'generating…' : 'generate'}
               </button>
-              <button className="im-words-btn" onClick={() => setShowL4(p => !p)}>
+              <button className="im-words-btn" onClick={() => {
+                if (!showL4) setEditableL4(computeL4Prompt())
+                setShowL4(p => !p)
+              }}>
                 {showL4 ? 'hide prompt' : 'show prompt'}
               </button>
               <span className="im-tier-chip-desc">
@@ -415,14 +426,54 @@ export default function InventoryMirror({ onBack }) {
                   title={t.label}>T{t.id}</button>
               ))}
             </div>
-            {showL4 && <pre className="im-snapshot-block">{computeL4Prompt()}</pre>}
-            {layerState === 'result' && layerResultMode === 'l1l2l3l4' && layerResult && (
-              <div className="im-generate-result">
-                <div className="im-generate-sentence">{layerResult}</div>
-                <button className="im-copy-btn" onClick={() => { navigator.clipboard.writeText(layerResult); setLayerCopied(true); setTimeout(() => setLayerCopied(false), 1500) }}>{layerCopied ? 'copied ✓' : 'copy'}</button>
-              </div>
+            {showL4 && (
+              <textarea
+                className="im-snapshot-block im-snapshot-editable"
+                value={editableL4 ?? ''}
+                onChange={e => setEditableL4(e.target.value)}
+              />
             )}
+            {layerState === 'result' && layerResultMode === 'l1l2l3l4' && layerResult && (() => {
+              const bankSet      = new Set(wordBank)
+              const unknownWords = [...new Set(
+                scanAIText(layerResult, bankSet)
+                  .filter(t => t.isWord && !t.isKnown)
+                  .map(t => t.normalized)
+              )]
+              const copyText = unknownWords.length > 0
+                ? `${layerResult}\n\nUNKNOWN: ${unknownWords.join(', ')}`
+                : layerResult
+              return (
+                <div className="im-generate-result">
+                  <div className="im-generate-sentence">
+                    <AIText text={layerResult} lang={lang} />
+                  </div>
+                  <button className="im-copy-btn" onClick={() => { navigator.clipboard.writeText(copyText); setLayerCopied(true); setTimeout(() => setLayerCopied(false), 1500) }}>{layerCopied ? 'copied ✓' : 'copy'}</button>
+                </div>
+              )
+            })()}
             {layerState === 'error' && layerResultMode === 'l1l2l3l4' && <div className="im-generate-error">generation failed</div>}
+          </div>
+
+          {/* L5 row — directive */}
+          <div className="im-generate-section">
+            <div className="im-generate-controls">
+              <span className="im-layer-desc" style={{ padding: 0, width: 28 }}>L5</span>
+              <button className="im-words-btn" onClick={() => {
+                if (!showL5) setEditableL5(computeL5Prompt())
+                setShowL5(p => !p)
+              }}>
+                {showL5 ? 'hide' : 'show directive'}
+              </button>
+              <span className="im-tier-chip-desc">what to do with this</span>
+            </div>
+            {showL5 && (
+              <textarea
+                className="im-snapshot-block im-snapshot-editable"
+                value={editableL5 ?? ''}
+                onChange={e => setEditableL5(e.target.value)}
+              />
+            )}
           </div>
 
         </div>

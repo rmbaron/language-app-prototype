@@ -112,6 +112,30 @@ export function getWordBank() {
   return state.wordBank ?? []
 }
 
+// ── Recommender queue ─────────────────────────────────────────
+// Stub — stores words the user wants the recommender to surface.
+// Wired properly when the recommender queue architecture is built.
+
+const RECOMMENDER_QUEUE_KEY = 'lapp-recommender-queue'
+
+export function addToRecommenderQueue(wordId) {
+  try {
+    const raw   = localStorage.getItem(RECOMMENDER_QUEUE_KEY)
+    const queue = raw ? JSON.parse(raw) : []
+    if (!queue.includes(wordId)) {
+      queue.push(wordId)
+      localStorage.setItem(RECOMMENDER_QUEUE_KEY, JSON.stringify(queue))
+    }
+  } catch { /* storage full */ }
+}
+
+export function getRecommenderQueue() {
+  try {
+    const raw = localStorage.getItem(RECOMMENDER_QUEUE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
 // ── Attempts ──────────────────────────────────────────────────
 
 export function recordAttempt(wordId, lane) {

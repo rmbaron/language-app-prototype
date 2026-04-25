@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk'
 dotenvConfig()
 import { ATOMS } from './src/grammarAtoms.en.js'
 import { buildAISystemPrompt } from './src/aiIdentity.js'
+import { buildLevelChannel, buildDirective } from './src/systemVocabulary.js'
 
 // Dev-only plugin: accepts POST /__celestial-design and writes src/celestialDesign.js.
 // This endpoint only exists during `vite dev` — it is never included in builds.
@@ -364,8 +365,9 @@ function layerTestGenerator() {
         req.on('data', chunk => chunks.push(chunk))
         req.on('end', async () => {
           try {
-            const { mode, lang, learnerBlock, tierBlock, cefrLevel = 'A1', promptBlock, scope = 'sentence' } =
+            const { mode, lang, learnerBlock, tierBlock, cefrLevel = 'A1', currentCluster = null, promptBlock, scope = 'sentence', rawUserMessage = null, directiveOverride = null } =
               JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+            const directive = directiveOverride ?? buildDirective('layer-test', { scope })
 
             const systemPrompt = buildAISystemPrompt(lang)
             const scopeInstruction = scope === 'paragraph'
@@ -373,18 +375,19 @@ function layerTestGenerator() {
               : 'One sentence only.'
 
             let userMessage
-            if (mode === 'l1') {
+            if (rawUserMessage) {
+              userMessage = rawUserMessage
+            } else if (mode === 'l1') {
               userMessage = `Say something. Express whatever feels genuine and worth saying. One short paragraph.`
             } else if (mode === 'l1l2') {
               userMessage = `${learnerBlock}\n\nSay something to this person, from inside their world. Express something genuine — an observation, a feeling, a desire. One short paragraph.`
             } else if (mode === 'l1l2l3') {
-              userMessage = `${learnerBlock}\n\nSpeak at ${cefrLevel} level — vocabulary and structures natural at that level, nothing more complex. Full intelligence within that range.`
+              userMessage = `${learnerBlock}\n\n${buildLevelChannel(cefrLevel, currentCluster)}\n\n${directive}`
             } else if (mode === 'l1l2l3l4') {
               const tierSection = tierBlock
-                ? `\n\nUse this sentence structure specifically — no looser, no more complex:\n${tierBlock}`
+                ? `\n\nFor this response, aim for this structure specifically:\n${tierBlock}`
                 : ''
-              const meetingOnly = learnerBlock.split('\nYou bring your full intelligence')[0]
-              userMessage = `${meetingOnly}\n\nThis person is learning ${lang === 'en' ? 'English' : lang}. We have measured precisely which words and grammatical structures they have learned — no more, no less. Speaking within exactly that range is what helps them most right now. This is not an approximation.\n\n${promptBlock}${tierSection}\n\nSpeak to this person as a genuine presence — not as a teacher, not simplified, but within their exact world.`
+              userMessage = `${learnerBlock}\n\n${buildLevelChannel(cefrLevel, currentCluster)}\n\n${promptBlock}${tierSection}\n\n${directive}`
             } else {
               const tierSection = tierBlock
                 ? `\n\nUse this sentence structure specifically — no looser, no more complex:\n${tierBlock}`

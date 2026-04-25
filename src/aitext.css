@@ -1,0 +1,91 @@
+/* AIText — leak detector overlay */
+
+.ai-text-unknown {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(255, 220, 100, 0.7);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ai-text-unknown:hover {
+  text-decoration-color: rgba(255, 220, 100, 1);
+  background: rgba(255, 220, 100, 0.1);
+  border-radius: 2px;
+}
+
+/* Fixed bottom panel */
+.ai-text-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1e1e2e;
+  border-top: 1px solid rgba(255, 220, 100, 0.3);
+  padding: 20px 24px 32px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.ai-text-panel-word {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #f0f0f8;
+  letter-spacing: 0.02em;
+}
+
+.ai-text-panel-class {
+  font-size: 0.8rem;
+  color: rgba(255, 220, 100, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ai-text-panel-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-text-btn {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.ai-text-btn--unlock {
+  background: rgba(255, 220, 100, 0.9);
+  color: #1a1a2e;
+}
+
+.ai-text-btn--unlock:hover {
+  background: rgba(255, 220, 100, 1);
+}
+
+.ai-text-btn--recommend {
+  background: rgba(100, 180, 255, 0.15);
+  color: rgba(100, 180, 255, 0.9);
+  border: 1px solid rgba(100, 180, 255, 0.3);
+}
+
+.ai-text-btn--recommend:hover {
+  background: rgba(100, 180, 255, 0.25);
+}
+
+.ai-text-btn--ignore {
+  background: transparent;
+  color: rgba(200, 200, 220, 0.5);
+  border: 1px solid rgba(200, 200, 220, 0.15);
+}
+
+.ai-text-btn--ignore:hover {
+  color: rgba(200, 200, 220, 0.8);
+}

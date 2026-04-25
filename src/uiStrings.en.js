@@ -360,6 +360,13 @@ export default {
     },
   },
 
+  aiText: {
+    unlock:    'Unlock word',
+    recommend: 'Add to recommender',
+    ignore:    'Ignore',
+    wordClass: 'Word class',
+  },
+
   writingPractice: {
     title:        'Writing',
     generate:     'Generate prompt',
