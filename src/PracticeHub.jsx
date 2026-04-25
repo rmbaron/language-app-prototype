@@ -3,7 +3,7 @@ import { getStrings } from './uiStrings'
 
 const LANES = [
   { id: 'reading',   descKey: 'laneReading',   available: true  },
-  { id: 'writing',   descKey: 'laneWriting',   available: false },
+  { id: 'writing',   descKey: 'laneWriting',   available: true  },
   { id: 'listening', descKey: 'laneListening', available: false },
   { id: 'speaking',  descKey: 'laneSpeaking',  available: false },
 ]

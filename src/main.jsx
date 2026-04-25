@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { InventoryProvider } from './InventoryContext'
 import './style.css'
 import './wordBank.css'
 import './wordProfile.css'
@@ -17,6 +18,8 @@ import './profiles.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <InventoryProvider>
+      <App />
+    </InventoryProvider>
   </React.StrictMode>
 )

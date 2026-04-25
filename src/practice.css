@@ -1,4 +1,332 @@
 
+/* ── Writing Lane ── */
+
+.wl-screen {
+  padding: 24px 20px 80px;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: monospace;
+}
+
+.wl-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wl-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #666;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Section container — shared by WORD BANK and GRAMMAR */
+.wl-section {
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wl-section-label {
+  color: #333;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.wl-empty {
+  color: #2e2e2e;
+  font-size: 11px;
+  font-style: normal;
+}
+
+/* WORD BANK pills */
+.wl-word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wl-word-pill {
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 11px;
+  color: #555;
+}
+
+/* GRAMMAR — cluster nav */
+.wl-cluster-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wl-cluster-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.wl-cluster-btn {
+  padding: 3px 10px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 4px;
+  color: #3a3a3a;
+  font-family: monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.wl-cluster-btn--active {
+  border-color: #555;
+  color: #bbb;
+  background: #1a1a1a;
+}
+
+.wl-cluster-desc {
+  color: #3a3a3a;
+  font-size: 10px;
+}
+
+/* Atom sections */
+.wl-atom-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wl-cluster-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wl-cluster-section-header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #161616;
+  margin-bottom: 1px;
+}
+
+.wl-cluster-section-id {
+  color: #2a2a2a;
+  font-size: 10px;
+  min-width: 18px;
+}
+
+.wl-cluster-section-name {
+  color: #3a3a3a;
+  font-size: 10px;
+}
+
+.wl-atom-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wl-atom-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  cursor: pointer;
+  padding: 1px 0;
+}
+
+.wl-atom-row:hover .wl-atom-label { color: #aaa; }
+
+.wl-atom-row--off .wl-atom-label,
+.wl-atom-row--off .wl-atom-words { opacity: 0.2; }
+
+.wl-atom-check { color: #444; min-width: 14px; font-size: 11px; }
+.wl-atom-label { color: #666; font-size: 11px; min-width: 210px; }
+.wl-atom-words { color: #3d3d3d; font-size: 11px; }
+.wl-atom-words em { color: #252525; font-style: normal; }
+
+/* WHAT — topic picker grid */
+.wl-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 5px;
+}
+
+.wl-topic-card {
+  background: #0f0f0f;
+  border: 1px solid #1e1e1e;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.1s;
+  font-family: monospace;
+}
+
+.wl-topic-card:hover { border-color: #333; }
+
+.wl-topic-card--active {
+  border-color: #555;
+  background: #161616;
+}
+
+.wl-topic-card-name {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+
+.wl-topic-card--active .wl-topic-card-name { color: #bbb; }
+
+.wl-topic-card-words {
+  font-size: 10px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.wl-topic-card--active .wl-topic-card-words { color: #555; }
+
+/* TO AI — equation panel */
+.wl-equation {
+  background: #080808;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.wl-eq-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.wl-eq-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.wl-eq-label {
+  color: #2e2e2e;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  min-width: 60px;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.wl-eq-value {
+  color: #777;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.wl-eq-value b { color: #999; }
+.wl-eq-value em { color: #2a2a2a; font-style: normal; }
+.wl-eq-structure { color: #3a3a3a; }
+
+/* Generate section */
+.wl-generate-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wl-generate-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.wl-generate-btn {
+  padding: 9px 18px;
+  background: #141414;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.wl-generate-btn--force {
+  border-color: #2a2a1a;
+  color: #777;
+}
+
+.wl-generate-btn--force:not(:disabled):hover { border-color: #665500; color: #cc9; }
+
+.wl-generate-btn:disabled { opacity: 0.3; cursor: default; }
+.wl-generate-btn:not(.wl-generate-btn--force):not(:disabled):hover { border-color: #666; color: #ddd; }
+
+.wl-error { color: #a33; font-size: 11px; }
+
+.wl-result {
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wl-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wl-result-label {
+  color: #2e2e2e;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+}
+
+.wl-copy-btn {
+  background: none;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  color: #3a3a3a;
+  font-family: monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.wl-copy-btn:hover { border-color: #555; color: #888; }
+
+.wl-result-text {
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  font-family: sans-serif;
+}
+
 /* ── Practice Hub ── */
 
 .practice-hub {

@@ -7,6 +7,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 dotenvConfig()
 import { ATOMS } from './src/grammarAtoms.en.js'
+import { buildAISystemPrompt } from './src/aiIdentity.js'
 
 // Dev-only plugin: accepts POST /__celestial-design and writes src/celestialDesign.js.
 // This endpoint only exists during `vite dev` — it is never included in builds.
@@ -100,34 +101,28 @@ function sentenceGenerator() {
         req.on('data', chunk => chunks.push(chunk))
         req.on('end', async () => {
           try {
-            const { eligibleStructures, wordBankWords, minWords = 3, maxWords = 5, recentSentences = [] } =
+            const { frame, minWords = 3, maxWords = 5, recentSentences = [], allowedWords = [] } =
               JSON.parse(Buffer.concat(chunks).toString('utf-8'))
 
-            const structureList = eligibleStructures
-              .map(s => `- ${s.label} (e.g. "${s.example}")`)
+            const frameLines = Object.entries(frame)
+              .map(([slot, word]) => `  ${slot}: ${word}`)
               .join('\n')
 
-            const wordList = wordBankWords.join(', ')
-
-            const avoidBlock = recentSentences.length > 0
-              ? `\nRecently generated (do not repeat these or use the same structure back-to-back):\n${recentSentences.map(s => `- "${s}"`).join('\n')}\n`
+            const vocabBlock = allowedWords.length > 0
+              ? `\nVOCABULARY CONSTRAINT: You may only use words from this list (plus their inflected forms). Do not introduce any other words:\n${allowedWords.join(', ')}`
               : ''
 
-            const prompt = `You are generating a reading practice sentence for an English language learner at A1 level.
+            const avoidBlock = recentSentences.length > 0
+              ? `\nAvoid repeating these:\n${recentSentences.map(s => `- "${s}"`).join('\n')}`
+              : ''
 
-The learner's vocabulary words are: ${wordList}
+            const prompt = `Write one natural English sentence using these words in these slot positions. Apply correct English grammar — including subject-verb agreement (he/she/it → verb+s), correct pronoun case, and any other required inflection.
 
-Valid sentence structures (pick one — rotate through different ones, do not default to the simplest):
-${structureList}
+Slots:
+${frameLines}
+${vocabBlock}
 ${avoidBlock}
-Rules:
-- Use only the learner's vocabulary words for content words (nouns, main verbs, adjectives, adverbs)
-- Grammatical function words (I, you, he, she, it, we, they, a, an, the, am, is, are, do, does, not, and their contracted forms) may be used freely as needed
-- The sentence must be between ${minWords} and ${maxWords} words
-- Generate exactly one natural, correct English sentence — no explanation, no punctuation commentary, nothing else
-- Use a different structure and different words than the recent sentences above
-
-Reply with only the sentence.`
+Length: ${minWords}–${maxWords} words. Reply with only the sentence, nothing else.`
 
             const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
             const message = await client.messages.create({
@@ -303,6 +298,122 @@ function seedWordAdder() {
   }
 }
 
+// Dev-only plugin: accepts POST /__generate-mirror and returns a generated sentence.
+// Input:  { tier: { label, examples }, promptBlock, lang }
+//   promptBlock — the inventory snapshot constraint envelope (AVAILABLE or RESTRICTED block)
+//   tier        — the constructor tier that defines the sentence structure
+// Output: { sentence }
+function mirrorGenerator() {
+  return {
+    name: 'mirror-generator',
+    configureServer(server) {
+      server.middlewares.use('/__generate-mirror', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+        const chunks = []
+        req.on('data', chunk => chunks.push(chunk))
+        req.on('end', async () => {
+          try {
+            const { tier, promptBlock, lang } =
+              JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+
+            const prompt = `Generate one sentence for a ${lang} learner. You must respect both constraints below exactly.
+
+VOCABULARY CONSTRAINT — only words listed here (and their inflected forms) may appear:
+${promptBlock}
+
+SENTENCE STRUCTURE: ${tier.label}
+Examples of this structure: ${tier.examples.join(' / ')}
+
+Generate ONE sentence that fits the structure and uses only vocabulary from the constraint above.
+Apply correct grammatical agreement (e.g. he/she/it → verb+s).
+Return only the sentence, nothing else.`
+
+            const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+            const message = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 60,
+              messages: [{ role: 'user', content: prompt }],
+            })
+
+            const sentence = message.content[0]?.text?.trim() ?? ''
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ sentence }))
+          } catch (err) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: err.message }))
+          }
+        })
+      })
+    },
+  }
+}
+
+// Dev-only plugin: accepts POST /__generate-layer-test and tests the three-layer AI architecture.
+// mode 'l1'      — Layer 1 only: AI identity, no inventory, free expression
+// mode 'l1l2'    — Layer 1 + 2: AI identity + learner introduction, no tier constraint
+// mode 'l1l2l3'  — Full stack: all three layers
+// Returns { sentence, promptSent } so the Mirror can show what was sent.
+function layerTestGenerator() {
+  return {
+    name: 'layer-test-generator',
+    configureServer(server) {
+      server.middlewares.use('/__generate-layer-test', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+        const chunks = []
+        req.on('data', chunk => chunks.push(chunk))
+        req.on('end', async () => {
+          try {
+            const { mode, lang, learnerBlock, tierBlock, cefrLevel = 'A1', promptBlock, scope = 'sentence' } =
+              JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+
+            const systemPrompt = buildAISystemPrompt(lang)
+            const scopeInstruction = scope === 'paragraph'
+              ? 'Up to a paragraph (3–5 sentences). Let the thought breathe.'
+              : 'One sentence only.'
+
+            let userMessage
+            if (mode === 'l1') {
+              userMessage = `Say something. Express whatever feels genuine and worth saying. One short paragraph.`
+            } else if (mode === 'l1l2') {
+              userMessage = `${learnerBlock}\n\nSay something to this person, from inside their world. Express something genuine — an observation, a feeling, a desire. One short paragraph.`
+            } else if (mode === 'l1l2l3') {
+              userMessage = `${learnerBlock}\n\nSpeak at ${cefrLevel} level — vocabulary and structures natural at that level, nothing more complex. Full intelligence within that range.`
+            } else if (mode === 'l1l2l3l4') {
+              const tierSection = tierBlock
+                ? `\n\nUse this sentence structure specifically — no looser, no more complex:\n${tierBlock}`
+                : ''
+              const meetingOnly = learnerBlock.split('\nYou bring your full intelligence')[0]
+              userMessage = `${meetingOnly}\n\nThis person is learning ${lang === 'en' ? 'English' : lang}. We have measured precisely which words and grammatical structures they have learned — no more, no less. Speaking within exactly that range is what helps them most right now. This is not an approximation.\n\n${promptBlock}${tierSection}\n\nSpeak to this person as a genuine presence — not as a teacher, not simplified, but within their exact world.`
+            } else {
+              const tierSection = tierBlock
+                ? `\n\nUse this sentence structure specifically — no looser, no more complex:\n${tierBlock}`
+                : ''
+              userMessage = `${learnerBlock}${tierSection}\n\nSpeak from inside this world, within this grammatical range. ${scopeInstruction}`
+            }
+
+            const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+            const message = await client.messages.create({
+              model:      'claude-haiku-4-5-20251001',
+              max_tokens: (mode === 'l1' || mode === 'l1l2') ? 150 : 300,
+              system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+              messages: [{ role: 'user', content: userMessage }],
+            })
+
+            const sentence = message.content[0]?.text?.trim() ?? ''
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ sentence, promptSent: userMessage }))
+          } catch (err) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: err.message }))
+          }
+        })
+      })
+    },
+  }
+}
+
 // Dev-only plugin: accepts POST /__generate-constructor and returns a generated sentence.
 // Input:  { targetSlotId, targetWord, targetSlotRole, filledSlots, slotWords, lang }
 //   targetWord  — the exact word the learner placed in the target slot
@@ -336,18 +447,17 @@ function constructorGenerator() {
               ? `For unfilled slots, choose from these options only:\n${unfilledSlotWords.map(([slot, words]) => `  ${slot}: ${words.join(', ')}`).join('\n')}\n`
               : ''
 
-            const prompt = `Generate one A1-level English sentence.
+            const prompt = `Generate one A1-level English sentence using ONLY the words specified below — no other words allowed. Inflect for grammatical agreement (e.g. he/she/it → verb+s) but do not add any words beyond what is listed.
 
-Target (the concept being tested — must appear, inflected as needed):
-"${targetWord}" in the ${targetSlotId} position — ${targetSlotRole}
+Target slot (must appear, inflected as needed):
+  ${targetSlotId}: "${targetWord}"
 ${filledOthers.length > 0 ? `
-Also use these words, inflected as needed for grammatical agreement:
+Other filled slots (use exactly these words, inflected as needed):
 ${filledOthers.map(([slot, word]) => `  ${slot}: "${word}"`).join('\n')}` : ''}
 ${unfilledSlotWords.length > 0 ? `
-For any remaining slots, use only words from this list — no invented words:
+Remaining slots — pick one word from each list, no others:
 ${unfilledSlotWords.map(([slot, words]) => `  ${slot}: ${words.join(', ')}`).join('\n')}` : ''}
-If a constraint genuinely conflicts with grammar, honor the target slot above all else.
-Return only the sentence.`
+STRICT: the sentence must contain only words from the slots above. Return only the sentence.`
 
             const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
             const message = await client.messages.create({
@@ -370,6 +480,100 @@ Return only the sentence.`
   }
 }
 
+// Dev-only plugin: accepts POST /__generate-writing-prompt and calls the Claude API.
+// Input:  { selectedTopic, grammarWords, scope, lang, cefrLevel }
+//   selectedTopic — { topic, words } — the one topic the learner will write about
+//   grammarWords  — words from active atom classes (structural/function words)
+//   scope         — { sentences, structure } from CLUSTER_SCOPE
+// Output: { prompt }
+function writingPromptGenerator() {
+  return {
+    name: 'writing-prompt-generator',
+    configureServer(server) {
+      server.middlewares.use('/__generate-writing-prompt', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+
+        const chunks = []
+        req.on('data', chunk => chunks.push(chunk))
+        req.on('end', async () => {
+          try {
+            const { selectedTopic, grammarWords, scope, lang, cefrLevel, forceInstruction } =
+              JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+
+            const forceBlock = forceInstruction
+              ? `\nFORCED STRUCTURE (the learner's response MUST use this): ${forceInstruction}`
+              : ''
+
+            const prompt = `You are generating a writing prompt for a ${lang} learner at CEFR level ${cefrLevel ?? 'A1'}.
+
+TOPIC: ${selectedTopic.topic}
+Topic vocabulary (the only content words available to the learner): ${selectedTopic.words.join(', ')}
+
+Grammar/function words available to the learner: ${grammarWords.length > 0 ? grammarWords.join(', ') : '(none)'}
+
+The learner will respond in ${scope.sentences} using these structures: ${scope.structure}.${forceBlock}
+
+Write ONE short prompt — a single question or scenario — that:
+- The prompt itself is one sentence only
+- Concerns only the "${selectedTopic.topic}" topic
+- Can be answered using ONLY the vocabulary listed above
+- Invites a response of ${scope.sentences}${forceInstruction ? `\n- The scenario must make it natural to use: ${forceInstruction}` : ''}
+- Feels personally meaningful, not like a language exercise
+
+Reply with only the prompt sentence. No explanation.`
+
+            const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+            const message = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 80,
+              messages: [{ role: 'user', content: prompt }],
+            })
+
+            const result = message.content[0]?.text?.trim() ?? ''
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ prompt: result }))
+          } catch (err) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: err.message }))
+          }
+        })
+      })
+    },
+  }
+}
+
+function samplePortraitGenerator() {
+  return {
+    name: 'sample-portrait-generator',
+    configureServer(server) {
+      server.middlewares.use('/__generate-sample-portrait', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+        const chunks = []
+        req.on('data', chunk => chunks.push(chunk))
+        req.on('end', async () => {
+          try {
+            const { wordBank, lang } = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+            const prompt = `Someone is building a world in ${lang}. These are the words they have chosen to carry so far:\n\n${wordBank.join(', ')}\n\nBased only on what they've chosen, write a brief portrait of who this person might be — not as a language learner, but as a human being. What seems to matter to them? What kind of person do they appear to be? 2-3 sentences, specific and grounded. No generic observations.`
+            const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+            const message = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 150,
+              messages: [{ role: 'user', content: prompt }],
+            })
+            const portrait = message.content[0]?.text?.trim() ?? ''
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ portrait }))
+          } catch (err) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: err.message }))
+          }
+        })
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -379,6 +583,10 @@ export default defineConfig({
     wordEnricherL1(),
     wordEnricherL2(),
     seedWordAdder(),
+    mirrorGenerator(),
+    layerTestGenerator(),
+    samplePortraitGenerator(),
     constructorGenerator(),
+    writingPromptGenerator(),
   ],
 })

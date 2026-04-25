@@ -9,15 +9,13 @@ import {
   getActiveLanguage,
 } from './learnerProfile'
 import { getStrings } from './uiStrings'
-import { getWordBank, addToWordBank, removeFromWordBank } from './userStore'
-import { unlockAtom, lockAtom, lockAtoms } from './atomUnlockStore'
-import { findWordInIndex } from './atomIndex'
 import { ATOMS } from './grammarAtoms.en'
 import { getAtomPioneers } from './atomPioneers'
 import { getGrammarClusters } from './grammarClustering'
 import { getLearnerGrammarState } from './learnerGrammarState'
 import { WORD_SEED } from './wordSeed.en'
-import { CONSTRUCTOR_TIERS, CONSTRUCTOR_BANDS } from './constructorTiers.en.js'
+import { CONSTRUCTOR_TIERS } from './constructorTiers.en.js'
+import GrammarStatePanel from './GrammarStatePanel'
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -101,23 +99,6 @@ export default function ProfileSwitcher({ onBack }) {
   const grammarState  = getLearnerGrammarState(lang)
   const unlockedAtoms = new Set(grammarState.activeAtoms)
 
-  function handleAtomClick(atomId) {
-    const wordId = pioneers[atomId]
-    if (!wordId) return
-    if (findWordInIndex(wordId, lang)?.atomId !== atomId) return
-    addToWordBank(wordId)
-    unlockAtom(atomId, wordId)
-    forceUpdate(n => n + 1)
-  }
-
-  function handleRewindToCluster(clusterId) {
-    const atomsToLock = clusters
-      .filter(c => c.id >= clusterId)
-      .flatMap(c => c.atoms)
-    lockAtoms(atomsToLock)
-    forceUpdate(n => n + 1)
-  }
-
   function handleSave() {
     if (!newName.trim()) return
     const id = createProfile(newName.trim(), newCefr)
@@ -176,56 +157,7 @@ export default function ProfileSwitcher({ onBack }) {
         )}
       </div>
 
-      <div className="profile-state">
-        <div className="profile-state-meta">
-          <span className="profile-state-label">Current state</span>
-          {cefrLevel && <span className="profile-state-cefr">{cefrLevel}</span>}
-          <span className="profile-state-atoms-count">Cluster {grammarState.currentCluster}</span>
-          <span className="profile-state-atoms-count">{unlockedAtoms.size} / {clusters.reduce((n, c) => n + c.atoms.length, 0)} atoms</span>
-        </div>
-
-        {clusters.map(cluster => {
-          const cState    = grammarState.clusters[cluster.id]
-          const complete  = cState?.complete ?? false
-          const isCurrent = cluster.id === grammarState.currentCluster
-          return (
-            <div key={cluster.id} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: isCurrent ? '#8f8' : complete ? '#7a8' : '#444', fontFamily: 'monospace', textDecoration: isCurrent ? 'underline' : 'none' }}>
-                  C{cluster.id} — {cluster.label}
-                </span>
-                {complete && <span style={{ fontSize: 10, color: isCurrent ? '#8f8' : '#7a8' }}>✓</span>}
-                {complete && (
-                  <button
-                    onClick={() => handleRewindToCluster(cluster.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#444', padding: '0 4px' }}
-                    title={`Rewind to start of Cluster ${cluster.id}`}
-                  >↩</button>
-                )}
-              </div>
-              <div className="profile-atom-grid">
-                {cluster.atoms.map(atomId => {
-                  const atom          = ATOMS.find(a => a.id === atomId)
-                  if (!atom) return null
-                  const unlocked      = unlockedAtoms.has(atomId)
-                  const pioneerWordId = pioneers[atomId]
-                  const canUnlock     = !unlocked && pioneerWordId && findWordInIndex(pioneerWordId, lang)?.atomId === atomId
-                  return (
-                    <div
-                      key={atomId}
-                      className={`profile-atom${unlocked ? ' profile-atom--unlocked' : ''}${canUnlock ? ' profile-atom--available' : ''}`}
-                      title={unlocked ? `Click to lock "${pioneerWordId}" and remove from bank` : canUnlock ? `Click to unlock via "${pioneerWordId}"` : atom.description}
-                      onClick={unlocked ? () => { lockAtom(atomId); if (pioneerWordId) removeFromWordBank(pioneerWordId); forceUpdate(n => n + 1) } : canUnlock ? () => handleAtomClick(atomId) : undefined}
-                    >
-                      {atom.label}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <GrammarStatePanel />
 
       <div className="profile-switcher-save-area">
         {saving ? (

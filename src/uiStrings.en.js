@@ -330,4 +330,36 @@ export default {
     words:          n => `${n} word${n === 1 ? '' : 's'}`,
   },
 
+  inventoryMirror: {
+    title:           'Mirror',
+    aiLabel:         'AI — RESTRICTED',
+    learnerLabel:    'LEARNER — AVAILABLE',
+    banked:          'banked',
+    restricted:      'restricted',
+    total:           'total',
+    mode:            m => `mode: ${m}`,
+    atomComplete:    '✓ all banked',
+    nothingBanked:   'nothing banked yet',
+    emptyBank:       'Bank some words to see the mirror.',
+  },
+
+  writingPractice: {
+    title:        'Writing',
+    generate:     'Generate prompt',
+    generating:   'Generating...',
+    placeholder:  'Your writing prompt will appear here.',
+    promptLabel:  'Write about this:',
+    total:        'WORD BANK',
+    grammar:      'GRAMMAR',
+    what:         'WHAT',
+    toAi:         'TO AI',
+    topicLabel:   'TOPIC',
+    grammarLabel: 'GRAMMAR',
+    scopeLabel:   'SCOPE',
+    result:       'PROMPT',
+    noTopics:     'no topics available',
+    bankEmpty:    'empty',
+    atomNone:     'none banked',
+  },
+
 }

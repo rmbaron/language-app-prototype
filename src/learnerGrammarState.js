@@ -94,5 +94,6 @@ export function getLearnerGrammarState(lang = 'en') {
     currentCluster,
     activeAtoms,
     pioneerGaps,
+    atomWords,
   }
 }

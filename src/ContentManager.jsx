@@ -6,6 +6,7 @@ import { getContent, addContent, updateContent, removeContent, getPronunciation,
 import { ATOMS } from './grammarAtoms.en'
 import { getGrammarClusters } from './grammarClustering'
 import { getAtomIndex } from './atomIndex'
+import { getAtomPioneers } from './atomPioneers'
 
 const isAudio = lane => lane.medium === 'audio'
 const isProductive = lane => lane.modality === 'productive'
@@ -309,19 +310,21 @@ function PronunciationSection({ wordId }) {
   )
 }
 
-function WordChip({ word, contentIndex, onClick }) {
+function WordChip({ word, contentIndex, isPioneer, onClick }) {
   const hasContent = Object.keys(contentIndex[word.id] ?? {}).length > 0
   return (
     <button
-      className={`cm-word-chip${hasContent ? ' cm-word-chip--has-content' : ''}`}
+      className={`cm-word-chip${hasContent ? ' cm-word-chip--has-content' : ''}${isPioneer ? ' cm-word-chip--pioneer' : ''}`}
       onClick={onClick}
+      title={isPioneer ? 'Pioneer word' : undefined}
     >
+      {isPioneer && <span className="cm-pioneer-dot">◆</span>}
       {word.baseForm}
     </button>
   )
 }
 
-function AtomSection({ atomId, atom, levelBuckets, lang, contentIndex, search, onSelectWord }) {
+function AtomSection({ atomId, atom, levelBuckets, lang, contentIndex, pioneers, search, onSelectWord }) {
   const levels = Object.keys(levelBuckets).sort()
   const [selectedLevel, setSelectedLevel] = useState(levels[0] ?? 'A1')
 
@@ -339,7 +342,7 @@ function AtomSection({ atomId, atom, levelBuckets, lang, contentIndex, search, o
           <span className="cm-atom-count">{allWords.length}</span>
         </div>
         <div className="cm-atom-words">
-          {allWords.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} onClick={() => onSelectWord(w.id)} />)}
+          {allWords.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} isPioneer={Object.values(pioneers).includes(w.id)} onClick={() => onSelectWord(w.id)} />)}
         </div>
       </div>
     )
@@ -368,7 +371,7 @@ function AtomSection({ atomId, atom, levelBuckets, lang, contentIndex, search, o
       <div className="cm-atom-words">
         {words.length === 0
           ? <span className="cm-atom-empty">No words at this level yet.</span>
-          : words.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} onClick={() => onSelectWord(w.id)} />)
+          : words.map(w => <WordChip key={w.id} word={w} contentIndex={contentIndex} isPioneer={Object.values(pioneers).includes(w.id)} onClick={() => onSelectWord(w.id)} />)
         }
       </div>
     </div>
@@ -381,6 +384,7 @@ export default function ContentManager({ onClose }) {
   const clusters = getGrammarClusters(lang)
   const rawIndex = getAtomIndex(lang)
   const contentIndex = getContentIndex()
+  const pioneers = getAtomPioneers(lang)
 
   const [selectedCluster, setSelectedCluster] = useState(clusters[0]?.id ?? 1)
   const [selectedWord, setSelectedWord] = useState(null)
@@ -470,6 +474,7 @@ export default function ContentManager({ onClose }) {
               levelBuckets={levelBuckets}
               lang={lang}
               contentIndex={contentIndex}
+              pioneers={pioneers}
               search={search}
               onSelectWord={setSelectedWord}
             />

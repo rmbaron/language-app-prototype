@@ -1,105 +1,129 @@
-import { useState, useEffect } from 'react'
-import { getActiveLanguage, getInterfaceLanguage, getCefrLevel } from './learnerProfile'
+import { useState } from 'react'
+import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
 import { getStrings } from './uiStrings'
 import { getWordBank } from './userStore'
 import { getBankedWords } from './wordRegistry'
-import { getCurrentSubLevel } from './cefrLevels'
-import { getFullPracticePool } from './practicePool'
-import { generatePracticeSentence, generateForCache, MIN_WORDS, LANE_MAX_WORDS } from './practiceGenerate'
-import { getMatchesAcrossStructures, addToCache, needsFill, getPoolStats, CACHE_MIN_MATCHES } from './practiceCache'
+import { getLearnerGrammarState } from './learnerGrammarState'
+import { CONSTRUCTOR_TIERS } from './constructorTiers.en.js'
+import { assembleFrame, assembleRandomFrame } from './frameAssembler'
+import { generatePracticeSentence } from './practiceGenerate'
+import GrammarStatePanel from './GrammarStatePanel'
+import { buildLearnerIntroduction } from './systemVocabulary'
 
-const HARD_MAX = LANE_MAX_WORDS.reading  // ceiling from config
+function LayerTestPanel({ lang, learnerBlock }) {
+  const [mode,    setMode]    = useState('l1')
+  const [loading, setLoading] = useState(false)
+  const [result,  setResult]  = useState(null)
+  const [error,   setError]   = useState(null)
+  const [copied,  setCopied]  = useState(false)
+
+  const MODES = [
+    { id: 'l1',      label: 'L1',       desc: 'AI speaks freely — no inventory' },
+    { id: 'l1l2',    label: 'L1+L2',    desc: 'AI meets this world' },
+    { id: 'l1l2l3',  label: 'L1+L2+L3', desc: 'Full stack with cluster constraint' },
+  ]
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null); setCopied(false)
+    try {
+      const res = await fetch('/__generate-layer-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, lang, learnerBlock: mode !== 'l1' ? learnerBlock : undefined, scope: 'sentence' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      setResult(data.sentence ?? data.text ?? '')
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
+  }
+
+  const btn = { fontSize: 10, padding: '3px 8px', border: '1px solid #333', borderRadius: 3, cursor: 'pointer' }
+
+  return (
+    <details style={{ margin: '16px 0', fontSize: 11, borderTop: '1px solid #222', paddingTop: 12 }}>
+      <summary style={{ cursor: 'pointer', color: '#555', letterSpacing: '0.08em', userSelect: 'none' }}>DEV · Layer test</summary>
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {MODES.map(m => (
+            <button key={m.id} onClick={() => setMode(m.id)} title={m.desc}
+              style={{ ...btn, background: mode === m.id ? '#222' : 'none', color: mode === m.id ? '#aaa' : '#555' }}
+            >{m.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#444' }}>{MODES.find(m => m.id === mode)?.desc}</div>
+        <button onClick={run} disabled={loading}
+          style={{ alignSelf: 'flex-start', fontSize: 11, padding: '4px 12px', background: '#111', border: '1px solid #333', borderRadius: 3, color: loading ? '#444' : '#777', cursor: loading ? 'default' : 'pointer' }}
+        >{loading ? '...' : 'generate'}</button>
+        {error && <div style={{ fontSize: 10, color: '#844' }}>{error}</div>}
+        {result && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 13, color: '#bbb', lineHeight: 1.5 }}>{result}</div>
+            <button onClick={() => { navigator.clipboard.writeText(`[${mode.toUpperCase()}] ${result}`); setCopied(true) }}
+              style={{ alignSelf: 'flex-start', fontSize: 9, padding: '2px 6px', background: 'none', border: '1px solid #333', borderRadius: 3, color: copied ? '#8a8' : '#444', cursor: 'pointer' }}
+            >{copied ? 'copied' : 'copy'}</button>
+          </div>
+        )}
+      </div>
+    </details>
+  )
+}
+
+function getEligibleTiers(activeAtoms) {
+  const active = new Set(activeAtoms)
+  return CONSTRUCTOR_TIERS.filter(tier => {
+    const cumulativeAtoms = CONSTRUCTOR_TIERS
+      .filter(t => t.id <= tier.id)
+      .flatMap(t => t.atoms)
+    return cumulativeAtoms.every(a => active.has(a))
+  })
+}
 
 export default function WorldReadingLane({ onBack }) {
   const s          = getStrings(getInterfaceLanguage())
   const activeLang = getActiveLanguage()
-  const cefrLevel  = getCefrLevel() ?? 'A1'
 
-  // ── Pool ──────────────────────────────────────────────────────
-  const [pool,          setPool]          = useState([])   // all 12, annotated
-  const [wordBankWords, setWordBankWords] = useState([])
+  const [sentence,        setSentence]        = useState(null)
+  const [recentSentences, setRecentSentences] = useState([])
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState(null)
+  const [hasGenerated,    setHasGenerated]    = useState(false)
+  const [lastSnapshot,    setLastSnapshot]    = useState(null)
+  const [copied,          setCopied]          = useState(false)
+  const [forcedTierId,    setForcedTierId]    = useState(null)
 
-  // ── Config (shown before first generate) ─────────────────────
-  const [maxWords,      setMaxWords]      = useState(HARD_MAX)
-  const [activeIds,     setActiveIds]     = useState(new Set()) // structure ids toggled on
-
-  // ── Tab ───────────────────────────────────────────────────────
-  const [activeTab,     setActiveTab]     = useState('config')
-
-  // ── Locked-structure info panel ───────────────────────────────
-  const [lockedInfo,    setLockedInfo]    = useState(null) // { id, missingAtoms }
-
-  // ── Cache inspector ───────────────────────────────────────────
-  const [expandedBucket, setExpandedBucket] = useState(null) // structure id
-
-  // ── Generation output ─────────────────────────────────────────
-  const [sentence,         setSentence]         = useState(null)
-  const [recentSentences,  setRecentSentences]  = useState([])
-  const [loading,          setLoading]          = useState(false)
-  const [error,            setError]            = useState(null)
-  const [hasGenerated,     setHasGenerated]     = useState(false)
-
-  useEffect(() => {
-    const bankIds    = getWordBank()
-    const banked     = getBankedWords(bankIds, activeLang)
-    const subLevel   = getCurrentSubLevel(cefrLevel, bankIds, banked, activeLang) ?? 'A1.1'
-    const full       = getFullPracticePool(bankIds, subLevel, activeLang)
-
-    const words = banked.map(w => w.baseForm)
-
-    setPool(full)
-    setWordBankWords(words)
-    // All eligible structures on by default; locked ones start off
-    setActiveIds(new Set(full.filter(s => s.eligible).map(s => s.id)))
-  }, [])
-
-  function toggleStructure(id) {
-    const struct = pool.find(s => s.id === id)
-    if (!struct?.eligible) {
-      // Toggle the info panel for this locked structure
-      setLockedInfo(prev => prev?.id === id ? null : { id, missingAtoms: struct.missingAtoms })
-      return
-    }
-    setLockedInfo(null)
-    setActiveIds(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+  function getCurrentState() {
+    const grammarState = getLearnerGrammarState(activeLang)
+    const tiers        = getEligibleTiers(grammarState.activeAtoms)
+    const bankWords    = getBankedWords(getWordBank(), activeLang)
+    return { tiers, bankWords, activeAtoms: grammarState.activeAtoms, currentCluster: grammarState.currentCluster }
   }
 
+  const { tiers: eligibleTiers, bankWords } = getCurrentState()
+  const eligibleSet = new Set(eligibleTiers.map(t => t.id))
+  const noStructures = eligibleTiers.length === 0 || bankWords.length === 0
+
   async function runGenerate() {
-    const eligible = pool.filter(s => s.eligible && activeIds.has(s.id))
-    if (!eligible.length || !wordBankWords.length) return
+    const { tiers, bankWords: freshBank, activeAtoms, currentCluster } = getCurrentState()
+    if (!freshBank.length) return
 
-    // ── Try cache first ───────────────────────────────────────
-    const cachedMatches = getMatchesAcrossStructures(
-      activeLang, eligible.map(s => s.id), 'reading', wordBankWords
-    )
-    if (cachedMatches.length >= CACHE_MIN_MATCHES) {
-      const pick = cachedMatches[Math.floor(Math.random() * cachedMatches.length)]
-      setSentence(pick.text)
-      setHasGenerated(true)
-      return
-    }
+    const forcedTier = forcedTierId ? CONSTRUCTOR_TIERS.find(t => t.id === forcedTierId) : null
+    if (!forcedTier && !tiers.length) { setError('No eligible tiers — unlock some atoms first.'); return }
+    const assembled  = forcedTier
+      ? { tier: forcedTier, frame: assembleFrame(forcedTier, freshBank, activeLang) }
+      : assembleRandomFrame(tiers, freshBank, activeLang)
+    if (!assembled?.frame) { setError('Could not fill frame — check your word bank.'); return }
 
-    // ── Live generation ───────────────────────────────────────
+    const { tier, frame } = assembled
     setLoading(true)
     setError(null)
     try {
-      const result = await generatePracticeSentence({
-        eligibleStructures: eligible,
-        wordBankWords,
-        lane: 'reading',
-        maxWordsOverride: maxWords,
-        recentSentences,
-      })
+      const result = await generatePracticeSentence({ frame, lane: 'reading', recentSentences })
       setSentence(result)
       setHasGenerated(true)
       setRecentSentences(prev => [...prev.slice(-4), result])
-
-      // ── Background cache fill — disabled during prototyping ──
-      // Re-enable once generated sentences are production quality.
+      setLastSnapshot({ tier, frame, sentence: result, activeAtoms, currentCluster })
+      setCopied(false)
     } catch {
       setError(s.readingPractice.error)
     } finally {
@@ -107,150 +131,96 @@ export default function WorldReadingLane({ onBack }) {
     }
   }
 
-  const eligiblePool = pool.filter(s => s.eligible)
-  const noStructures = eligiblePool.length === 0 || wordBankWords.length === 0
-  const noneSelected = activeIds.size === 0
+  const grammarState  = getLearnerGrammarState(activeLang)
+  const learnerBlock  = buildLearnerIntroduction({
+    wordBank: bankWords,
+    identity: { nativeLang: getInterfaceLanguage(), lang: activeLang },
+    grammarPosition: { activeAtoms: grammarState.activeAtoms, currentCluster: grammarState.currentCluster, atomWords: grammarState.atomWords },
+  })
 
   return (
     <div className="reading-practice">
       <button className="profile-back" onClick={onBack}>{s.common.back}</button>
       <p className="reading-practice-title">{s.readingPractice.title}</p>
 
-      {noStructures ? (
-        <p className="reading-practice-empty">{s.readingPractice.noStructures}</p>
-      ) : (
+      <GrammarStatePanel />
+
+      <details style={{ margin: '12px 0 6px', fontSize: 11, color: '#555' }}>
+        <summary style={{ cursor: 'pointer' }}>Tiers</summary>
+        <ul style={{ margin: '6px 0 0 12px', padding: 0, lineHeight: 1.8 }}>
+          {CONSTRUCTOR_TIERS.map(t => {
+            const locked = !eligibleSet.has(t.id)
+            return (
+              <li key={t.id} style={{ color: locked ? '#bbb' : forcedTierId === t.id ? '#ccc' : '#555' }}>
+                <strong>T{t.id}</strong>{locked ? ' 🔒' : ''} — {t.label}
+              </li>
+            )
+          })}
+        </ul>
+      </details>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '0 0 8px' }}>
+        <button
+          style={{ fontSize: 11, padding: '3px 8px', background: forcedTierId === null ? '#333' : 'none', border: '1px solid #333', borderRadius: 4, cursor: 'pointer', color: forcedTierId === null ? '#fff' : '#555' }}
+          onClick={() => setForcedTierId(null)}
+        >random</button>
+        {CONSTRUCTOR_TIERS.map(t => {
+          const locked = !eligibleSet.has(t.id)
+          return (
+            <button
+              key={t.id}
+              style={{ fontSize: 11, padding: '3px 8px', background: forcedTierId === t.id ? '#333' : 'none', border: `1px solid ${locked ? '#ccc' : '#333'}`, borderRadius: 4, cursor: 'pointer', color: forcedTierId === t.id ? '#fff' : locked ? '#bbb' : '#555' }}
+              title={t.label}
+              onClick={() => setForcedTierId(t.id)}
+            >T{t.id}</button>
+          )
+        })}
+      </div>
+
+      {noStructures && <p className="reading-practice-empty">{s.readingPractice.noStructures}</p>}
+
+      <button
+        className="reading-practice-next"
+        onClick={runGenerate}
+        disabled={loading}
+      >
+        {loading
+          ? s.readingPractice.generating
+          : hasGenerated
+            ? s.readingPractice.next
+            : 'Generate'}
+      </button>
+
+      {error && <p className="reading-practice-error">{error}</p>}
+      {sentence && !loading && (
         <>
-          {/* ── Tabs ─────────────────────────────────────────── */}
-          <div className="rp-tabs">
+          {lastSnapshot && (
             <button
-              className={`rp-tab${activeTab === 'config' ? ' rp-tab--active' : ''}`}
-              onClick={() => setActiveTab('config')}
-            >Config</button>
-            <button
-              className={`rp-tab${activeTab === 'cache' ? ' rp-tab--active' : ''}`}
-              onClick={() => setActiveTab('cache')}
-            >Cache</button>
-          </div>
-
-          {/* ── Config panel ─────────────────────────────────── */}
-          {activeTab === 'config' && <div className="rp-config">
-
-            <div className="rp-config-row">
-              <span className="rp-config-label">Max words</span>
-              <div className="rp-word-count-btns">
-                {[3, 4, 5].filter(n => n <= HARD_MAX).map(n => (
-                  <button
-                    key={n}
-                    className={`rp-wc-btn${maxWords === n ? ' rp-wc-btn--active' : ''}`}
-                    onClick={() => setMaxWords(n)}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rp-config-row rp-config-row--top">
-              <span className="rp-config-label">Structures</span>
-              <div className="rp-structure-toggles">
-                {pool.map(struct => (
-                  <button
-                    key={struct.id}
-                    className={[
-                      'rp-struct-btn',
-                      !struct.eligible              ? 'rp-struct-btn--locked'  : '',
-                      struct.eligible && activeIds.has(struct.id) ? 'rp-struct-btn--active' : '',
-                      lockedInfo?.id === struct.id  ? 'rp-struct-btn--info'    : '',
-                    ].filter(Boolean).join(' ')}
-                    onClick={() => toggleStructure(struct.id)}
-                    title={struct.eligible ? struct.example : 'Click to see what\'s missing'}
-                  >
-                    {struct.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {lockedInfo && (
-              <div className="rp-locked-info">
-                <span className="rp-locked-info-title">Missing for this structure:</span>
-                <ul className="rp-locked-info-list">
-                  {lockedInfo.missingAtoms.map(a => (
-                    <li key={a.atomId}>
-                      {a.levelGated
-                        ? `${a.label} — unlocks at ${a.grantedAtLevel} with level progression`
-                        : `${a.label} — add one to your word bank (e.g. ${a.examples.slice(0, 2).join(', ')})`
-                      }
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-          </div>}
-
-          {/* ── Cache inspector ──────────────────────────────── */}
-          {activeTab === 'cache' && (
-            <div className="rp-cache">
-              {pool.map(struct => {
-                const stats    = getPoolStats(activeLang, struct.id, 'reading', wordBankWords)
-                const expanded = expandedBucket === struct.id
-                return (
-                  <div key={struct.id} className={`rp-cache-row${!struct.eligible ? ' rp-cache-row--locked' : ''}`}>
-                    <button
-                      className="rp-cache-row-header"
-                      onClick={() => setExpandedBucket(expanded ? null : struct.id)}
-                    >
-                      <span className="rp-cache-row-label">{struct.label}</span>
-                      <span className="rp-cache-row-counts">
-                        {struct.eligible
-                          ? <>{stats.total} stored · <span className="rp-cache-match">{stats.matched} match your bank</span></>
-                          : <span className="rp-cache-locked">locked</span>
-                        }
-                      </span>
-                      {stats.total > 0 && <span className="rp-cache-chevron">{expanded ? '▲' : '▼'}</span>}
-                    </button>
-
-                    {expanded && stats.sentences.length > 0 && (
-                      <ul className="rp-cache-sentences">
-                        {stats.sentences.map((s, i) => {
-                          const bankSet  = new Set(wordBankWords)
-                          const matches  = s.contentWords.every(w => bankSet.has(w))
-                          return (
-                            <li key={i} className={`rp-cache-sentence${matches ? ' rp-cache-sentence--match' : ''}`}>
-                              <span className="rp-cache-sentence-text">{s.text}</span>
-                              <span className="rp-cache-sentence-words">{s.contentWords.join(', ')}</span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+              style={{ display: 'block', fontSize: 11, color: copied ? '#8f8' : '#555', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 8px' }}
+              onClick={() => {
+                const lines = [
+                  `"${lastSnapshot.sentence}"`,
+                  '',
+                  `Cluster: ${lastSnapshot.currentCluster}`,
+                  `Active atoms: ${lastSnapshot.activeAtoms.join(', ')}`,
+                  `Tier: ${lastSnapshot.tier.label}`,
+                  '',
+                  'Frame:',
+                  ...Object.entries(lastSnapshot.frame).map(([slot, word]) => `  ${slot}: ${word}`),
+                ]
+                navigator.clipboard.writeText(lines.join('\n'))
+                setCopied(true)
+              }}
+            >
+              {copied ? 'Copied' : 'Copy for testing'}
+            </button>
           )}
-
-          {/* ── Generate button ───────────────────────────────── */}
-          <button
-            className="reading-practice-next"
-            onClick={runGenerate}
-            disabled={loading || noneSelected}
-          >
-            {loading
-              ? s.readingPractice.generating
-              : hasGenerated
-                ? s.readingPractice.next
-                : 'Generate'}
-          </button>
-
-          {/* ── Output ───────────────────────────────────────── */}
-          {error   && <p className="reading-practice-error">{error}</p>}
-          {sentence && !loading && (
-            <p className="reading-practice-sentence">{sentence}</p>
-          )}
+          <p className="reading-practice-sentence">{sentence}</p>
         </>
       )}
+
+      <LayerTestPanel lang={activeLang} learnerBlock={learnerBlock} />
+      <div style={{ height: 80 }} />
     </div>
   )
 }

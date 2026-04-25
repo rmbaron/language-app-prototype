@@ -23,9 +23,14 @@ import WorldReadingLane from './WorldReadingLane'
 import ProfileSwitcher from './ProfileSwitcher'
 import Constructor from './Constructor'
 import { getBankedWords } from './wordRegistry'
+import { useInventory } from './InventoryContext'
+import WritingPractice from './WritingPractice'
+import InventoryMirror from './InventoryMirror'
+import './inventory-mirror.css'
 
 
 export default function App() {
+  const { refreshInventory } = useInventory()
   const [view, setView] = useState('hub')
   const [selected, setSelected] = useState(null)
   const [practicing, setPracticing] = useState(false)
@@ -53,6 +58,7 @@ export default function App() {
 
   function refreshStore(result) {
     setStoreData(loadState())
+    refreshInventory()
     if (result?.activeCapped) setActiveCappedAlert(true)
   }
 
@@ -99,6 +105,10 @@ export default function App() {
     return <FlashcardMode bankWords={bankWords} onExit={() => setFlashcardOpen(false)} />
   }
 
+  if (view === 'mirror') {
+    return <InventoryMirror onBack={() => setView('hub')} />
+  }
+
   return (
     <>
       {view === 'hub' ? (
@@ -111,6 +121,8 @@ export default function App() {
         <SentenceLab onBack={() => setView('practice')} />
       ) : view === 'practice_reading' ? (
         <WorldReadingLane onBack={() => setView('practice')} />
+      ) : view === 'practice_writing' ? (
+        <WritingPractice onBack={() => setView('practice')} />
       ) : view === 'constructor' ? (
         <Constructor onBack={() => setView('hub')} />
       ) : view === 'profiles' ? (
@@ -149,6 +161,12 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
           Flashcards
+        </button>
+        <button className="dev-toggle" onClick={() => setView('practice_writing')}>
+          Writing
+        </button>
+        <button className="dev-toggle" onClick={() => setView('mirror')}>
+          Mirror
         </button>
         <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
           Celestial

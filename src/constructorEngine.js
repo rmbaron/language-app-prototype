@@ -6,17 +6,9 @@
 // Pure logic — no JSX, no UI concerns. The Constructor component reads
 // from this; how slots are rendered is entirely separate.
 
-import { PREDICATE_PHRASE } from './sentenceStructure.en.js'
+import { PREDICATE_PHRASE, ALL_SLOTS_BY_ID } from './sentenceStructure.en.js'
 import { getLearnerGrammarState } from './learnerGrammarState'
-import { getLayerTwo } from './wordLayerTwo'
-
-// The subject slot is always present — a learner has a subject from day one.
-const BASE_SUBJECT_SLOT = {
-  id:       'subject_noun',
-  optional: false,
-  accepts:  ['noun', 'personal_pronoun'],
-  requires: [],
-}
+import { findWordInIndex } from './atomIndex'
 
 // Returns the active slot configuration given the learner's current unlocks.
 // Pass overrideUnlocks to compute slots for a specific virtual unlock set (e.g. per-tier testing).
@@ -44,7 +36,7 @@ export function getActiveSlots(overrideUnlocks) {
   const predicateSlots = PREDICATE_PHRASE.slots.filter(s => activated.has(s.id))
 
   return {
-    subject:   BASE_SUBJECT_SLOT,
+    subject:   ALL_SLOTS_BY_ID['subject_noun'],
     predicate: predicateSlots,
   }
 }
@@ -81,16 +73,16 @@ export function getDoSupport(subjectWord, filledSlots) {
 // to each alternateAtom entry in Layer 2 so filtering is data-driven, not a flag.
 export function getEligibleWords(slot, bankWords, lang = 'en') {
   return bankWords.filter(word => {
-    const l2 = getLayerTwo(word.id, lang)
-    if (!l2?.grammaticalAtom) return false
-    return slot.accepts.includes(l2.grammaticalAtom)
+    const indexed = findWordInIndex(word.id, lang)
+    if (!indexed) return false
+    return slot.accepts.includes(indexed.atomId)
   })
 }
 
 // Returns true if the word filling the verb slot is a copula.
 export function filledWithCopula(verbWordId, lang = 'en') {
   if (!verbWordId) return false
-  return getLayerTwo(verbWordId, lang)?.grammaticalAtom === 'copula'
+  return findWordInIndex(verbWordId, lang)?.atomId === 'copula'
 }
 
 // Returns true if the sentence is valid enough to generate.

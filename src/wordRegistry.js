@@ -15,17 +15,10 @@
 //   - wordLayerOne.prePopulateFromWordData reads wordData directly because
 //     it is a migration/seeding tool, not a consumer of word objects.
 
-import wordDataWords from './wordData'
 import { getAllEnrichedSeedWords } from './wordLayerTwo'
 
-// Returns all word objects for a given language — wordData words plus any
-// seed words that have been enriched to at least Layer 1.
-// This is the resting pool: words that have passed through the pipeline
-// and are ready to be used by the app.
 export function getAllWords(lang = 'en') {
-  const base    = wordDataWords.filter(w => w.language === lang)
-  const baseIds = new Set(base.map(w => w.id))
-  return [...base, ...getAllEnrichedSeedWords(lang, baseIds)]
+  return getAllEnrichedSeedWords(lang)
 }
 
 // Resolve a single word object by ID. Returns null if not found.
