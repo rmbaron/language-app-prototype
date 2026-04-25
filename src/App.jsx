@@ -5,7 +5,6 @@ import WorldSphere from './WorldSphere'
 import PracticeHub from './PracticeHub'
 import WordProfile from './WordProfile'
 import WordPractice from './WordPractice'
-import DevPanel from './DevPanel'
 import ContentManager from './ContentManager'
 import DiscoverWords from './DiscoverWords'
 import AddWord from './AddWord'
@@ -25,6 +24,7 @@ import Constructor from './Constructor'
 import { getBankedWords } from './wordRegistry'
 import { useInventory } from './InventoryContext'
 import WritingPractice from './WritingPractice'
+import WritingLab from './WritingLab'
 import InventoryMirror from './InventoryMirror'
 import './inventory-mirror.css'
 
@@ -35,7 +35,6 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [practicing, setPracticing] = useState(false)
   const [storeData, setStoreData] = useState(loadState)
-  const [devOpen, setDevOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const [discoverOpen, setDiscoverOpen] = useState(false)
@@ -123,6 +122,8 @@ export default function App() {
         <WorldReadingLane onBack={() => setView('practice')} />
       ) : view === 'practice_writing' ? (
         <WritingPractice onBack={() => setView('practice')} />
+      ) : view === 'practice_writing2' ? (
+        <WritingLab onBack={() => setView('practice')} />
       ) : view === 'constructor' ? (
         <Constructor onBack={() => setView('hub')} />
       ) : view === 'profiles' ? (
@@ -162,21 +163,13 @@ export default function App() {
         <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
           Flashcards
         </button>
-        <button className="dev-toggle" onClick={() => setView('practice_writing')}>
-          Writing
-        </button>
         <button className="dev-toggle" onClick={() => setView('mirror')}>
           Mirror
         </button>
         <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
           Celestial
         </button>
-        <button className="dev-toggle" onClick={() => setDevOpen(d => !d)}>
-          {devOpen ? '✕ Dev' : 'Dev'}
-        </button>
       </div>
-
-      {devOpen && <DevPanel onReset={refreshStore} />}
 
       {activeCappedAlert && (
         <div className="alert-overlay">

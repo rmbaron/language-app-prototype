@@ -4,6 +4,7 @@ import { getStrings } from './uiStrings'
 const LANES = [
   { id: 'reading',   descKey: 'laneReading',   available: true  },
   { id: 'writing',   descKey: 'laneWriting',   available: true  },
+  { id: 'writing2',  descKey: 'laneWriting2',  available: true  },
   { id: 'listening', descKey: 'laneListening', available: false },
   { id: 'speaking',  descKey: 'laneSpeaking',  available: false },
 ]

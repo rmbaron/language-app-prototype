@@ -52,6 +52,7 @@ export default {
     lanes: {
       reading:   'Reading',
       writing:   'Writing',
+      writing2:  'Writing Lab',
       listening: 'Listening',
       speaking:  'Speaking',
     },
@@ -246,6 +247,7 @@ export default {
     title:       'Practice',
     laneReading:   'Read sentences built from your words.',
     laneWriting:   'Write sentences using your words.',
+    laneWriting2:  'Five-slot prompt engineer.',
     laneListening: 'Listen and respond.',
     laneSpeaking:  'Say it out loud.',
     comingSoon:    'Coming soon',
@@ -341,6 +343,21 @@ export default {
     atomComplete:    '✓ all banked',
     nothingBanked:   'nothing banked yet',
     emptyBank:       'Bank some words to see the mirror.',
+  },
+
+  writingLab: {
+    title:               'Writing Lab',
+    generate:            'Generate prompt',
+    generating:          'Generating...',
+    submit:              'Submit',
+    responsePlaceholder: 'Write your response here...',
+    tabs: {
+      grammar:    'Grammar',
+      vocabulary: 'Vocabulary',
+      scope:      'Scope',
+      force:      'Force',
+      portrait:   'Portrait',
+    },
   },
 
   writingPractice: {
