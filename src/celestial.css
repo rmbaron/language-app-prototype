@@ -46,6 +46,19 @@
   padding: 32px;
 }
 
+.dev-mobile-guide {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 375px;
+  height: min(812px, calc(100vh - 32px));
+  border: 1px dashed rgba(255, 100, 100, 0.35);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 .dev-phone-frame {
   position: relative;
   /* Scale to fit viewport: never taller than the available space */

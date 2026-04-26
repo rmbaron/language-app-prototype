@@ -3,8 +3,6 @@
 
 .wl-screen {
   padding: 24px 20px 80px;
-  max-width: 640px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -331,8 +329,6 @@
 
 .practice-hub {
   padding: 24px 20px;
-  max-width: 480px;
-  margin: 0 auto;
 }
 
 .practice-hub-title {

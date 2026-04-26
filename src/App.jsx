@@ -147,6 +147,7 @@ export default function App() {
         <WordBank onSelectWord={setSelected} onBack={() => setView('hub')} onAddWord={() => setAddWordOpen(true)} />
       )}
 
+
       <div className="dev-controls">
         <button className="dev-toggle" onClick={() => setAdminOpen(true)}>
           Admin

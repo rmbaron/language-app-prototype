@@ -1,8 +1,6 @@
 /* ── Sentence Lab ──────────────────────────────────────────── */
 
 .sentence-lab {
-  max-width: 600px;
-  margin: 0 auto;
   padding: 24px 20px 48px;
   display: flex;
   flex-direction: column;
