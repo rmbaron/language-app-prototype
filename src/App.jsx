@@ -26,6 +26,7 @@ import { useInventory } from './InventoryContext'
 import WritingPractice from './WritingPractice'
 import WritingLab from './WritingLab'
 import CircuitTest from './CircuitTest'
+import MultiWordLab from './MultiWordLab'
 import InventoryMirror from './InventoryMirror'
 import './inventory-mirror.css'
 
@@ -113,6 +114,10 @@ export default function App() {
     return <CircuitTest onClose={() => setView('hub')} />
   }
 
+  if (view === 'multiWordLab') {
+    return <MultiWordLab onClose={() => setView('hub')} />
+  }
+
   return (
     <>
       {view === 'hub' ? (
@@ -177,6 +182,9 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setView('circuitTest')}>
           Circuit Test
+        </button>
+        <button className="dev-toggle" onClick={() => setView('multiWordLab')}>
+          Multi-Word
         </button>
       </div>
 
