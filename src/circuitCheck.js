@@ -30,6 +30,30 @@ export function checkCircuit(text, wordBank) {
   })
 }
 
+// ─── Sentence circuit ────────────────────────────────────────────────────────
+
+// Splits raw text into sentence units using punctuation boundaries.
+// '...' is NOT a sentence end. Single '.' and runs of '!?' are.
+// Returns [{ index, text, terminator }]. Trailing text gets terminator: null.
+export function splitSentences(text) {
+  const segments = []
+  let current = ''
+  let index = 1
+  const tokens = text.match(/\.{3}|[!?]+|\.|[^.!?]+/g) ?? []
+  for (const tok of tokens) {
+    if (tok === '...' || !/^([.!?]+)$/.test(tok)) {
+      current += tok
+    } else {
+      const trimmed = current.trim()
+      if (trimmed) segments.push({ index: index++, text: trimmed, terminator: tok })
+      current = ''
+    }
+  }
+  const trailing = current.trim()
+  if (trailing) segments.push({ index: index, text: trailing, terminator: null })
+  return segments
+}
+
 // ─── Multi-word aware tokenizer ──────────────────────────────────────────────
 
 // Returns tokens with multi-word units collapsed.
@@ -44,13 +68,17 @@ export function tokenizeFull(text, atomWords = {}) {
   }
 
   const modalTriggers = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
-  const raw = text.match(/[a-zA-Z'']+|[.,!?;:]/g) ?? []
+  // \.{3} before [.,;:] so ellipsis is one token; [!?]+ so !! and ??? collapse to one token
+  const raw = text.match(/[a-zA-Z'']+|\.{3}|[!?]+|[.,;:]/g) ?? []
   const result = []
   let i = 0
+  let sentenceIndex = 1
 
   while (i < raw.length) {
-    if (/^[.,!?;:]$/.test(raw[i])) {
-      result.push({ surface: raw[i], type: 'punctuation' })
+    if (!/^[a-zA-Z'']/.test(raw[i])) {
+      result.push({ surface: raw[i], type: 'punctuation', sentenceIndex })
+      // '...' is ellipsis — not a sentence end. Single '.' or any run of !? is.
+      if (raw[i] !== '...' && /^([.!?]+)$/.test(raw[i])) sentenceIndex++
       i++; continue
     }
 
@@ -62,7 +90,7 @@ export function tokenizeFull(text, atomWords = {}) {
       if (i + len > raw.length) continue
       const slice = raw.slice(i, i + len).map(w => w.toLowerCase()).join(' ')
       if (slice === unit.text) {
-        result.push({ surface: raw.slice(i, i + len).join(' '), type: 'fixed_unit', unitId: unit.id, atomClass: unit.atomClass })
+        result.push({ surface: raw.slice(i, i + len).join(' '), type: 'fixed_unit', unitId: unit.id, atomClass: unit.atomClass, sentenceIndex })
         i += len; matched = true; break
       }
     }
@@ -74,12 +102,12 @@ export function tokenizeFull(text, atomWords = {}) {
       const nextLower = raw[i + 1].toLowerCase()
       const nextBase = resolveToBase(nextLower)
       if (wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb') {
-        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'modal', atomClass: 'modal_construction' })
+        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'modal', atomClass: 'modal_construction', sentenceIndex })
         i += 2; continue
       }
     }
 
-    result.push({ surface: raw[i], type: 'single' })
+    result.push({ surface: raw[i], type: 'single', sentenceIndex })
     i++
   }
 
