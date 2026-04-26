@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useInventory } from './InventoryContext'
 import { getStrings } from './uiStrings'
 import { GRAMMAR_CLUSTERS } from './grammarClustering.en'
+import { CONSTRUCTOR_TIERS } from './constructorTiers.en.js'
 import { ATOMS } from './grammarAtoms.en'
 import { getBankedWords } from './wordRegistry'
 import { buildLearnerIntroduction, buildLevelChannel } from './systemVocabulary'
@@ -94,27 +95,106 @@ const modeBtn = (active, variant = 'green') => {
 
 // ─── Tab 1: Grammar Target ───────────────────────────────────────────────────
 
-function GrammarTargetTab({ activeAtoms, atomWords, targetAtomId, setTargetAtomId, difficulty, setDifficulty }) {
-  const targetWords = atomWords[targetAtomId] ?? []
-  const output = targetAtomId
-    ? `Atom:       ${ATOM_BY_ID[targetAtomId]?.label ?? targetAtomId}\nWords:      ${targetWords.join(', ') || '(none banked)'}\nDifficulty: ${difficulty}`
-    : '(no atom selected)'
+function GrammarTargetTab({ activeAtoms, atomWords, targetAtomIds, setTargetAtomIds, difficulty, setDifficulty }) {
+  const activeSet = new Set(activeAtoms)
+  const firstCluster = GRAMMAR_CLUSTERS.find(c => c.atoms.some(id => targetAtomIds.has(id)))?.id ?? GRAMMAR_CLUSTERS[0]?.id
+  const [selectedCluster, setSelectedCluster] = useState(firstCluster)
+
+  const visibleClusters = GRAMMAR_CLUSTERS.filter(c => c.atoms.some(id => activeSet.has(id)))
+  const cluster = visibleClusters.find(c => c.id === selectedCluster) ?? visibleClusters[0]
+  const tiers = cluster ? CONSTRUCTOR_TIERS.filter(t => t.band === cluster.id) : []
+  const tieredAtomIds = new Set(tiers.flatMap(t => t.atoms))
+
+  function toggleAtom(atomId) {
+    setTargetAtomIds(prev => {
+      const next = new Set(prev)
+      next.has(atomId) ? next.delete(atomId) : next.add(atomId)
+      return next
+    })
+  }
+
+  function toggleCluster(c) {
+    const clusterActive = c.atoms.filter(id => activeSet.has(id))
+    const allOn = clusterActive.every(id => targetAtomIds.has(id))
+    setTargetAtomIds(prev => {
+      const next = new Set(prev)
+      allOn ? clusterActive.forEach(id => next.delete(id)) : clusterActive.forEach(id => next.add(id))
+      return next
+    })
+  }
+
+  const output = targetAtomIds.size > 0
+    ? [...targetAtomIds].map(id => `● ${ATOM_BY_ID[id]?.label ?? id}: ${(atomWords[id] ?? []).join(', ') || 'none banked'}`).join('\n')
+    : '(no atoms selected)'
+
+  function AtomBtn({ atomId }) {
+    const atom = ATOM_BY_ID[atomId]
+    const words = atomWords[atomId] ?? []
+    const on = targetAtomIds.has(atomId)
+    return (
+      <button onClick={() => toggleAtom(atomId)}
+        style={{ display: 'flex', gap: 10, alignItems: 'baseline', width: '100%', textAlign: 'left', padding: '4px 8px', marginBottom: 2, cursor: 'pointer', borderRadius: 3,
+          border: `1px solid ${on ? T.greenBord : T.border}`,
+          background: on ? T.greenBg : T.page }}>
+        <span style={{ fontSize: 8, color: on ? T.green : T.textDim }}>●</span>
+        <span style={{ color: on ? T.green : T.text, fontWeight: on ? 700 : 400, width: 160 }}>{atom?.label ?? atomId}</span>
+        <span style={{ color: T.textDim, fontSize: 11 }}>{words.slice(0, 4).join(', ') || 'none banked'}</span>
+      </button>
+    )
+  }
 
   return (
     <div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {activeAtoms.map(atomId => {
-          const atom = ATOM_BY_ID[atomId]
-          const words = atomWords[atomId] ?? []
-          const active = targetAtomId === atomId
+      {/* Horizontal cluster selector + toggle */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+        {visibleClusters.map(c => {
+          const clusterActive = c.atoms.filter(id => activeSet.has(id))
+          const allOn = clusterActive.length > 0 && clusterActive.every(id => targetAtomIds.has(id))
+          const someOn = clusterActive.some(id => targetAtomIds.has(id))
           return (
-            <button key={atomId} onClick={() => setTargetAtomId(atomId)} style={rowBtn(active)}>
-              <div style={{ fontSize: 13, color: active ? T.green : T.text, fontWeight: active ? 600 : 400 }}>{atom?.label ?? atomId}</div>
-              <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>{words.join(', ') || 'none banked'}</div>
-            </button>
+            <div key={c.id} style={{ display: 'flex', gap: 0 }}>
+              <button onClick={() => setSelectedCluster(c.id)}
+                style={{ fontFamily: 'monospace', fontSize: 11, padding: '3px 8px', border: `1px solid ${T.border}`, borderRight: 'none', borderRadius: '3px 0 0 3px', cursor: 'pointer',
+                  background: selectedCluster === c.id ? T.blueBg : T.card,
+                  color: selectedCluster === c.id ? T.blue : T.textDim,
+                  fontWeight: selectedCluster === c.id ? 700 : 400 }}>
+                C{c.id}
+              </button>
+              <button onClick={() => toggleCluster(c)}
+                style={{ fontFamily: 'monospace', fontSize: 10, padding: '3px 6px', border: `1px solid ${T.border}`, borderRadius: '0 3px 3px 0', cursor: 'pointer',
+                  background: allOn ? T.greenBg : someOn ? '#e8f4e8' : T.card,
+                  color: allOn ? T.green : someOn ? T.green : T.textDim }}>
+                {allOn ? '✓' : someOn ? '–' : '+'}
+              </button>
+            </div>
           )
         })}
       </div>
+
+      {/* Compact atom list — Profiles style */}
+      {cluster && (
+        <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
+          <div style={{ color: T.layerTag, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, paddingBottom: 4, borderBottom: `1px solid ${T.border}` }}>
+            C{cluster.id} — {cluster.label}
+          </div>
+          {tiers.map(tier => {
+            const tierActiveAtoms = tier.atoms.filter(id => activeSet.has(id))
+            if (tierActiveAtoms.length === 0) return null
+            return (
+              <div key={tier.id} style={{ marginBottom: 8 }}>
+                <div style={{ color: T.textDim, fontSize: 11, marginBottom: 3, paddingLeft: 4 }}>{tier.label}</div>
+                <div style={{ paddingLeft: 12 }}>
+                  {tierActiveAtoms.map(atomId => <AtomBtn key={atomId} atomId={atomId} />)}
+                </div>
+              </div>
+            )
+          })}
+          {cluster.atoms.filter(id => activeSet.has(id) && !tieredAtomIds.has(id)).map(atomId => (
+            <AtomBtn key={atomId} atomId={atomId} />
+          ))}
+        </div>
+      )}
+
 
       <div style={{ marginTop: 16 }}>
         <Label>Difficulty</Label>
@@ -247,16 +327,16 @@ function PortraitTab() {
 
 // ─── Assembled Prompt Panel ──────────────────────────────────────────────────
 
-function AssembledPromptPanel({ cefrLevel, targetAtomId, grammarContextWords, intersectionWords, difficulty, effectiveTopicKey, cappedTopicWords, scope, effectiveForce }) {
-  const intersectNote = intersectionWords.length > 0 ? ` [${intersectionWords.length} intersect]` : ''
+function AssembledPromptPanel({ cefrLevel, worldTexture, scope, effectiveForce, difficulty }) {
   const lines = [
-    `LEVEL           ${cefrLevel ?? 'A1'}`,
-    `GRAMMAR TARGET  ${targetAtomId ? `${ATOM_BY_ID[targetAtomId]?.label ?? targetAtomId} — ${grammarContextWords.join(', ') || 'none'}${intersectNote} — D${difficulty}` : '(none)'}`,
-    `VOCABULARY      ${effectiveTopicKey ? `${effectiveTopicKey} — ${cappedTopicWords.join(', ')}` : '(none)'}`,
-    `SCOPE           ${scope.sentences} · ${scope.structure}`,
-    `FORCE           ${effectiveForce ?? '(none)'}`,
-    `PORTRAIT        (empty)`,
-  ].join('\n')
+    `LEVEL     ${cefrLevel ?? 'A1'}`,
+    `SCOPE     ${scope.sentences} · ${scope.structure}`,
+    effectiveForce && `FORCE     ${effectiveForce}`,
+    `D         ${difficulty}`,
+    ``,
+    `WORLD TEXTURE:`,
+    worldTexture || '(nothing banked yet)',
+  ].filter(l => l !== undefined).join('\n')
 
   return (
     <div style={{ margin: '14px 0 10px', padding: '12px 14px', background: T.codeBg, border: `1px solid ${T.border}`, borderRadius: 5 }}>
@@ -298,12 +378,12 @@ function CircuitDisplay({ tokens }) {
 
 // ─── Layer section wrapper ───────────────────────────────────────────────────
 
-function LayerSection({ id, onGenerate, loading, prompt, showPrompt, onTogglePrompt, hasOutput, showOutput, onToggleOutput, children }) {
+function LayerSection({ id, label, onGenerate, loading, prompt, showPrompt, onTogglePrompt, hasOutput, showOutput, onToggleOutput, children }) {
   return (
     <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
       {/* Header bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
-        <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700, width: 26, flexShrink: 0 }}>{id}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700, flexShrink: 0 }}>{id}{label && <span style={{ fontWeight: 400, color: T.textDim }}> — {label}</span>}</span>
         <div style={{ flex: 1 }} />
         {onGenerate && (
           <button onClick={onGenerate} disabled={loading}
@@ -365,7 +445,7 @@ export default function WritingLab({ onBack }) {
   const [activeTab, setActiveTab] = useState('grammar')
 
   // Slot 1 — grammar target
-  const [targetAtomId, setTargetAtomId] = useState(activeAtoms[0] ?? null)
+  const [targetAtomIds, setTargetAtomIds] = useState(() => new Set(activeAtoms.slice(0, 1)))
   const [difficulty, setDifficulty]     = useState(1)
 
   // Slot 2 — vocabulary context
@@ -393,7 +473,7 @@ export default function WritingLab({ onBack }) {
   const effectiveForce = forceMode === 'auto' ? autoForce : forceMode === 'manual' ? customForce : null
 
   // Derived context
-  const targetWords       = atomWords[targetAtomId] ?? []
+  const targetWords       = [...targetAtomIds].flatMap(id => atomWords[id] ?? [])
   const sortedTopicKeys   = Object.entries(topicClusters).sort((a, b) => b[1].length - a[1].length)
   const autoTopicKey      = sortedTopicKeys[0]?.[0] ?? null
   const effectiveTopicKey = vocabMode === 'auto' ? autoTopicKey : selectedTopicKey
@@ -404,12 +484,45 @@ export default function WritingLab({ onBack }) {
     : [...new Set([...intersectionWords, ...targetWords])].slice(0, 10)
   const cappedTopicWords = topicWords.slice(0, 15)
 
+  // World texture — L4 framing
+  const TEXTURE_ROLES = [
+    { atomIds: ['noun'],                              label: 'The things in their world' },
+    { atomIds: ['lexical_verb'],                      label: 'How they move through it' },
+    { atomIds: ['adjective'],                         label: 'How they see and describe' },
+    { atomIds: ['personal_pronoun', 'object_pronoun', 'possessive_determiner', 'demonstrative'], label: 'How they situate themselves' },
+    { atomIds: ['interrogative'],                     label: 'The questions they can ask' },
+  ]
+
+  const worldTexture = useMemo(() => {
+    const lines = []
+
+    for (const role of TEXTURE_ROLES) {
+      const words = role.atomIds.flatMap(id => atomWords[id] ?? []).filter(Boolean)
+      if (words.length === 0) continue
+      const emphasis = role.atomIds.some(id => targetAtomIds.has(id))
+      lines.push(`${role.label}${emphasis ? ' (in focus)' : ''}: ${words.join(', ')}`)
+    }
+
+    const clusterData = GRAMMAR_CLUSTERS.find(c => c.id === currentCluster)
+    const topTier = CONSTRUCTOR_TIERS.filter(t => t.band <= currentCluster).slice(-1)[0]
+    if (topTier) {
+      lines.push(`What their sentences can hold: ${topTier.examples.slice(0, 3).join(' / ')}`)
+    }
+
+    if (effectiveTopicKey && cappedTopicWords.length > 0) {
+      lines.push(`The conversation is moving through: ${effectiveTopicKey} — ${cappedTopicWords.join(', ')}`)
+    }
+
+    return lines.join('\n')
+  }, [atomWords, targetAtomIds, currentCluster, effectiveTopicKey, cappedTopicWords])
+
   // Portrait state
   const [quantOn,     setQuantOn]     = useState(false)
   const [qualOn,      setQualOn]      = useState(false)
   const [quantText,   setQuantText]   = useState('')
   const [qualText,    setQualText]    = useState('')
   const [sampleState, setSampleState] = useState('idle')
+  const [personDescription, setPersonDescription] = useState('')
 
   // L1 state
   const [l1Result,     setL1Result]     = useState(null)
@@ -471,14 +584,13 @@ export default function WritingLab({ onBack }) {
   function computeL2Prompt() { return buildLearnerIntroduction(inventory, buildPortrait()) }
   function computeL3Prompt() { return `${computeL2Prompt()}\n\n${buildLevelChannel(identity.cefrLevel, currentCluster)}` }
 
-  const mirrorPromptBlock = [
-    targetAtomId && `Grammar focus: ${ATOM_BY_ID[targetAtomId]?.label ?? targetAtomId}\nWords for this structure: ${grammarContextWords.join(', ') || '(none banked)'}`,
-    effectiveTopicKey && `Vocabulary focus: ${effectiveTopicKey} — ${cappedTopicWords.join(', ')}`,
-    `Scope: ${scope.sentences} · ${scope.structure}`,
-    effectiveForce && `Required structure: ${effectiveForce}`,
-  ].filter(Boolean).join('\n\n')
+  const mirrorPromptBlock = worldTexture
 
-  const mirrorDirective = `Ask this person one question — something they can respond to in writing, in ${scope.sentences}. Natural and conversational. Not like a language exercise. One sentence only.`
+  const mirrorDirective = [
+    `Ask this person one question — something they can respond to in writing, in ${scope.sentences}. Natural and conversational. Not like a language exercise. One sentence only.`,
+    targetAtomIds.size > 0 && `Draw toward these structures if it fits naturally: ${[...targetAtomIds].map(id => ATOM_BY_ID[id]?.label ?? id).join(', ')}.`,
+    effectiveForce && effectiveForce,
+  ].filter(Boolean).join(' ')
 
   function computeL4Prompt() { return `${computeL3Prompt()}\n\n${mirrorPromptBlock}` }
   function computeL5Prompt() { return mirrorDirective }
@@ -516,7 +628,7 @@ export default function WritingLab({ onBack }) {
     try {
       const res = await fetch('/__generate-sample-portrait', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wordBank, lang: identity.lang }),
+        body: JSON.stringify({ lang: identity.lang }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error()
@@ -537,7 +649,7 @@ export default function WritingLab({ onBack }) {
           mode: 'l1l2l3', lang: identity.lang, cefrLevel: identity.cefrLevel, currentCluster,
           learnerBlock: computeL2Prompt(),
           directiveOverride: type === 'ask'
-            ? 'Ask this person one question to write about. Just the question, one sentence.'
+            ? 'Ask this person one question to write about. Draw from what you know about them. Address them directly — use "you", not their name. Just the question, one sentence.'
             : undefined,
         }),
       })
@@ -605,13 +717,13 @@ export default function WritingLab({ onBack }) {
   }
 
   async function handleGenerate() {
-    if (!targetAtomId) return
+    if (targetAtomIds.size === 0) return
     setGenerating(true); setError(null); setGeneratedPrompt(null); setUserResponse('')
     try {
       const res = await fetch('/__generate-writing-prompt-v2', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          targetAtom:   { id: targetAtomId, label: ATOM_BY_ID[targetAtomId]?.label, words: grammarContextWords },
+          targetAtoms:  [...targetAtomIds].map(id => ({ id, label: ATOM_BY_ID[id]?.label, words: grammarContextWords })),
           activeAtoms:  activeAtoms.map(id => ({ id, label: ATOM_BY_ID[id]?.label, words: (atomWords[id] ?? []).slice(0, 8) })),
           vocabContext: { topic: effectiveTopicKey, words: cappedTopicWords },
           scope, difficulty, forceInstruction: effectiveForce,
@@ -626,7 +738,7 @@ export default function WritingLab({ onBack }) {
   }
 
   const TABS   = ['grammar', 'vocabulary', 'force', 'portrait']
-  const canGen = !!targetAtomId && !generating
+  const canGen = targetAtomIds.size > 0 && !generating
   const canSubmit = (userResponse ?? '').trim().length > 0
 
   const textarea = { border: `1px solid ${T.border}`, borderRadius: 4, color: T.text, fontSize: 13, padding: '10px 12px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6, width: '100%', background: T.card }
@@ -652,7 +764,7 @@ export default function WritingLab({ onBack }) {
       </LayerSection>
 
       {/* ── Portrait (feeds L2) ── */}
-      <div style={{ margin: '3px 0', padding: '14px 16px', background: '#d8d4c8', border: `1px solid #bcb490`, borderRadius: 6 }}>
+      <div style={{ margin: '12px 0', padding: '14px 16px', background: '#d8d4c8', border: `1px solid #bcb490`, borderRadius: 6 }}>
         <Label>Portrait — included in L2</Label>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
           <button onClick={() => setQuantOn(p => !p)}
@@ -673,7 +785,7 @@ export default function WritingLab({ onBack }) {
             style={{ ...textarea, minHeight: 48, opacity: qualOn ? 1 : 0.45, fontSize: 12 }} />
         </div>
         <button onClick={handleGenerateSample} disabled={sampleState === 'loading'}
-          style={{ ...btn('blue', false), opacity: sampleState === 'loading' ? 0.5 : 1, cursor: sampleState === 'loading' ? 'default' : 'pointer' }}>
+          style={{ ...btn('blue', false), opacity: sampleState === 'loading' ? 0.4 : 1, cursor: sampleState === 'loading' ? 'default' : 'pointer' }}>
           {sampleState === 'loading' ? 'generating…' : 'generate sample user'}
         </button>
       </div>
@@ -715,7 +827,7 @@ export default function WritingLab({ onBack }) {
       </LayerSection>
 
       {/* ── L4 ── */}
-      <LayerSection id="L4"
+      <LayerSection id="L4" label="Positioning Layer"
         onGenerate={handleFreeGenerate} loading={freeLoading}
         prompt={computeL4Prompt()} showPrompt={showL4Prompt} onTogglePrompt={() => setShowL4Prompt(p => !p)}
         hasOutput={!!freeOutput} showOutput={showL4Output} onToggleOutput={() => setShowL4Output(p => !p)}
@@ -739,7 +851,7 @@ export default function WritingLab({ onBack }) {
           </div>
 
           <div style={{ marginBottom: 4 }}>
-            {activeTab === 'grammar'    && <GrammarTargetTab    activeAtoms={activeAtoms} atomWords={atomWords} targetAtomId={targetAtomId} setTargetAtomId={setTargetAtomId} difficulty={difficulty} setDifficulty={setDifficulty} />}
+            {activeTab === 'grammar'    && <GrammarTargetTab    activeAtoms={activeAtoms} atomWords={atomWords} targetAtomIds={targetAtomIds} setTargetAtomIds={setTargetAtomIds} difficulty={difficulty} setDifficulty={setDifficulty} />}
             {activeTab === 'vocabulary' && <VocabularyContextTab topicClusters={topicClusters} selectedTopicKey={selectedTopicKey} setSelectedTopicKey={setSelectedTopicKey} vocabMode={vocabMode} setVocabMode={setVocabMode} />}
             {activeTab === 'scope'      && <ScopeTab            currentCluster={currentCluster} scope={scope} />}
             {activeTab === 'force'      && <ForceTab            forceMode={forceMode} setForceMode={setForceMode} autoForce={autoForce} customForce={customForce} setCustomForce={setCustomForce} />}
@@ -747,10 +859,8 @@ export default function WritingLab({ onBack }) {
           </div>
 
           <AssembledPromptPanel
-            cefrLevel={identity.cefrLevel} targetAtomId={targetAtomId}
-            grammarContextWords={grammarContextWords} intersectionWords={intersectionWords}
-            difficulty={difficulty} effectiveTopicKey={effectiveTopicKey}
-            cappedTopicWords={cappedTopicWords} scope={scope} effectiveForce={effectiveForce}
+            cefrLevel={identity.cefrLevel} worldTexture={worldTexture}
+            scope={scope} effectiveForce={effectiveForce} difficulty={difficulty}
           />
 
           {/* Scope override */}
@@ -842,7 +952,7 @@ export default function WritingLab({ onBack }) {
                   <button onClick={() => {
                     navigator.clipboard.writeText([
                       `CEFR: ${identity.cefrLevel ?? 'A1'}`,
-                      `GRAMMAR TARGET: ${targetAtomId ? `${ATOM_BY_ID[targetAtomId]?.label ?? targetAtomId} (D${difficulty})` : '(none)'}`,
+                      `GRAMMAR TARGET: ${targetAtomIds.size > 0 ? `${[...targetAtomIds].map(id => ATOM_BY_ID[id]?.label ?? id).join(', ')} (D${difficulty})` : '(none)'}`,
                       `TARGET WORDS: ${grammarContextWords.join(', ') || '(none)'}`,
                       `VOCABULARY: ${effectiveTopicKey ? `${effectiveTopicKey} — ${cappedTopicWords.join(', ')}` : '(none)'}`,
                       `SCOPE: ${scope.sentences} · ${scope.structure}`,
@@ -867,6 +977,34 @@ export default function WritingLab({ onBack }) {
           )}
         </div>
       </LayerSection>
+
+      {/* ── Circuit Layer ── */}
+      <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
+        <div style={{ padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700 }}>Circuit</span>
+        </div>
+        <div style={{ padding: '12px 14px' }}>
+          {circuitTokens
+            ? <CircuitDisplay tokens={circuitTokens} />
+            : <span style={{ fontSize: 12, color: T.textDim, fontFamily: 'monospace' }}>no output yet</span>
+          }
+        </div>
+      </div>
+
+      {/* ── User Layer ── */}
+      <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
+        <div style={{ padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700 }}>User</span>
+        </div>
+        <div style={{ padding: '12px 14px' }}>
+          <textarea
+            value={userResponse}
+            onChange={e => setUserResponse(e.target.value)}
+            placeholder="Write your response here…"
+            style={{ ...textarea, minHeight: 120, fontSize: 15 }}
+          />
+        </div>
+      </div>
 
     </div>
   )

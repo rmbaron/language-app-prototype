@@ -127,28 +127,18 @@ export function buildLearnerIntroduction(inventory, portrait = null) {
 // is not constrained by their level. Only the channel is.
 // The portrait is complete. Only how much of it can currently be transmitted is limited.
 
-export function buildLevelChannel(cefrLevel, currentCluster = null) {
-  const lines = []
+const CEFR_CHANNEL = {
+  A1: 'short present-tense sentences, one clause, common words only',
+  A2: 'simple past and future, basic connectors, familiar topics',
+  B1: 'compound sentences, past and future, opinions and reasons',
+  B2: 'complex sentences, abstract ideas, nuanced expression',
+  C1: 'sophisticated structure, idiomatic range, subtle meaning',
+  C2: 'full native range',
+}
 
-  if (currentCluster !== null) {
-    const currentTiers = CONSTRUCTOR_TIERS.filter(t => t.band === currentCluster)
-    const nextTiers    = CONSTRUCTOR_TIERS.filter(t => t.band === currentCluster + 1)
-
-    const examples = currentTiers.flatMap(t => t.examples).slice(0, 4).join(' / ')
-    lines.push(`You are speaking with someone at ${cefrLevel}. This is what they can follow:`)
-    lines.push(`\n${examples}`)
-
-    if (nextTiers.length > 0) {
-      const notYet = nextTiers[0].examples[0]
-      lines.push(`\nNot yet: "${notYet}"`)
-    }
-  } else {
-    lines.push(`You are speaking with someone at ${cefrLevel}.`)
-  }
-
-  lines.push(`\nStay inside this. If you reach further, you lose them — and losing them is the one thing you won't do.`)
-
-  return lines.join('\n')
+export function buildLevelChannel(cefrLevel) {
+  const channel = CEFR_CHANNEL[cefrLevel] ?? cefrLevel
+  return `This person is at ${cefrLevel}: ${channel}. Stay inside this. If you reach further, you lose them — and losing them is the one thing you won't do.`
 }
 
 // ── Layer 4 — World folder ───────────────────────────────────

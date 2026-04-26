@@ -632,8 +632,8 @@ function samplePortraitGenerator() {
         req.on('data', chunk => chunks.push(chunk))
         req.on('end', async () => {
           try {
-            const { wordBank, lang } = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
-            const prompt = `Someone is building a world in ${lang}. These are the words they have chosen to carry so far:\n\n${wordBank.join(', ')}\n\nBased only on what they've chosen, write a brief portrait of who this person might be — not as a language learner, but as a human being. What seems to matter to them? What kind of person do they appear to be? 2-3 sentences, specific and grounded. No generic observations.`
+            const { lang } = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+            const prompt = `Invent a person. Not a character — a real-feeling human being with a specific life. Write a 2-3 sentence portrait of who they are: what matters to them, how they move through the world, what their days feel like. Specific and grounded. No mention of language learning.`
             const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
             const message = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
