@@ -25,6 +25,7 @@ import { getBankedWords } from './wordRegistry'
 import { useInventory } from './InventoryContext'
 import WritingPractice from './WritingPractice'
 import WritingLab from './WritingLab'
+import CircuitTest from './CircuitTest'
 import InventoryMirror from './InventoryMirror'
 import './inventory-mirror.css'
 
@@ -108,6 +109,10 @@ export default function App() {
     return <InventoryMirror onBack={() => setView('hub')} />
   }
 
+  if (view === 'circuitTest') {
+    return <CircuitTest onClose={() => setView('hub')} />
+  }
+
   return (
     <>
       {view === 'hub' ? (
@@ -169,6 +174,9 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
           Celestial
+        </button>
+        <button className="dev-toggle" onClick={() => setView('circuitTest')}>
+          Circuit Test
         </button>
       </div>
 

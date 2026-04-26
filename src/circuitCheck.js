@@ -1,4 +1,5 @@
 import { buildBankSurfaceSet, resolveToBase } from './morphology.en.js'
+import { FIXED_UNITS } from './multiWordUnits.en.js'
 
 // Words that always pass — no lexical meaning, never banked as vocabulary.
 // Keep this minimal: only articles and pure coordinating conjunctions.
@@ -26,6 +27,78 @@ export function checkCircuit(text, wordBank) {
       return { word, status: 'banked' }
 
     return { word, status: 'unknown' }
+  })
+}
+
+// ─── Multi-word aware tokenizer ──────────────────────────────────────────────
+
+// Returns tokens with multi-word units collapsed.
+// Each token: { surface, type: 'fixed_unit'|'construction'|'single'|'punctuation', atomClass?, constructionType? }
+export function tokenizeFull(text, atomWords = {}) {
+  const sorted = [...FIXED_UNITS].sort((a, b) => b.text.split(' ').length - a.text.split(' ').length)
+
+  // Build word → atomClass reverse map
+  const wordToAtom = {}
+  for (const [atomId, words] of Object.entries(atomWords)) {
+    for (const w of words) wordToAtom[w] = atomId
+  }
+
+  const modalTriggers = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
+  const raw = text.match(/[a-zA-Z'']+|[.,!?;:]/g) ?? []
+  const result = []
+  let i = 0
+
+  while (i < raw.length) {
+    if (/^[.,!?;:]$/.test(raw[i])) {
+      result.push({ surface: raw[i], type: 'punctuation' })
+      i++; continue
+    }
+
+    // Try fixed units first (longest match)
+    let matched = false
+    for (const unit of sorted) {
+      const uWords = unit.text.split(' ')
+      const len = uWords.length
+      if (i + len > raw.length) continue
+      const slice = raw.slice(i, i + len).map(w => w.toLowerCase()).join(' ')
+      if (slice === unit.text) {
+        result.push({ surface: raw.slice(i, i + len).join(' '), type: 'fixed_unit', unitId: unit.id, atomClass: unit.atomClass })
+        i += len; matched = true; break
+      }
+    }
+    if (matched) continue
+
+    // Try modal construction: modal trigger + lexical_verb
+    const lower = raw[i].toLowerCase()
+    if (modalTriggers.has(lower) && i + 1 < raw.length) {
+      const nextLower = raw[i + 1].toLowerCase()
+      const nextBase = resolveToBase(nextLower)
+      if (wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb') {
+        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'modal', atomClass: 'modal_construction' })
+        i += 2; continue
+      }
+    }
+
+    result.push({ surface: raw[i], type: 'single' })
+    i++
+  }
+
+  return result
+}
+
+// Full circuit check — returns richly annotated tokens including multi-word units
+// type: 'fixed_unit' | 'construction' | 'banked' | 'function' | 'unknown' | 'punctuation'
+export function checkCircuitFull(text, wordBank, atomWords = {}) {
+  const surfaceSet = buildBankSurfaceSet(wordBank)
+  const tokens = tokenizeFull(text, atomWords)
+
+  return tokens.map(t => {
+    if (t.type === 'fixed_unit' || t.type === 'construction' || t.type === 'punctuation') return t
+
+    const lower = t.surface.toLowerCase()
+    if (ALWAYS_PASS.has(lower)) return { ...t, type: 'function' }
+    if (surfaceSet.has(lower) || surfaceSet.has(resolveToBase(lower))) return { ...t, type: 'banked' }
+    return { ...t, type: 'unknown' }
   })
 }
 

@@ -7,7 +7,7 @@ import { ATOMS } from './grammarAtoms.en'
 import { getBankedWords } from './wordRegistry'
 import { buildLearnerIntroduction, buildLevelChannel } from './systemVocabulary'
 import { buildAISystemPrompt } from './aiIdentity'
-import { checkCircuit, circuitSummary } from './circuitCheck'
+import { checkCircuit, circuitSummary, checkCircuitFull } from './circuitCheck'
 
 const ATOM_BY_ID = Object.fromEntries(ATOMS.map(a => [a.id, a]))
 
@@ -743,6 +743,56 @@ export default function WritingLab({ onBack }) {
 
   const textarea = { border: `1px solid ${T.border}`, borderRadius: 4, color: T.text, fontSize: 13, padding: '10px 12px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6, width: '100%', background: T.card }
 
+  function generateRandomSentence() {
+    const pickFrom = (...atomIds) => {
+      for (const id of atomIds) {
+        const words = atomWords[id] ?? []
+        if (words.length > 0) return words[Math.floor(Math.random() * words.length)]
+      }
+      return null
+    }
+
+    // Default atom sources for slots not covered by slotOverrides
+    const SLOT_DEFAULTS = {
+      object:            ['noun', 'object_pronoun'],
+      complement:        ['adjective', 'noun'],
+      determiner:        ['determiner', 'possessive_determiner', 'demonstrative'],
+      subject_adjective: ['adjective'],
+      modal:             ['modal_auxiliary'],
+      interjection:      ['interjection'],
+      adverbial:         ['adverb'],
+    }
+
+    // Tiers up to current cluster; skip T8+ (negation/progressive need verb inflection)
+    const availableTiers = CONSTRUCTOR_TIERS.filter(t => t.band <= currentCluster && t.id <= 7)
+
+    for (const tier of [...availableTiers].reverse()) {
+      const parts = []
+      let ok = true
+
+      for (const slotId of tier.slotIds) {
+        const override = tier.slotOverrides?.[slotId]
+        const optional = override?.optional === true
+        const accepts  = override?.accepts ?? SLOT_DEFAULTS[slotId] ?? []
+        const word     = accepts.length > 0 ? pickFrom(...accepts) : null
+
+        if (!word && !optional) { ok = false; break }
+        if (word) parts.push(word)
+      }
+
+      if (ok && parts.length > 0) {
+        const sentence = parts.join(' ')
+        return sentence.charAt(0).toUpperCase() + sentence.slice(1) + '.'
+      }
+    }
+
+    // Last resort: pronoun + verb
+    const pronoun = pickFrom('personal_pronoun') ?? 'I'
+    const verb    = pickFrom('lexical_verb')
+    if (verb) return `${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ${verb}.`
+    return ''
+  }
+
   return (
     <div style={{ padding: '24px 24px 80px', fontFamily: 'system-ui, sans-serif', background: T.page, minHeight: '100vh', color: T.text }}>
 
@@ -993,13 +1043,22 @@ export default function WritingLab({ onBack }) {
 
       {/* ── User Layer ── */}
       <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
-        <div style={{ padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
           <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700 }}>User</span>
+          <div style={{ flex: 1 }} />
+          <button onClick={() => {
+            const sentence = generateRandomSentence()
+            setUserResponse(sentence)
+            setCircuitTokens(checkCircuit(sentence, wordBank))
+          }} style={{ ...btn(), fontSize: 11, padding: '3px 10px' }}>random</button>
         </div>
         <div style={{ padding: '12px 14px' }}>
           <textarea
             value={userResponse}
-            onChange={e => setUserResponse(e.target.value)}
+            onChange={e => {
+              setUserResponse(e.target.value)
+              setCircuitTokens(e.target.value.trim() ? checkCircuit(e.target.value, wordBank) : null)
+            }}
             placeholder="Write your response here…"
             style={{ ...textarea, minHeight: 120, fontSize: 15 }}
           />
