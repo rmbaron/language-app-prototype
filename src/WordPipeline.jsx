@@ -150,9 +150,10 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
 }
 
 export default function WordPipeline({ onClose }) {
-  const [running, setRunning]         = useState(null)
-  const [batchReport, setBatchReport] = useState(null)
-  const [batchSize, setBatchSize]     = useState(10)
+  const [running, setRunning]           = useState(null)
+  const [batchReport, setBatchReport]   = useState(null)
+  const [batchSize, setBatchSize]       = useState(10)
+  const [reEnrichProgress, setReEnrichProgress] = useState(null)
   const [search, setSearch]           = useState('')
   const [newWord, setNewWord]         = useState('')
   const [addError, setAddError]       = useState(null)
@@ -336,12 +337,13 @@ export default function WordPipeline({ onClose }) {
                 disabled={!!running}
                 onClick={async () => {
                   setRunning('l2-force')
-                  await forceReEnrichAllL2('en')
+                  setReEnrichProgress({ done: 0, total: batchSize, current: null, enriched: [], failed: [] })
+                  await forceReEnrichAllL2('en', batchSize, p => setReEnrichProgress({ ...p }))
                   setRunning(null)
                   forceUpdate(n => n + 1)
                 }}
               >
-                {running === 'l2-force' ? 'Re-enriching…' : 'Re-enrich all L2'}
+                {running === 'l2-force' ? `Re-enriching…` : 'Re-enrich L2'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -363,6 +365,45 @@ export default function WordPipeline({ onClose }) {
           </div>
         )
       })()}
+
+      {reEnrichProgress && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 6,
+          background: '#0d1520', border: '1px solid #1a2a3a', fontSize: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <span style={{ color: '#6fa8cf', fontWeight: 600 }}>
+              Re-enrich L2 — {reEnrichProgress.done} / {reEnrichProgress.total}
+            </span>
+            {reEnrichProgress.current && (
+              <span style={{ color: '#555', fontFamily: 'monospace' }}>
+                → {reEnrichProgress.current}
+              </span>
+            )}
+            {reEnrichProgress.done === reEnrichProgress.total && reEnrichProgress.total > 0 && (
+              <span style={{ color: '#6fcf6f', marginLeft: 'auto' }}>done</span>
+            )}
+          </div>
+          {/* Progress bar */}
+          <div style={{ height: 4, background: '#1a2a3a', borderRadius: 2, marginBottom: 8, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: 2, background: '#3a6a9a',
+              width: `${reEnrichProgress.total > 0 ? (reEnrichProgress.done / reEnrichProgress.total) * 100 : 0}%`,
+              transition: 'width 0.2s ease',
+            }} />
+          </div>
+          {reEnrichProgress.enriched.length > 0 && (
+            <div style={{ color: '#6fcf6f', fontFamily: 'monospace', lineHeight: 1.7 }}>
+              {reEnrichProgress.enriched.join(' · ')}
+            </div>
+          )}
+          {reEnrichProgress.failed.length > 0 && (
+            <div style={{ color: '#cf6f6f', fontFamily: 'monospace', marginTop: 4 }}>
+              ✕ {reEnrichProgress.failed.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
 
       {batchReport && (
         <div style={{

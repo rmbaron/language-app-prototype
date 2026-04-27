@@ -11,7 +11,7 @@
 
 import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
-import { setLayerTwo, hasLayerTwo, hasRealLayerTwo, clearLayerTwo } from './wordLayerTwo'
+import { setLayerTwo, hasLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
 import { addWordToIndex, findWordInIndex, updateWordInIndex, rebuildAtomIndex } from './atomIndex'
 
 const BATCH_LIMIT = 5
@@ -87,32 +87,57 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
   }
 }
 
-// Force re-enrichment: clears existing Layer 2 for all seed words that have Layer 1,
-// then re-enriches them. Use this when the Layer 2 prompt changes and existing
-// data needs to be refreshed (e.g. after adding alternateAtoms field).
-export async function forceReEnrichAllL2(lang = 'en') {
-  const words = WORD_SEED.filter(w => w.language === lang && hasLayerOne(w.id, lang))
-  console.log(`[enrichment-l2] force re-enriching ${words.length} words...`)
+// Force re-enrichment: re-enriches words that have Layer 1, up to batchLimit.
+// Processes alphabetically so repeated runs walk through the list predictably.
+// Safe replacement: writes new data on success, never clears existing data first.
+// onProgress({ done, total, current, enriched, failed }) fires after each word.
+export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, onProgress = null) {
+  const { getLayerTwo } = await import('./wordLayerTwo')
 
-  for (const word of words) {
+  const all = WORD_SEED
+    .filter(w => w.language === lang && hasLayerOne(w.id, lang))
+    .sort((a, b) => a.baseForm.localeCompare(b.baseForm))
+
+  const batch   = all.slice(0, batchLimit)
+  const total   = batch.length
+  const enriched = []
+  const failed   = []
+
+  console.log(`[enrichment-l2] force re-enriching ${total} / ${all.length} words (alphabetical)...`)
+
+  for (let i = 0; i < batch.length; i++) {
+    const word = batch[i]
+    onProgress?.({ done: i, total, current: word.baseForm, enriched: [...enriched], failed: [...failed] })
     try {
-      clearLayerTwo(word.id, lang)
       const layer1 = getLayerOne(word.id, lang)
-      if (!layer1) continue
+      if (!layer1) { failed.push(word.baseForm); continue }
       const result = await enrichOneWordL2(word.id, word.baseForm, lang, layer1)
       if (result) {
+        // Write new data before touching existing — safe replacement
         setLayerTwo(word.id, lang, { ...result, source: 'api' })
+        const existing = findWordInIndex(word.id, lang)
+        if (result.grammaticalAtom && result.cefrLevel) {
+          if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
+            updateWordInIndex(word.id, { oldAtom: existing.atomId, oldLevel: existing.cefrLevel, newAtom: result.grammaticalAtom, newLevel: result.cefrLevel, lang })
+          } else {
+            addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
+          }
+        }
+        enriched.push(word.baseForm)
         console.log(`[enrichment-l2] re-enriched "${word.baseForm}"`)
+      } else {
+        failed.push(word.baseForm)
       }
     } catch (err) {
+      failed.push(word.baseForm)
       console.warn(`[enrichment-l2] failed for "${word.baseForm}":`, err.message)
     }
   }
 
-  // Rebuild the atom index from scratch after full re-enrichment.
-  // Collect all enriched word positions from L2 and pass them in.
-  const { getLayerTwo } = await import('./wordLayerTwo')
-  const enrichedWords = words
+  onProgress?.({ done: total, total, current: null, enriched: [...enriched], failed: [...failed] })
+
+  // Rebuild atom index from all currently-enriched words
+  const enrichedWords = all
     .map(w => {
       const l2 = getLayerTwo(w.id, lang)
       return l2?.grammaticalAtom && l2?.cefrLevel
@@ -121,7 +146,10 @@ export async function forceReEnrichAllL2(lang = 'en') {
     })
     .filter(Boolean)
   rebuildAtomIndex(lang, enrichedWords)
-  console.log('[enrichment-l2] force re-enrich complete. Atom index rebuilt.')
+
+  const remaining = all.length - batch.length
+  console.log(`[enrichment-l2] done. ${enriched.length} enriched, ${failed.length} failed${remaining > 0 ? `, ${remaining} remaining` : ''}.`)
+  return { enriched, failed, remaining }
 }
 
 // ── Manual trigger ────────────────────────────────────────────
