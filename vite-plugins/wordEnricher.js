@@ -35,11 +35,11 @@ Return a JSON object with these fields:
 - frequency: "core" | "high" | "medium" | "low" (relative to its CEFR level)
 - forms: array of { form, type, tenses } for all inflected forms.
   "type" is the grammatical role: third_person_present, past, past_participle, present_participle, plural, comparative, superlative, object, possessive, reflexive, vowel_variant, contracted_negative, contracted_negative_third, subject_contraction, etc.
-  "tenses" is an array of tense grid IDs where this form is used as the main verb slot:
-    - base form of a lexical verb → ["present_simple"]
+  "tenses" is an array of tense grid IDs where this form is used as the lexical verb slot:
+    - base form of a lexical verb → ["present_simple","future_simple"] (base is used in both "I drink" and "I will drink")
     - third_person_present → ["present_simple"]
     - past → ["past_simple"]
-    - past_participle → ["present_perfect","past_perfect","future_perfect","present_perfect_continuous","past_perfect_continuous","future_perfect_continuous"]
+    - past_participle → ["present_perfect","past_perfect","future_perfect"] (NOT perfect_continuous — those use -ing)
     - present_participle (-ing) → ["present_continuous","past_continuous","future_continuous","present_perfect_continuous","past_perfect_continuous","future_perfect_continuous"]
     - for non-lexical-verb words (nouns, pronouns, adjectives, etc.) set tenses: [] on all forms
   For auxiliary, modal, and copula verbs always include contracted negatives (don't, can't, isn't, etc.) and subject contractions where natural (I'm, you're, he's). Empty forms array if the word does not inflect.

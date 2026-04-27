@@ -108,18 +108,54 @@ export function tokenizeFull(text, atomWords = {}) {
     }
     if (matched) continue
 
-    // Try modal construction: modal trigger + lexical_verb
+    // Try modal constructions — longest match first to avoid consuming a prefix
+    // and leaving the rest stranded. Order: 4-token → 3-token → 2-token.
     const lower = raw[i].toLowerCase()
     if (modalTriggers.has(lower) && i + 1 < raw.length) {
-      const nextLower = raw[i + 1].toLowerCase()
-      const nextBase = resolveToBase(nextLower)
-      if (wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb') {
+      const n1 = raw[i + 1].toLowerCase()
+      const n1Base = resolveToBase(n1)
+      const n1IsPerfectAux = perfectTriggers.has(n1) || perfectTriggers.has(n1Base)
+      const n1IsBeForm     = copulaWords.has(n1) || copulaWords.has(n1Base)
+
+      // 4-token: will have been drinking (future_perfect_continuous)
+      if (n1IsPerfectAux && i + 3 < raw.length) {
+        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
+        const n3 = raw[i + 3].toLowerCase(); const n3Base = resolveToBase(n3)
+        if ((copulaWords.has(n2) || copulaWords.has(n2Base)) &&
+            n3.endsWith('ing') && n3 !== n3Base &&
+            (lexicalVerbs.has(n3Base) || wordToAtom[n3Base] === 'lexical_verb')) {
+          result.push({ surface: [raw[i],raw[i+1],raw[i+2],raw[i+3]].join(' '), type: 'construction', constructionType: 'future_perfect_continuous', atomClass: 'modal_construction', sentenceIndex })
+          i += 4; continue
+        }
+      }
+
+      // 3-token: will be drinking (future_continuous)
+      if (n1IsBeForm && i + 2 < raw.length) {
+        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
+        if (n2.endsWith('ing') && n2 !== n2Base &&
+            (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb')) {
+          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'future_continuous', atomClass: 'modal_construction', sentenceIndex })
+          i += 3; continue
+        }
+      }
+
+      // 3-token: will have drunk (future_perfect)
+      if (n1IsPerfectAux && i + 2 < raw.length) {
+        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
+        if (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb') {
+          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'future_perfect', atomClass: 'modal_construction', sentenceIndex })
+          i += 3; continue
+        }
+      }
+
+      // 2-token: will drink (future_simple / modal)
+      if (wordToAtom[n1Base] === 'lexical_verb' || wordToAtom[n1] === 'lexical_verb') {
         result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'modal', atomClass: 'modal_construction', sentenceIndex })
         i += 2; continue
       }
     }
 
-    // Try progressive construction: be-form + verb-ing
+    // Try progressive construction: be-form + verb-ing (present/past continuous)
     const isBeForm = copulaWords.has(lower) || copulaWords.has(resolveToBase(lower))
     if (isBeForm && i + 1 < raw.length) {
       const nextLower = raw[i + 1].toLowerCase()
@@ -131,12 +167,24 @@ export function tokenizeFull(text, atomWords = {}) {
       }
     }
 
-    // Try perfect construction: have/has/had + lexical_verb form
+    // Try perfect constructions — longest match first.
     if (perfectTriggers.has(lower) && i + 1 < raw.length) {
-      const nextLower = raw[i + 1].toLowerCase()
-      const nextBase  = resolveToBase(nextLower)
-      const isLexVerb = lexicalVerbs.has(nextBase) || lexicalVerbs.has(nextLower)
-        || wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb'
+      const n1 = raw[i + 1].toLowerCase(); const n1Base = resolveToBase(n1)
+      const n1IsBeForm = copulaWords.has(n1) || copulaWords.has(n1Base)
+
+      // 3-token: have been drinking (present/past perfect_continuous)
+      if (n1IsBeForm && i + 2 < raw.length) {
+        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
+        if (n2.endsWith('ing') && n2 !== n2Base &&
+            (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb')) {
+          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'perfect_continuous', atomClass: 'perfect_construction', sentenceIndex })
+          i += 3; continue
+        }
+      }
+
+      // 2-token: have drunk (present/past perfect)
+      const isLexVerb = lexicalVerbs.has(n1Base) || lexicalVerbs.has(n1)
+        || wordToAtom[n1Base] === 'lexical_verb' || wordToAtom[n1] === 'lexical_verb'
       if (isLexVerb) {
         result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'perfect', atomClass: 'perfect_construction', sentenceIndex })
         i += 2; continue
