@@ -4,7 +4,7 @@ import { getInterfaceLanguage } from './learnerProfile'
 import { getBankedWords } from './wordRegistry'
 import { getActiveLanguage } from './learnerProfile'
 import WordCard from './WordCard'
-import { getWordBank, loadState, THRESHOLD, getWordStatuses, ACTIVE_LIMIT, removeFromWordBank } from './userStore'
+import { getWordBank, loadState, THRESHOLD, getWordStatuses, removeFromWordBank } from './userStore'
 import { getWordProgress } from './wordProgress'
 import { LANES } from './lanes'
 import {
@@ -13,24 +13,8 @@ import {
   GRANULAR_THEMES,
   getThematicTier,
   getWordTheme,
+  matchesFilter,
 } from './classifications'
-
-function compositeProgress(wordId, attempts) {
-  const wordAttempts = attempts[wordId]
-  if (!wordAttempts) return 0
-  const total = LANES.reduce((sum, { id }) => sum + Math.min((wordAttempts[id] ?? 0) / THRESHOLD, 1), 0)
-  return Math.round((total / LANES.length) * 100)
-}
-
-function matchesFilter(word, filter) {
-  if (filter === 'all') return true
-  const group = GRAMMATICAL_GROUPS.find(g => g.label === filter)
-  if (group) return group.categories.includes(word.classifications.grammaticalCategory)
-  const { theme, subTheme } = getWordTheme(word.id)
-  const granular = GRANULAR_THEMES.find(g => g.label === filter)
-  if (granular) return subTheme === filter
-  return theme === filter
-}
 
 export default function WordBank({ onSelectWord, onBack, onAddWord }) {
   const s = getStrings(getInterfaceLanguage())
@@ -40,29 +24,26 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [devSelectMode, setDevSelectMode] = useState(false)
   const [selectedIds, setSelectedIds]     = useState(new Set())
-  const [refreshKey, setRefreshKey]       = useState(0)
+  const [refreshKey, setRefreshKey]       = useState(0) // eslint-disable-line no-unused-vars
 
-  // refreshKey increments after dev removals, forcing a re-read of bank state
-  const bankIds   = getWordBank()              // eslint-disable-line react-hooks/exhaustive-deps
-  const state     = loadState()                // eslint-disable-line react-hooks/exhaustive-deps
+  const bankIds    = getWordBank()
+  const state      = loadState()
   const { attempts } = state
-  const bankWords = getBankedWords(bankIds, getActiveLanguage())
-
+  const bankWords  = getBankedWords(bankIds, getActiveLanguage())
 
   const thematicTier = getThematicTier(bankWords.length)
   const wordStatuses = getWordStatuses()
-  const activeCount = Object.values(wordStatuses).filter(s => s === 'active').length
+
   const statusCounts = {
     active:    bankWords.filter(w => (wordStatuses[w.id] ?? 'banked') === 'active').length,
     banked:    bankWords.filter(w => (wordStatuses[w.id] ?? 'banked') === 'banked').length,
     completed: bankWords.filter(w => wordStatuses[w.id] === 'completed').length,
   }
 
-  // Counts per filter option
   const grammaticalCounts = Object.fromEntries(
     GRAMMATICAL_GROUPS.map(g => [
       g.label,
-      bankWords.filter(w => g.categories.includes(w.classifications.grammaticalCategory)).length,
+      bankWords.filter(w => matchesFilter(w, g.label)).length,
     ])
   )
 
@@ -74,16 +55,15 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
     GRANULAR_THEMES.map(g => [g.label, bankWords.filter(w => getWordTheme(w.id).subTheme === g.label).length])
   )
 
-  // Only show filters that have at least one word
   const visibleGrammaticalGroups = GRAMMATICAL_GROUPS.filter(g => grammaticalCounts[g.label] > 0)
-  const visibleBroadThemes = BROAD_THEMES.filter(t => broadThemeCounts[t] > 0)
-  const visibleGranularThemes = GRANULAR_THEMES.filter(g => granularThemeCounts[g.label] > 0)
+  const visibleBroadThemes       = BROAD_THEMES.filter(t => broadThemeCounts[t] > 0)
+  const visibleGranularThemes    = GRANULAR_THEMES.filter(g => granularThemeCounts[g.label] > 0)
 
   const filteredWords = bankWords.filter(w => {
     const matchesCategory = matchesFilter(w, categoryFilter)
-    const matchesSearch = w.baseForm.toLowerCase().includes(search.toLowerCase()) ||
-                          w.meaning.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || (wordStatuses[w.id] ?? 'banked') === statusFilter
+    const matchesSearch   = w.baseForm.toLowerCase().includes(search.toLowerCase()) ||
+                            (w.meaning ?? '').toLowerCase().includes(search.toLowerCase())
+    const matchesStatus   = statusFilter === 'all' || (wordStatuses[w.id] ?? 'banked') === statusFilter
     return matchesCategory && matchesSearch && matchesStatus
   })
 
@@ -159,7 +139,6 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
           onChange={e => setSearch(e.target.value)}
         />
 
-        {/* Grammatical layer — always visible */}
         <div className="word-bank-categories">
           <button
             className={`word-bank-cat-btn ${categoryFilter === 'all' ? 'word-bank-cat-btn--active' : ''}`}
@@ -178,7 +157,6 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
           ))}
         </div>
 
-        {/* Thematic layer — unlocks above threshold */}
         {thematicTier === 'broad' && visibleBroadThemes.length > 0 && (
           <div className="word-bank-categories word-bank-categories--thematic">
             {visibleBroadThemes.map(t => (
@@ -286,4 +264,15 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
       </div>{/* end word-bank-layout */}
     </div>
   )
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Composite 0–100 progress across all lanes. Used for sort only.
+// Lives here (not wordProgress.js) because it's specific to WordBank's sort UI.
+function compositeProgress(wordId, attempts) {
+  const wordAttempts = attempts[wordId]
+  if (!wordAttempts) return 0
+  const total = LANES.reduce((sum, { id }) => sum + Math.min((wordAttempts[id] ?? 0) / THRESHOLD, 1), 0)
+  return Math.round((total / LANES.length) * 100)
 }

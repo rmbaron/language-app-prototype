@@ -8,9 +8,9 @@ import { getInterfaceLanguage } from './learnerProfile'
 import { FULL_MEANINGS } from './wordFullMeanings.en'
 import WordMasteryBar from './WordMasteryBar'
 import { getUsage, recordUse, clearUsage } from './wordUsageStore'
+import { getGrammaticalGroup } from './classifications'
 
-const DEV = true
-const LANE_IDS = ['writing', 'speaking', 'reading', 'listening']
+const DEV = import.meta.env.DEV
 
 function Section({ label, isOpen, onToggle, children }) {
   return (
@@ -60,14 +60,24 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
     onBack()
   }
 
+  // Category label: prefer atom-aware group, fall back to grammaticalCategory label
+  const categoryLabel =
+    getGrammaticalGroup(word) ??
+    s.common.categories[word.grammaticalCategory] ??
+    word.grammaticalCategory ??
+    null
+
+  // cefrLevel is real data from L2 enrichment; other stats are not yet tracked
+  const cefrLevel = word.cefrLevel ?? null
+
   return (
     <div className="profile">
       <button className="profile-back" onClick={onBack}>{s.common.back}</button>
 
       <div className="profile-header">
-        <span className="profile-category-bubble">
-          {s.common.categories[word.classifications.grammaticalCategory] ?? word.classifications.grammaticalCategory}
-        </span>
+        {categoryLabel && (
+          <span className="profile-category-bubble">{categoryLabel}</span>
+        )}
         <h1 className="profile-base">{word.baseForm}</h1>
         <p className="profile-meaning">{word.meaning}</p>
       </div>
@@ -91,36 +101,49 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
 
       <div className="profile-sections">
         <Section label={s.wordProfile.sections.fullerMeaning} isOpen={open.fuller} onToggle={() => toggle('fuller')}>
-          <p className="section-text">{FULL_MEANINGS[word.id]}</p>
+          {FULL_MEANINGS[word.id]
+            ? <p className="section-text">{FULL_MEANINGS[word.id]}</p>
+            : <p className="section-text section-text--placeholder">—</p>
+          }
         </Section>
 
         <Section label={s.wordProfile.sections.otherForms} isOpen={open.forms} onToggle={() => toggle('forms')}>
-          <div className="forms-list">
-            {word.forms.map(f => (
-              <span key={f.form} className="form-chip">
-                {f.form} <span className="form-type">{f.type.replace(/_/g, ' ')}</span>
-              </span>
-            ))}
-          </div>
+          {word.forms?.length > 0
+            ? (
+              <div className="forms-list">
+                {word.forms.map(f => (
+                  <span key={f.form} className="form-chip">
+                    {f.form}
+                    {f.type && (
+                      <span className="form-type">
+                        {s.wordProfile.formTypes?.[f.type] ?? f.type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )
+            : <p className="section-text section-text--placeholder">—</p>
+          }
         </Section>
 
         <Section label={s.wordProfile.sections.stats} isOpen={open.stats} onToggle={() => toggle('stats')}>
           <div className="stats-grid">
             <div className="stat-item">
-              <span className="stat-value">24</span>
+              <span className="stat-value">{cefrLevel ?? '—'}</span>
+              <span className="stat-label">{s.wordProfile.stats.level}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">—</span>
               <span className="stat-label">{s.wordProfile.stats.timesSeen}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">7</span>
+              <span className="stat-value">—</span>
               <span className="stat-label">{s.wordProfile.stats.dayStreak}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">2d</span>
+              <span className="stat-value">—</span>
               <span className="stat-label">{s.wordProfile.stats.lastPracticed}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">B1</span>
-              <span className="stat-label">{s.wordProfile.stats.level}</span>
             </div>
           </div>
         </Section>
@@ -141,7 +164,7 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
           </summary>
           <div style={{ marginTop: 12, padding: '12px 14px', background: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
-              {LANE_IDS.map(lane => (
+              {LANES.map(({ id: lane }) => (
                 <div key={lane} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 5, padding: '8px 10px' }}>
                   <div style={{ fontWeight: 600, color: '#333', marginBottom: 4, textTransform: 'capitalize' }}>{lane}</div>
                   <div style={{ color: '#666', fontSize: 11 }}>
