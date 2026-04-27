@@ -1,7 +1,7 @@
 import { useInventory } from './InventoryContext'
 import { getStrings } from './uiStrings'
 import { WORLD_SPHERE_DESTINATIONS } from './worldSphereConfig'
-import { loadGateConfig, buildWordDataMap, evaluateGate } from './gateConfig'
+import { loadGateConfig, buildWordDataMap, evaluateGate, loadGateOverride } from './gateConfig'
 
 function gateHint(gr, s) {
   if (!gr.rules || gr.rules.length === 0) return s.worldSphere.gateNoRules
@@ -24,10 +24,12 @@ export default function WorldSphere({ onBack, onNavigate, onConfigureGate }) {
   const { lang } = identity
 
   const wordDataMap  = buildWordDataMap(wordBank, lang)
+  const override     = loadGateOverride()
+  const openAll      = { open: true, rules: [], closestRule: null, unenrichedWords: [], matchedContext: null }
   const gateResults  = Object.fromEntries(
     WORLD_SPHERE_DESTINATIONS.map(dest => [
       dest.id,
-      evaluateGate(loadGateConfig(dest.id), inventory, wordDataMap),
+      override ? openAll : evaluateGate(loadGateConfig(dest.id), inventory, wordDataMap),
     ])
   )
 

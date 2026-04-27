@@ -29,6 +29,14 @@
 // Renaming a destination in worldSphereConfig.js orphans its gate config silently.
 const storageKey = id => `lapp-gate-${id}`
 
+// Dev override — when true, all gates return open regardless of rules.
+export function loadGateOverride() {
+  try { return localStorage.getItem('lapp-gate-override') === 'true' } catch { return false }
+}
+export function saveGateOverride(value) {
+  localStorage.setItem('lapp-gate-override', value ? 'true' : 'false')
+}
+
 export function loadGateConfig(destinationId) {
   try {
     const raw = localStorage.getItem(storageKey(destinationId))
@@ -136,7 +144,14 @@ function contextScore(ctx) {
        + (ctx.atom    != null ? 1 : 0)
 }
 
+// Rule mode: 'require' (default) = gate opens when condition IS met.
+// 'exclude' = gate opens when condition is NOT met (e.g. beginner-only content).
 function evalRule(rule, wordBank, activeAtoms, currentCluster, wordDataMap) {
+  const result = evalRuleRaw(rule, wordBank, activeAtoms, currentCluster, wordDataMap)
+  return rule.mode === 'exclude' ? { ...result, passed: !result.passed } : result
+}
+
+function evalRuleRaw(rule, wordBank, activeAtoms, currentCluster, wordDataMap) {
   const base = { rule, qualifying: [], unenrichedWords: [] }
 
   if (rule.type === 'minWordCount') {
