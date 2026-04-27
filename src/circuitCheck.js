@@ -68,6 +68,8 @@ export function tokenizeFull(text, atomWords = {}) {
   }
 
   const modalTriggers = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
+  const copulaWords    = new Set((atomWords['copula']          ?? []).map(w => w.toLowerCase()))
+  const lexicalVerbs   = new Set((atomWords['lexical_verb']    ?? []).map(w => w.toLowerCase()))
   // \.{3} before [.,;:] so ellipsis is one token; [!?]+ so !! and ??? collapse to one token
   const raw = text.match(/[a-zA-Z'']+|\.{3}|[!?]+|[.,;:]/g) ?? []
   const result = []
@@ -107,6 +109,18 @@ export function tokenizeFull(text, atomWords = {}) {
       }
     }
 
+    // Try progressive construction: be-form + verb-ing
+    const isBeForm = copulaWords.has(lower) || copulaWords.has(resolveToBase(lower))
+    if (isBeForm && i + 1 < raw.length) {
+      const nextLower = raw[i + 1].toLowerCase()
+      const nextBase  = resolveToBase(nextLower)
+      const isIngForm = nextLower.endsWith('ing') && nextLower !== nextBase
+      if (isIngForm && (lexicalVerbs.has(nextBase) || lexicalVerbs.has(nextLower) || wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb')) {
+        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'progressive', atomClass: 'progressive_construction', sentenceIndex })
+        i += 2; continue
+      }
+    }
+
     result.push({ surface: raw[i], type: 'single', sentenceIndex })
     i++
   }
@@ -128,6 +142,24 @@ export function checkCircuitFull(text, wordBank, atomWords = {}) {
     if (surfaceSet.has(lower) || surfaceSet.has(resolveToBase(lower))) return { ...t, type: 'banked' }
     return { ...t, type: 'unknown' }
   })
+}
+
+// Extracts creditable word IDs from a circuit result.
+// Only banked tokens and constructions count — function words, unknowns, and punctuation don't.
+// Returns base-form word IDs ready to pass to recordUse().
+export function extractCreditableWordIds(tokens) {
+  const ids = new Set()
+  for (const t of tokens) {
+    if (t.type === 'banked') {
+      ids.add(resolveToBase(t.surface.toLowerCase()))
+    } else if (t.type === 'construction') {
+      // "will eat" or "am eating" — credit both component words
+      for (const part of t.surface.toLowerCase().split(' ')) {
+        ids.add(resolveToBase(part))
+      }
+    }
+  }
+  return [...ids]
 }
 
 export function circuitSummary(tokens) {

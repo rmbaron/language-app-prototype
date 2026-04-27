@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useInventory } from './InventoryContext'
 import { checkCircuitFull, splitSentences } from './circuitCheck'
-import { FIXED_UNITS, TEST_MODAL_TRIGGERS } from './multiWordUnits.en.js'
+import { FIXED_UNITS, TEST_MODAL_TRIGGERS, TEST_PROGRESSIVE_TRIGGERS } from './multiWordUnits.en.js'
 
 const T = {
   page: '#ffffff', card: '#e8e8ea', border: '#c4c4c6',
@@ -36,13 +36,16 @@ export default function CircuitTest({ onClose }) {
   const [tokens, setTokens]       = useState(null)
   const [sentences, setSentences] = useState(null)
   const [showRegistry, setShowRegistry] = useState(false)
-  const [modalMode, setModalMode] = useState('registry')
+  const [modalMode, setModalMode]           = useState('registry')
+  const [progressiveMode, setProgressiveMode] = useState('registry')
 
-  function runOn(text, mode = modalMode) {
+  function runOn(text, mMode = modalMode, pMode = progressiveMode) {
     if (!text.trim()) { setTokens(null); setSentences(null); return }
-    const effectiveAtomWords = mode === 'test'
-      ? { ...atomWords, modal_auxiliary: TEST_MODAL_TRIGGERS }
-      : atomWords
+    const effectiveAtomWords = {
+      ...atomWords,
+      ...(mMode === 'test' ? { modal_auxiliary: TEST_MODAL_TRIGGERS } : {}),
+      ...(pMode === 'test' ? { copula: TEST_PROGRESSIVE_TRIGGERS }    : {}),
+    }
     setTokens(checkCircuitFull(text, wordBank, effectiveAtomWords))
     setSentences(splitSentences(text))
   }
@@ -102,19 +105,34 @@ export default function CircuitTest({ onClose }) {
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
         {clearBtn}
-        <div style={{ display: 'flex', gap: 0 }}>
-          <button onClick={() => { setModalMode('registry'); runOn(input, 'registry') }}
-            style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', background: modalMode === 'registry' ? '#fde8c8' : '#fff', color: modalMode === 'registry' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'registry' ? 700 : 400 }}>
-            registry
-          </button>
-          <button onClick={() => { setModalMode('test'); runOn(input, 'test') }}
-            style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRadius: '0 4px 4px 0', cursor: 'pointer', background: modalMode === 'test' ? '#fde8c8' : '#fff', color: modalMode === 'test' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'test' ? 700 : 400 }}>
-            test set
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: T.textDim }}>modals:</span>
+            <div style={{ display: 'flex', gap: 0 }}>
+              <button onClick={() => { setModalMode('registry'); runOn(input, 'registry', progressiveMode) }}
+                style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', background: modalMode === 'registry' ? '#fde8c8' : '#fff', color: modalMode === 'registry' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'registry' ? 700 : 400 }}>
+                registry
+              </button>
+              <button onClick={() => { setModalMode('test'); runOn(input, 'test', progressiveMode) }}
+                style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRadius: '0 4px 4px 0', cursor: 'pointer', background: modalMode === 'test' ? '#fde8c8' : '#fff', color: modalMode === 'test' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'test' ? 700 : 400 }}>
+                test set
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: T.textDim }}>progressive:</span>
+            <div style={{ display: 'flex', gap: 0 }}>
+              <button onClick={() => { setProgressiveMode('registry'); runOn(input, modalMode, 'registry') }}
+                style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', background: progressiveMode === 'registry' ? '#d8eef8' : '#fff', color: progressiveMode === 'registry' ? '#004a7a' : T.textDim, fontWeight: progressiveMode === 'registry' ? 700 : 400 }}>
+                registry
+              </button>
+              <button onClick={() => { setProgressiveMode('test'); runOn(input, modalMode, 'test') }}
+                style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRadius: '0 4px 4px 0', cursor: 'pointer', background: progressiveMode === 'test' ? '#d8eef8' : '#fff', color: progressiveMode === 'test' ? '#004a7a' : T.textDim, fontWeight: progressiveMode === 'test' ? 700 : 400 }}>
+                test set
+              </button>
+            </div>
+          </div>
         </div>
-        <span style={{ fontSize: 11, color: T.textDim }}>
-          {modalMode === 'test' ? 'hardcoded modals' : 'banked modals only'}
-        </span>
       </div>
 
       <>

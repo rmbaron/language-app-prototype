@@ -1,6 +1,9 @@
 // Hardcoded test set for modal triggers — used in Circuit Test "test mode" only
 export const TEST_MODAL_TRIGGERS = ['will', 'can', 'could', 'should', 'must', 'may', 'might', 'shall', 'would']
 
+// Hardcoded test set for progressive triggers — be-forms used in Circuit Test "test mode" only
+export const TEST_PROGRESSIVE_TRIGGERS = ['am', 'is', 'are', 'was', 'were']
+
 // Multi-word units — English
 // These are recognized as single tokens before space-splitting.
 // Sorted longest-first so longest match always wins.

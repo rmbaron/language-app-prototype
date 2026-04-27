@@ -6,6 +6,11 @@ import LaneLock from './LaneLock'
 import { getStrings } from './uiStrings'
 import { getInterfaceLanguage } from './learnerProfile'
 import { FULL_MEANINGS } from './wordFullMeanings.en'
+import WordMasteryBar from './WordMasteryBar'
+import { getUsage, recordUse, clearUsage } from './wordUsageStore'
+
+const DEV = true
+const LANE_IDS = ['writing', 'speaking', 'reading', 'listening']
 
 function Section({ label, isOpen, onToggle, children }) {
   return (
@@ -22,6 +27,21 @@ function Section({ label, isOpen, onToggle, children }) {
 export default function WordProfile({ word, onBack, onPractice, storeData, onStoreChange }) {
   const s = getStrings(getInterfaceLanguage())
   const [open, setOpen] = useState({})
+  const [usageTick, setUsageTick] = useState(0)
+
+  function refreshUsage() { setUsageTick(t => t + 1) }
+
+  function devRecord(lane) {
+    recordUse(word.id, lane)
+    refreshUsage()
+  }
+
+  function devClear() {
+    clearUsage(word.id)
+    refreshUsage()
+  }
+
+  const devUsage = DEV ? getUsage(word.id) : null
 
   const progress = getWordProgress(word.id, storeData)
 
@@ -66,13 +86,7 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
       </div>
 
       <div className="mastery-section">
-        <div className="mastery-label">
-          <span>{s.wordProfile.mastery}</span>
-          <span className="mastery-pct">{progress.mastery}%</span>
-        </div>
-        <div className="mastery-track">
-          <div className="mastery-fill" style={{ width: `${progress.mastery}%` }} />
-        </div>
+        <WordMasteryBar key={usageTick} wordId={word.id} />
       </div>
 
       <div className="profile-sections">
@@ -119,6 +133,38 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
       <button className="remove-word-btn" onClick={handleRemove}>
         {s.wordProfile.remove}
       </button>
+
+      {DEV && (
+        <details style={{ width: '100%', marginTop: 24 }}>
+          <summary style={{ cursor: 'pointer', color: '#999', fontSize: 11, letterSpacing: '0.08em', userSelect: 'none' }}>
+            DEV · usage log
+          </summary>
+          <div style={{ marginTop: 12, padding: '12px 14px', background: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: 6, fontSize: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+              {LANE_IDS.map(lane => (
+                <div key={lane} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 5, padding: '8px 10px' }}>
+                  <div style={{ fontWeight: 600, color: '#333', marginBottom: 4, textTransform: 'capitalize' }}>{lane}</div>
+                  <div style={{ color: '#666', fontSize: 11 }}>
+                    count: {devUsage[lane].count} &nbsp;·&nbsp;
+                    sessions: {devUsage[lane].sessions} &nbsp;·&nbsp;
+                    last: {devUsage[lane].lastAt ? new Date(devUsage[lane].lastAt).toLocaleTimeString() : '—'}
+                  </div>
+                  <button
+                    onClick={() => devRecord(lane)}
+                    style={{ marginTop: 6, fontSize: 11, padding: '3px 10px', border: '1px solid #ccc', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#333' }}>
+                    +1 {lane}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={devClear}
+              style={{ fontSize: 11, padding: '4px 12px', border: '1px solid #e88', borderRadius: 4, background: '#fff8f8', cursor: 'pointer', color: '#a00' }}>
+              clear all usage
+            </button>
+          </div>
+        </details>
+      )}
     </div>
   )
 }
