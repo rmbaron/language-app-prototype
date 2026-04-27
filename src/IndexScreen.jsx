@@ -39,6 +39,18 @@ const STRUCTURE_UNLOCK = {
   perfect_auxiliary:     'Derived from have — no standalone words. Unlocks at A2.',
 }
 
+// Atom chip groupings — derived from the `group` field on each atom.
+// Any atom without a group falls into 'Other' so nothing is silently lost.
+const ATOM_GROUPS = (() => {
+  const map = new Map()
+  for (const atom of ATOMS) {
+    const g = atom.group ?? 'Other'
+    if (!map.has(g)) map.set(g, [])
+    map.get(g).push(atom.id)
+  }
+  return [...map.entries()].map(([label, atoms]) => ({ label, atoms }))
+})()
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function EntryChip({ entry, banked, expanded, onExpand }) {
@@ -64,7 +76,7 @@ function EntryChip({ entry, banked, expanded, onExpand }) {
   )
 }
 
-function EntryList({ entries, label, bankedSurfaces }) {
+function EntryList({ entries, label, bankedSurfaces, byAtom }) {
   const [q,          setQ]          = useState('')
   const [expandedId, setExpandedId] = useState(null)
   if (!entries.length) return null
@@ -94,18 +106,29 @@ function EntryList({ entries, label, bankedSurfaces }) {
       {expanded && (
         <div style={{ marginTop: 8, background: '#f0faf5', border: '1px solid #80c8a0', borderRadius: 6, padding: '9px 12px' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1a6640', marginBottom: 3 }}>{expanded.pattern}</div>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>e.g. &ldquo;{expanded.example}&rdquo;</div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Atoms</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {expanded.atomClasses.map(atomId => {
-              const atom = ATOMS.find(a => a.id === atomId)
-              return (
-                <span key={atomId} style={{ background: C.accentBg, border: `1px solid ${C.accentBorder}`, color: C.accent, borderRadius: 5, padding: '3px 9px', fontSize: 11 }}>
-                  {atom?.label ?? atomId}
-                </span>
-              )
-            })}
-          </div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>e.g. &ldquo;{expanded.example}&rdquo;</div>
+          {expanded.atomClasses.map(atomId => {
+            const atom  = ATOMS.find(a => a.id === atomId)
+            const words = (byAtom?.[atomId] ?? []).filter(e => e.type === 'word' || e.type === 'always_pass')
+            return (
+              <div key={atomId} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                  {atom?.label ?? atomId}{words.length > 0 ? ` (${words.length})` : ''}
+                </div>
+                {words.length > 0
+                  ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                      {words.slice(0, 40).map(e => (
+                        <span key={e.id} style={{ background: C.card, border: `1px solid ${C.border}`, color: C.secondary, borderRadius: 4, padding: '2px 7px', fontSize: 11 }}>
+                          {e.surface}
+                        </span>
+                      ))}
+                      {words.length > 40 && <span style={{ fontSize: 10, color: C.muted, alignSelf: 'center' }}>+{words.length - 40} more</span>}
+                    </div>
+                  : <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic' }}>{STRUCTURE_UNLOCK[atomId] ?? 'No vocabulary yet'}</div>
+                }
+              </div>
+            )
+          })}
         </div>
       )}
       {overflow && !q && (
@@ -166,8 +189,8 @@ export default function IndexScreen({ onBack }) {
 
   const filters = { cefrFilter, timeFilter, aspectFilter }
   const passes  = e => passFilter(e, filters)
-  const hasTenseFilter = timeFilter || aspectFilter
   const atomOrder = ATOMS.map(a => a.id)
+  const hasTenseFilter = timeFilter || aspectFilter
 
   // ── Handlers ──
   function toggleAtom(id) {
@@ -284,37 +307,44 @@ export default function IndexScreen({ onBack }) {
             </div>
           )}
 
-          {/* ── Atom chips ── */}
+          {/* ── Atom chips — grouped ── */}
           {!searchResults && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 16 }}>
-              {atomOrder.map(atomId => {
-                const on    = selectedAtoms.has(atomId)
-                const count = atomWordCounts[atomId] ?? 0
-                const atom  = ATOMS.find(a => a.id === atomId)
-                return (
-                  <button key={atomId} onClick={() => toggleAtom(atomId)} title={atom?.description}
-                    style={{
-                      background:   on ? C.accentBg : C.card,
-                      border:       `1.5px solid ${on ? C.accent : C.border}`,
-                      color:        on ? C.accent : count > 0 ? C.secondary : C.muted,
-                      borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-                      fontWeight:   on ? 600 : 400, opacity: count === 0 ? 0.5 : 1,
-                    }}>
-                    {atom?.label ?? atomId}
-                    {count > 0 && <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>({count})</span>}
-                  </button>
-                )
-              })}
+            <div style={{ marginBottom: 16 }}>
+              {ATOM_GROUPS.map(group => (
+                <div key={group.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{group.label}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {group.atoms.map(atomId => {
+                      const on    = selectedAtoms.has(atomId)
+                      const count = atomWordCounts[atomId] ?? 0
+                      const atom  = ATOMS.find(a => a.id === atomId)
+                      return (
+                        <button key={atomId} onClick={() => toggleAtom(atomId)} title={atom?.description}
+                          style={{
+                            background:   on ? C.accentBg : C.card,
+                            border:       `1.5px solid ${on ? C.accent : C.border}`,
+                            color:        on ? C.accent : count > 0 ? C.secondary : C.muted,
+                            borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
+                            fontWeight:   on ? 600 : 400, opacity: count === 0 ? 0.5 : 1,
+                          }}>
+                          {atom?.label ?? atomId}
+                          {count > 0 && <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>({count})</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
               {selectedAtoms.size > 0 && (
                 <button onClick={() => setSelectedAtoms(new Set())} style={{
                   background: 'none', border: `1px dashed ${C.border}`, color: C.muted,
-                  borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-                }}>clear</button>
+                  borderRadius: 5, padding: '4px 10px', fontSize: 11, cursor: 'pointer', marginTop: 4,
+                }}>clear selection</button>
               )}
             </div>
           )}
 
-          {/* ── Circuit always-pass — global section in default view ── */}
+          {/* ── Circuit always-pass — global section when nothing selected ── */}
           {!searchResults && selectedAtoms.size === 0 && (() => {
             const all = entries.filter(e => e.type === 'always_pass' && passes(e))
             return all.length > 0
@@ -322,23 +352,24 @@ export default function IndexScreen({ onBack }) {
               : null
           })()}
 
-          {/* ── Atom content sections ── */}
+          {/* ── Atom content sections — only when that atom is selected ── */}
           {!searchResults && atomOrder.map(atomId => {
-            const atomDef     = ATOMS.find(a => a.id === atomId)
-            const allForAtom  = byAtom[atomId] ?? []
-            const isSelected  = selectedAtoms.has(atomId)
+            const isSelected = selectedAtoms.has(atomId)
+            if (!isSelected && !hasTenseFilter) return null
 
-            const multiWords    = allForAtom.filter(e => e.type === 'fixed_unit'  && passes(e))
-            // always-pass shown per-atom only when that atom is expanded
-            const alwaysPass    = isSelected ? allForAtom.filter(e => e.type === 'always_pass' && passes(e)) : []
-            const systemWords   = isSelected ? allForAtom.filter(e => e.type === 'word'        && passes(e)) : []
+            const atomDef    = ATOMS.find(a => a.id === atomId)
+            const allForAtom = byAtom[atomId] ?? []
+
+            const multiWords    = isSelected ? allForAtom.filter(e => e.type === 'fixed_unit'   && passes(e)) : []
+            const alwaysPass    = isSelected ? allForAtom.filter(e => e.type === 'always_pass'  && passes(e)) : []
+            const systemWords   = isSelected ? allForAtom.filter(e => e.type === 'word'         && passes(e)) : []
             const constructions = (isSelected || hasTenseFilter)
               ? allForAtom.filter(e => e.type === 'construction' && passes(e))
               : []
 
             if (!multiWords.length && !alwaysPass.length && !systemWords.length && !constructions.length) return null
 
-            const noWords = isSelected && systemWords.length === 0 && STRUCTURE_UNLOCK[atomId]
+            const noWords = isSelected && systemWords.length === 0 && !alwaysPass.length && !multiWords.length && STRUCTURE_UNLOCK[atomId]
 
             return (
               <div key={atomId} style={{ marginBottom: 26 }}>
@@ -346,10 +377,10 @@ export default function IndexScreen({ onBack }) {
                 {atomDef?.description && (
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 10, lineHeight: 1.45, maxWidth: 480 }}>{atomDef.description}</div>
                 )}
-                <EntryList entries={multiWords}    label="Multi-word units"    bankedSurfaces={null} />
                 <EntryList entries={alwaysPass}    label="Circuit always-pass" bankedSurfaces={null} />
+                <EntryList entries={multiWords}    label="Multi-word units"    bankedSurfaces={null} />
                 <EntryList entries={systemWords}   label="System vocabulary"   bankedSurfaces={bankedSurfaces} />
-                <EntryList entries={constructions} label="Constructions"       bankedSurfaces={null} />
+                <EntryList entries={constructions} label="Constructions"       bankedSurfaces={null} byAtom={byAtom} />
                 {noWords && (
                   <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic' }}>{STRUCTURE_UNLOCK[atomId]}</div>
                 )}
@@ -357,10 +388,10 @@ export default function IndexScreen({ onBack }) {
             )
           })}
 
-          {/* Hint when no atom selected and no tense filter */}
+          {/* Hint when nothing is selected or searched */}
           {!searchResults && selectedAtoms.size === 0 && !hasTenseFilter && (
-            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-              Select an atom above to see its vocabulary and constructions.
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>
+              Select an atom above to browse its vocabulary, or search by word.
             </div>
           )}
         </>}

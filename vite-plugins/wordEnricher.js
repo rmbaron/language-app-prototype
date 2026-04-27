@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { ATOMS } from '../src/grammarAtoms.en.js'
+import { TENSE_GRID } from '../src/tenseGrid.en.js'
 
 const L1_SYSTEM = `You are classifying words for a language learning app.
 
@@ -14,21 +15,37 @@ const L2_SYSTEM = (() => {
   const atomList = ATOMS
     .map(a => `- ${a.id}: ${a.description} (e.g. ${a.examples.slice(0, 3).join(', ')})`)
     .join('\n')
+  const tenseList = TENSE_GRID
+    .map(t => `- ${t.id}: ${t.name} — ${t.structure} (e.g. "${t.example}")`)
+    .join('\n')
+
   return `You are building detailed linguistic profiles for words in a language learning app.
 
 Grammar atoms — pick the single best one for grammaticalAtom:
 ${atomList}
 
+Tense grid IDs (used in the "tenses" field on forms):
+${tenseList}
+
 Return a JSON object with these fields:
 - grammaticalAtom: one atom ID from the list above — the primary grammatical classification
-- alternateAtoms: array of { atom, when } objects for any secondary grammatical functions this word can serve. "atom" is an atom ID from the list above. "when" is a short phrase describing the context in which this alternate function applies (e.g. "introducing a dependent clause", "used as progressive auxiliary", "used as perfect auxiliary"). Empty array if the word has only one grammatical function.
+- alternateAtoms: array of { atom, when } for any secondary grammatical functions. "when" is a short phrase (e.g. "used as progressive auxiliary"). Empty array if only one function.
 - cefrLevel: earliest CEFR level where this word is useful (e.g. "A1")
-- subLevel: earliest sub-level (e.g. "A1.1", "A1.2", "A1.3")
+- subLevel: earliest sub-level (e.g. "A1.1")
 - frequency: "core" | "high" | "medium" | "low" (relative to its CEFR level)
-- forms: array of { form, type } objects for all inflected forms (e.g. third_person_present, past, present_participle, future, plural, comparative, superlative, object, possessive, reflexive, vowel_variant, contracted_negative, contracted_negative_third, subject_contraction). For auxiliary, modal, and copula verbs always include contracted negative forms (e.g. don't, doesn't, can't, won't, isn't, aren't) and subject contractions where natural (e.g. I'm, you're, he's for "be"). Empty array if the word does not inflect.
+- forms: array of { form, type, tenses } for all inflected forms.
+  "type" is the grammatical role: third_person_present, past, past_participle, present_participle, plural, comparative, superlative, object, possessive, reflexive, vowel_variant, contracted_negative, contracted_negative_third, subject_contraction, etc.
+  "tenses" is an array of tense grid IDs where this form is used as the main verb slot:
+    - base form of a lexical verb → ["present_simple"]
+    - third_person_present → ["present_simple"]
+    - past → ["past_simple"]
+    - past_participle → ["present_perfect","past_perfect","future_perfect","present_perfect_continuous","past_perfect_continuous","future_perfect_continuous"]
+    - present_participle (-ing) → ["present_continuous","past_continuous","future_continuous","present_perfect_continuous","past_perfect_continuous","future_perfect_continuous"]
+    - for non-lexical-verb words (nouns, pronouns, adjectives, etc.) set tenses: [] on all forms
+  For auxiliary, modal, and copula verbs always include contracted negatives (don't, can't, isn't, etc.) and subject contractions where natural (I'm, you're, he's). Empty forms array if the word does not inflect.
 - contentReady: false
 
-Important: for pronouns, distinguish carefully — personal_pronoun is subject case only (I, you, he, she, we, they); object_pronoun is object case only (me, him, her, us, them). Do not classify object-case pronouns as personal_pronoun.
+Important: personal_pronoun is subject case only (I, you, he, she, we, they); object_pronoun is object case only (me, him, her, us, them). Do not classify object-case pronouns as personal_pronoun.
 
 Reply with only valid JSON. No explanation.`
 })()
@@ -81,7 +98,7 @@ export function wordEnricherL2() {
             const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
             const message = await client.messages.create({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 800,
+              max_tokens: 1200,
               system: [{ type: 'text', text: L2_SYSTEM, cache_control: { type: 'ephemeral' } }],
               messages: [{ role: 'user', content: `Word: "${baseForm}" (${lang === 'en' ? 'English' : lang})\nLayer 1 data: ${JSON.stringify(layer1)}` }],
             })

@@ -75,9 +75,11 @@ export function tokenizeFull(text, atomWords = {}) {
     for (const w of words) wordToAtom[w] = atomId
   }
 
-  const modalTriggers = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
+  const modalTriggers  = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
   const copulaWords    = new Set((atomWords['copula']          ?? []).map(w => w.toLowerCase()))
   const lexicalVerbs   = new Set((atomWords['lexical_verb']    ?? []).map(w => w.toLowerCase()))
+  // have/has/had as perfect auxiliary — hardcoded since perfect_auxiliary has no standalone words
+  const perfectTriggers = new Set(['have', 'has', 'had'])
   // \.{3} before [.,;:] so ellipsis is one token; [!?]+ so !! and ??? collapse to one token
   const raw = text.match(/[a-zA-Z'']+|\.{3}|[!?]+|[.,;:]/g) ?? []
   const result = []
@@ -125,6 +127,18 @@ export function tokenizeFull(text, atomWords = {}) {
       const isIngForm = nextLower.endsWith('ing') && nextLower !== nextBase
       if (isIngForm && (lexicalVerbs.has(nextBase) || lexicalVerbs.has(nextLower) || wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb')) {
         result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'progressive', atomClass: 'progressive_construction', sentenceIndex })
+        i += 2; continue
+      }
+    }
+
+    // Try perfect construction: have/has/had + lexical_verb form
+    if (perfectTriggers.has(lower) && i + 1 < raw.length) {
+      const nextLower = raw[i + 1].toLowerCase()
+      const nextBase  = resolveToBase(nextLower)
+      const isLexVerb = lexicalVerbs.has(nextBase) || lexicalVerbs.has(nextLower)
+        || wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb'
+      if (isLexVerb) {
+        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'perfect', atomClass: 'perfect_construction', sentenceIndex })
         i += 2; continue
       }
     }
