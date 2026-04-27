@@ -4,10 +4,18 @@ import { FIXED_UNITS } from './multiWordUnits.en.js'
 // Words that always pass — no lexical meaning, never banked as vocabulary.
 // Keep this minimal: only articles and pure coordinating conjunctions.
 // Pronouns, auxiliaries, prepositions — all go through the bank check.
-const ALWAYS_PASS = new Set([
-  'a', 'an', 'the',
-  'and', 'but', 'or', 'so', 'yet', 'nor',
-])
+export const ALWAYS_PASS_WORDS = [
+  { word: 'a',   atomClass: 'determiner'  },
+  { word: 'an',  atomClass: 'determiner'  },
+  { word: 'the', atomClass: 'determiner'  },
+  { word: 'and', atomClass: 'conjunction' },
+  { word: 'but', atomClass: 'conjunction' },
+  { word: 'or',  atomClass: 'conjunction' },
+  { word: 'so',  atomClass: 'conjunction' },
+  { word: 'yet', atomClass: 'conjunction' },
+  { word: 'nor', atomClass: 'conjunction' },
+]
+const ALWAYS_PASS = new Set(ALWAYS_PASS_WORDS.map(w => w.word))
 
 // Returns an array of tokens, each with:
 //   { word, status: 'banked' | 'function' | 'unknown' | 'punctuation' }
