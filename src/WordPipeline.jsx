@@ -135,7 +135,22 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                   {l2 && <>
                     <div><span style={{ color: '#555' }}>atom:</span> {l2.grammaticalAtom} · <span style={{ color: '#555' }}>level:</span> {l2.cefrLevel} {l2.subLevel} · <span style={{ color: '#555' }}>freq:</span> {l2.frequency}</div>
                     {l2.alternateAtoms?.length > 0 && <div><span style={{ color: '#555' }}>alt atoms:</span> {l2.alternateAtoms.map(a => `${a.atom} (${a.when})`).join(' · ')}</div>}
-                    <div><span style={{ color: '#555' }}>forms:</span> {l2.forms?.map(f => f.form).join(', ') ?? '—'}</div>
+                    {l2.forms?.length > 0 && (
+                      <div style={{ marginTop: 4 }}>
+                        <span style={{ color: '#555' }}>forms:</span>
+                        {l2.forms.map((f, i) => (
+                          <div key={i} style={{ paddingLeft: 12, lineHeight: 1.8 }}>
+                            <span style={{ color: '#ccc', minWidth: 120, display: 'inline-block' }}>{f.form}</span>
+                            <span style={{ color: '#444', minWidth: 180, display: 'inline-block' }}>{f.type}</span>
+                            {f.tenses?.length > 0
+                              ? <span style={{ color: '#7a9a7a' }}>{f.tenses.join(' · ')}</span>
+                              : <span style={{ color: '#333' }}>—</span>
+                            }
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!l2.forms?.length && <div><span style={{ color: '#555' }}>forms:</span> —</div>}
                   </>}
                   {!l1 && !l2 && <div style={{ color: '#444' }}>no data</div>}
                 </div>
