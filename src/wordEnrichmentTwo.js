@@ -87,23 +87,42 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
   }
 }
 
-// Force re-enrichment: re-enriches words that have Layer 1, up to batchLimit.
-// Processes alphabetically so repeated runs walk through the list predictably.
+const CAMPAIGN_KEY = 'lapp-re-enrich-campaign'
+
+export function getReEnrichCampaign() {
+  try { return JSON.parse(localStorage.getItem(CAMPAIGN_KEY)) ?? null } catch { return null }
+}
+
+export function setReEnrichCampaign(since, note = '') {
+  localStorage.setItem(CAMPAIGN_KEY, JSON.stringify({ since, note }))
+}
+
+export function clearReEnrichCampaign() {
+  localStorage.removeItem(CAMPAIGN_KEY)
+}
+
+// Force re-enrichment: re-enriches words that have Layer 1 and were enriched before `since`.
+// Words with no enrichedAt are always included. Eligible set shrinks naturally with each run.
 // Safe replacement: writes new data on success, never clears existing data first.
 // onProgress({ done, total, current, enriched, failed }) fires after each word.
-export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, onProgress = null) {
+export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, onProgress = null, since = null, note = '') {
   const { getLayerTwo } = await import('./wordLayerTwo')
 
-  const all = WORD_SEED
-    .filter(w => w.language === lang && hasLayerOne(w.id, lang))
+  const eligible = WORD_SEED
+    .filter(w => {
+      if (w.language !== lang || !hasLayerOne(w.id, lang)) return false
+      if (since == null) return true
+      const l2 = getLayerTwo(w.id, lang)
+      return !l2?.enrichedAt || l2.enrichedAt < since
+    })
     .sort((a, b) => a.baseForm.localeCompare(b.baseForm))
 
-  const batch   = all.slice(0, batchLimit)
+  const batch   = eligible.slice(0, batchLimit)
   const total   = batch.length
   const enriched = []
   const failed   = []
 
-  console.log(`[enrichment-l2] force re-enriching ${total} / ${all.length} words (alphabetical)...`)
+  console.log(`[enrichment-l2] force re-enriching ${total} / ${eligible.length} eligible words...`)
 
   for (let i = 0; i < batch.length; i++) {
     const word = batch[i]
@@ -114,7 +133,7 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
       const result = await enrichOneWordL2(word.id, word.baseForm, lang, layer1)
       if (result) {
         // Write new data before touching existing — safe replacement
-        setLayerTwo(word.id, lang, { ...result, source: 'api' })
+        setLayerTwo(word.id, lang, { ...result, source: 'api', ...(note ? { enrichmentNote: note } : {}) })
         const existing = findWordInIndex(word.id, lang)
         if (result.grammaticalAtom && result.cefrLevel) {
           if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
@@ -137,7 +156,8 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
   onProgress?.({ done: total, total, current: null, enriched: [...enriched], failed: [...failed] })
 
   // Rebuild atom index from all currently-enriched words
-  const enrichedWords = all
+  const allWithL1 = WORD_SEED.filter(w => w.language === lang && hasLayerOne(w.id, lang))
+  const enrichedWords = allWithL1
     .map(w => {
       const l2 = getLayerTwo(w.id, lang)
       return l2?.grammaticalAtom && l2?.cefrLevel
@@ -147,8 +167,8 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
     .filter(Boolean)
   rebuildAtomIndex(lang, enrichedWords)
 
-  const remaining = all.length - batch.length
-  console.log(`[enrichment-l2] done. ${enriched.length} enriched, ${failed.length} failed${remaining > 0 ? `, ${remaining} remaining` : ''}.`)
+  const remaining = eligible.length - batch.length
+  console.log(`[enrichment-l2] done. ${enriched.length} enriched, ${failed.length} failed${remaining > 0 ? `, ${remaining} still eligible` : ''}.`)
   return { enriched, failed, remaining }
 }
 

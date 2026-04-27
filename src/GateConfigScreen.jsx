@@ -4,6 +4,7 @@ import { WORLD_SPHERE_DESTINATIONS } from './worldSphereConfig'
 import { GRAMMAR_CLUSTERS } from './grammarClustering.en'
 import { ATOMS } from './grammarAtoms.en'
 import { loadGateConfig, saveGateConfig, buildWordDataMap, evaluateGate, loadGateOverride, saveGateOverride } from './gateConfig'
+import { evaluateMetaCircuit } from './metaCircuit'
 
 const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const CLUSTER_IDS = GRAMMAR_CLUSTERS.map(c => c.id)
@@ -287,8 +288,19 @@ function RuleCard({ rule, result, groupColor, activeAtoms, onChange, onDelete })
 export default function GateConfigScreen({ initialDest, onBack }) {
   const { inventory }                         = useInventory()
   const { wordBank, identity, grammarPosition } = inventory
-  const { lang, cefrLevel }                   = identity
-  const { activeAtoms, currentCluster }       = grammarPosition
+  const { lang }                              = identity
+
+  const circuit       = evaluateMetaCircuit(lang)
+  const cefrLevel     = circuit.level ?? identity.cefrLevel
+  const currentCluster = circuit.cluster
+  const activeAtoms   = circuit.activeAtoms
+
+  // Build a circuit-aware inventory for evaluateGate — substitutes Meta Circuit position
+  const circuitInventory = {
+    ...inventory,
+    grammarPosition: { ...grammarPosition, activeAtoms, currentCluster },
+    identity:        { ...identity, cefrLevel },
+  }
 
   const [selectedDest, setSelectedDest] = useState(initialDest ?? WORLD_SPHERE_DESTINATIONS[0].id)
   const [config,       setConfig]       = useState(() => loadGateConfig(selectedDest))
@@ -307,8 +319,9 @@ export default function GateConfigScreen({ initialDest, onBack }) {
   )
 
   const gateResult = useMemo(
-    () => evaluateGate(config, inventory, wordDataMap),
-    [config, inventory, wordDataMap]
+    () => evaluateGate(config, circuitInventory, wordDataMap),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [config, circuitInventory.grammarPosition.activeAtoms.join(','), circuitInventory.identity.cefrLevel, circuitInventory.grammarPosition.currentCluster, wordDataMap]
   )
 
   const selectedCombos = useMemo(
@@ -415,6 +428,11 @@ export default function GateConfigScreen({ initialDest, onBack }) {
             borderRadius: 5, padding: '5px 12px', fontSize: 12, cursor: 'pointer',
           }}>← Back</button>
           <span style={{ fontSize: 15, fontWeight: 700, color: C.primary, flex: 1 }}>Gate Config</span>
+          {circuit.isSimulated && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#6633cc', background: '#f3eeff', border: '1px solid #c4a8f0', borderRadius: 4, padding: '3px 10px' }}>
+              SIMULATED
+            </span>
+          )}
 
           {/* Master override */}
           <label style={{

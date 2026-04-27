@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { WORD_SEED } from './wordSeed.en'
 import { hasLayerOne, getLayerOne } from './wordLayerOne'
-import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, resetContentReady, markContentReady } from './wordLayerTwo'
+import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, resetContentReady, markContentReady } from './wordLayerTwo'
 import { runLayerOneBatch, enrichWord } from './wordEnrichment'
-import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2 } from './wordEnrichmentTwo'
+import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2, getReEnrichCampaign, setReEnrichCampaign, clearReEnrichCampaign } from './wordEnrichmentTwo'
 import { clearWordContent } from './contentStore'
 import { getAtomIndex, getAtomIndexRebuiltAt, rebuildAtomIndex, findWordInIndex } from './atomIndex'
 
@@ -134,6 +134,10 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                   {l1 && <div><span style={{ color: '#555' }}>cat:</span> {l1.grammaticalCategory} · <span style={{ color: '#555' }}>meaning:</span> {l1.meaning}</div>}
                   {l2 && <>
                     <div><span style={{ color: '#555' }}>atom:</span> {l2.grammaticalAtom} · <span style={{ color: '#555' }}>level:</span> {l2.cefrLevel} {l2.subLevel} · <span style={{ color: '#555' }}>freq:</span> {l2.frequency}</div>
+                    <div style={{ color: '#3a5a3a' }}>
+                      <span style={{ color: '#555' }}>enriched:</span> {l2.enrichedAt ? new Date(l2.enrichedAt).toLocaleString() : '—'}
+                      {l2.enrichmentNote && <span style={{ marginLeft: 8, color: '#3a6a5a' }}>"{l2.enrichmentNote}"</span>}
+                    </div>
                     {l2.alternateAtoms?.length > 0 && <div><span style={{ color: '#555' }}>alt atoms:</span> {l2.alternateAtoms.map(a => `${a.atom} (${a.when})`).join(' · ')}</div>}
                     {l2.forms?.length > 0 && (
                       <div style={{ marginTop: 4 }}>
@@ -169,6 +173,8 @@ export default function WordPipeline({ onClose }) {
   const [batchReport, setBatchReport]   = useState(null)
   const [batchSize, setBatchSize]       = useState(10)
   const [reEnrichProgress, setReEnrichProgress] = useState(null)
+  const [campaign, setCampaign] = useState(() => getReEnrichCampaign())
+  const [campaignNote, setCampaignNote] = useState(() => getReEnrichCampaign()?.note ?? '')
   const [search, setSearch]           = useState('')
   const [newWord, setNewWord]         = useState('')
   const [addError, setAddError]       = useState(null)
@@ -334,32 +340,6 @@ export default function WordPipeline({ onClose }) {
               <button className="dev-toggle" onClick={() => runBatch('l3')} disabled={!!running}>
                 {running === 'l3' ? 'Running…' : 'Run L3'}
               </button>
-              <button
-                className="dev-toggle"
-                style={{ background: '#3a1a1a' }}
-                disabled={!!running}
-                onClick={() => {
-                  WORD_SEED.filter(w => hasLayerTwo(w.id, 'en') && !hasRealLayerTwo(w.id, 'en'))
-                    .forEach(w => clearLayerTwo(w.id, 'en'))
-                  forceUpdate(n => n + 1)
-                }}
-              >
-                Clear mock L2
-              </button>
-              <button
-                className="dev-toggle"
-                style={{ background: '#1a2a3a' }}
-                disabled={!!running}
-                onClick={async () => {
-                  setRunning('l2-force')
-                  setReEnrichProgress({ done: 0, total: batchSize, current: null, enriched: [], failed: [] })
-                  await forceReEnrichAllL2('en', batchSize, p => setReEnrichProgress({ ...p }))
-                  setRunning(null)
-                  forceUpdate(n => n + 1)
-                }}
-              >
-                {running === 'l2-force' ? `Re-enriching…` : 'Re-enrich L2'}
-              </button>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
@@ -377,6 +357,76 @@ export default function WordPipeline({ onClose }) {
                 {running === 'l2' ? 'Running…' : `Run L2 (${pendingL2} pending)`}
               </button>
             </div>
+            {(() => {
+              const eligible = campaign
+                ? WORD_SEED.filter(w => {
+                    if (!hasLayerOne(w.id, 'en')) return false
+                    const l2 = getLayerTwo(w.id, 'en')
+                    return !l2?.enrichedAt || l2.enrichedAt < campaign.since
+                  }).length
+                : null
+              return (
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', borderRadius: 4, background: '#0d1520', border: '1px solid #1a2a3a' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={campaignNote}
+                      onChange={e => setCampaignNote(e.target.value)}
+                      placeholder="Note (e.g. fix tense tags)…"
+                      style={{ flex: 1, padding: '3px 8px', borderRadius: 3, background: '#111', border: '1px solid #222', color: '#aaa', fontSize: 11, fontFamily: 'monospace' }}
+                    />
+                    <button
+                      className="dev-toggle"
+                      style={{ background: '#1a3a2a', whiteSpace: 'nowrap' }}
+                      disabled={!!running}
+                      onClick={() => {
+                        const c = { since: Date.now(), note: campaignNote }
+                        setReEnrichCampaign(c.since, c.note)
+                        setCampaign(c)
+                      }}
+                    >
+                      Set cutoff to now
+                    </button>
+                    {campaign && (
+                      <button
+                        className="dev-toggle"
+                        style={{ background: '#2a1a1a' }}
+                        disabled={!!running}
+                        onClick={() => { clearReEnrichCampaign(); setCampaign(null) }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  {campaign && (
+                    <div style={{ fontSize: 11, color: '#555', fontFamily: 'monospace' }}>
+                      cutoff: {new Date(campaign.since).toLocaleString()}
+                      {campaign.note && <span style={{ color: '#3a6a5a', marginLeft: 8 }}>"{campaign.note}"</span>}
+                      <span style={{ marginLeft: 12, color: eligible > 0 ? '#cf9f4f' : '#3a6a3a' }}>
+                        {eligible} word{eligible !== 1 ? 's' : ''} eligible
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button
+                      className="dev-toggle"
+                      style={{ background: '#1a2a3a' }}
+                      disabled={!!running || !campaign}
+                      onClick={async () => {
+                        setRunning('l2-force')
+                        setReEnrichProgress({ done: 0, total: batchSize, current: null, enriched: [], failed: [] })
+                        await forceReEnrichAllL2('en', batchSize, p => setReEnrichProgress({ ...p }), campaign?.since ?? null, campaign?.note ?? '')
+                        setRunning(null)
+                        forceUpdate(n => n + 1)
+                      }}
+                    >
+                      {running === 'l2-force' ? 'Re-enriching…' : `Re-enrich L2${eligible != null ? ` (${eligible} eligible)` : ''}`}
+                    </button>
+                    {!campaign && <span style={{ fontSize: 11, color: '#444' }}>set a cutoff first</span>}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )
       })()}
@@ -451,7 +501,6 @@ export default function WordPipeline({ onClose }) {
       <div style={{ fontSize: 11, color: '#444', marginBottom: 16, display: 'flex', gap: 12 }}>
         <Badge label="api" status="api" /> api &nbsp;
         <Badge label="pre" status="pre" /> pre-pop &nbsp;
-        <Badge label="mock" status="mock" /> mock &nbsp;
         <Badge label="—" status="none" /> missing
       </div>
 

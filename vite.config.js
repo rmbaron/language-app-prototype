@@ -11,6 +11,7 @@ import layerTestGenerator       from './vite-plugins/layerTestGenerator.js'
 import constructorGenerator     from './vite-plugins/constructorGenerator.js'
 import writingPromptGeneratorV2 from './vite-plugins/writingPromptGeneratorV2.js'
 import samplePortraitGenerator  from './vite-plugins/samplePortraitGenerator.js'
+import promptFactory            from './vite-plugins/promptFactory.js'
 
 dotenvConfig()
 
@@ -27,5 +28,6 @@ export default defineConfig({
     samplePortraitGenerator(),
     constructorGenerator(),
     writingPromptGeneratorV2(),
+    promptFactory(),
   ],
 })

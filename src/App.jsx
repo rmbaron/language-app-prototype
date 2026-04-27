@@ -29,6 +29,8 @@ import CircuitTest from './CircuitTest'
 import MultiWordLab from './MultiWordLab'
 import InventoryMirror from './InventoryMirror'
 import GateConfigScreen from './GateConfigScreen'
+import MetaCircuitScreen from './MetaCircuitScreen'
+import PromptFactoryScreen from './PromptFactoryScreen'
 import StubScreen from './StubScreen'
 import IndexScreen from './IndexScreen'
 import './inventory-mirror.css'
@@ -122,6 +124,14 @@ export default function App() {
     return <GateConfigScreen initialDest={gateConfigDest} onBack={() => setView('worldSphere')} />
   }
 
+  if (view === 'metaCircuit') {
+    return <MetaCircuitScreen onBack={() => setView('hub')} />
+  }
+
+  if (view === 'promptFactory') {
+    return <PromptFactoryScreen onBack={() => setView('hub')} />
+  }
+
   if (view === 'friend') {
     return <StubScreen name="Friend" onBack={() => setView('worldSphere')} />
   }
@@ -213,6 +223,12 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setView('multiWordLab')}>
           Multi-Word
+        </button>
+        <button className="dev-toggle" onClick={() => setView('metaCircuit')}>
+          Meta Circuit
+        </button>
+        <button className="dev-toggle" onClick={() => setView('promptFactory')}>
+          Prompt Factory
         </button>
         <button className="dev-toggle" onClick={() => { setGateConfigDest(null); setView('gateConfig') }}>
           Gates
