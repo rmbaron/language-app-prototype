@@ -1,10 +1,11 @@
 import LaneStatusBar from './LaneStatusBar'
+import WordMasteryBar from './WordMasteryBar'
 import { getStrings } from './uiStrings'
 import { getInterfaceLanguage } from './learnerProfile'
 
 export default function WordCard({ word, wordProgress, status = 'banked', onSelect }) {
   const s = getStrings(getInterfaceLanguage())
-  const { fullyUnlocked, lanes, mastery } = wordProgress ?? {}
+  const { fullyUnlocked, lanes } = wordProgress ?? {}
 
   return (
     <div className={`word-card word-card--${status}`} onClick={onSelect}>
@@ -18,15 +19,9 @@ export default function WordCard({ word, wordProgress, status = 'banked', onSele
           <span className={`word-status-dot word-status-dot--${status}`} title={status} />
         </div>
       </div>
-      {fullyUnlocked && (
-        <div className="word-card-mastery">
-          <div className="word-card-mastery-track">
-            {/* Future: segment this track into 4 lane sections as mastery grows per-lane */}
-            <div className="word-card-mastery-fill" style={{ width: `${mastery}%` }} />
-          </div>
-          <span className="word-card-mastery-pct">{mastery}%</span>
-        </div>
-      )}
+      <div className="word-card-mastery">
+        <WordMasteryBar wordId={word.id} label={s.wordBank.mastery} />
+      </div>
     </div>
   )
 }

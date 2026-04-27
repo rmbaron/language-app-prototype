@@ -273,15 +273,17 @@ export default function WritingPractice({ onBack }) {
     const forceInstruction = forced ? (CLUSTER_FORCE[selectedCluster] ?? null) : null
 
     try {
-      const res = await fetch('/__generate-writing-prompt', {
+      const res = await fetch('/__generate-writing-prompt-v2', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          selectedTopic,
-          grammarWords,
+          targetAtom:  null,
+          activeAtoms: activeAtomIds.map(id => ({ id, label: ATOM_LABEL[id], words: atomWords[id] ?? [] })),
+          vocabContext: { topic: selectedTopic.topic, words: selectedTopic.words },
           scope,
-          lang:      identity.lang,
-          cefrLevel: identity.cefrLevel,
+          difficulty:  1,
+          lang:        identity.lang,
+          cefrLevel:   identity.cefrLevel,
           forceInstruction,
         }),
       })

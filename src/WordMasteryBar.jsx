@@ -7,14 +7,14 @@ const DISPLAY_ORDER = ['writing', 'speaking', 'reading', 'listening']
 
 const TOTAL_WEIGHT = Object.values(LANE_CONFIG).reduce((s, c) => s + c.weight, 0)
 
-export default function WordMasteryBar({ wordId }) {
+export default function WordMasteryBar({ wordId, label }) {
   const usage = getUsage(wordId)
   const { lanes, total } = computeScore(usage)
 
   return (
     <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#555', marginBottom: 6 }}>
-        <span style={{ fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: 11 }}>mastery</span>
+        <span style={{ fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: 11 }}>{label}</span>
         <span style={{ fontWeight: 600 }}>{total}</span>
       </div>
 

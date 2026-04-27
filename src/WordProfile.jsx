@@ -86,7 +86,7 @@ export default function WordProfile({ word, onBack, onPractice, storeData, onSto
       </div>
 
       <div className="mastery-section">
-        <WordMasteryBar key={usageTick} wordId={word.id} />
+        <WordMasteryBar key={usageTick} wordId={word.id} label={s.wordProfile.mastery} />
       </div>
 
       <div className="profile-sections">

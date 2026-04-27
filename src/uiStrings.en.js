@@ -125,6 +125,7 @@ export default {
       completed: n => `completed (${n})`,
     },
 
+    mastery:           'Mastery',
     addWord:           'Add a word',
 
     milestones: {
