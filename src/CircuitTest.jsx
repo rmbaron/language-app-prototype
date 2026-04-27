@@ -38,13 +38,13 @@ export default function CircuitTest({ onClose }) {
   const [showRegistry, setShowRegistry] = useState(false)
   const [modalMode, setModalMode] = useState('registry')
 
-  function run() {
-    if (!input.trim()) return
-    const effectiveAtomWords = modalMode === 'test'
+  function runOn(text, mode = modalMode) {
+    if (!text.trim()) { setTokens(null); setSentences(null); return }
+    const effectiveAtomWords = mode === 'test'
       ? { ...atomWords, modal_auxiliary: TEST_MODAL_TRIGGERS }
       : atomWords
-    setTokens(checkCircuitFull(input, wordBank, effectiveAtomWords))
-    setSentences(splitSentences(input))
+    setTokens(checkCircuitFull(text, wordBank, effectiveAtomWords))
+    setSentences(splitSentences(text))
   }
 
   function clear() { setInput(''); setTokens(null); setSentences(null) }
@@ -96,23 +96,18 @@ export default function CircuitTest({ onClose }) {
       {/* Shared input */}
       <textarea
         value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run() } }}
-        placeholder="Type one or more sentences and press Enter or Run…"
+        onChange={e => { setInput(e.target.value); runOn(e.target.value) }}
+        placeholder="Type to run the circuit live…"
         style={{ width: '100%', minHeight: 80, border: `1px solid ${T.border}`, borderRadius: 4, color: T.text, fontSize: 15, padding: '10px 12px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6, background: T.card, marginBottom: 10 }}
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
         {clearBtn}
-        <button onClick={run} disabled={!input.trim()}
-          style={{ background: '#fff', border: `1px solid ${T.border}`, borderRadius: 4, color: T.textSub, cursor: input.trim() ? 'pointer' : 'default', fontSize: 13, padding: '6px 18px', opacity: input.trim() ? 1 : 0.4 }}>
-          run
-        </button>
         <div style={{ display: 'flex', gap: 0 }}>
-          <button onClick={() => setModalMode('registry')}
+          <button onClick={() => { setModalMode('registry'); runOn(input, 'registry') }}
             style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRight: 'none', borderRadius: '4px 0 0 4px', cursor: 'pointer', background: modalMode === 'registry' ? '#fde8c8' : '#fff', color: modalMode === 'registry' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'registry' ? 700 : 400 }}>
             registry
           </button>
-          <button onClick={() => setModalMode('test')}
+          <button onClick={() => { setModalMode('test'); runOn(input, 'test') }}
             style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${T.border}`, borderRadius: '0 4px 4px 0', cursor: 'pointer', background: modalMode === 'test' ? '#fde8c8' : '#fff', color: modalMode === 'test' ? '#7a4000' : T.textDim, fontWeight: modalMode === 'test' ? 700 : 400 }}>
             test set
           </button>

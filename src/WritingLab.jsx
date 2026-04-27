@@ -7,7 +7,7 @@ import { ATOMS } from './grammarAtoms.en'
 import { getBankedWords } from './wordRegistry'
 import { buildLearnerIntroduction, buildLevelChannel } from './systemVocabulary'
 import { buildAISystemPrompt } from './aiIdentity'
-import { checkCircuit, circuitSummary, checkCircuitFull } from './circuitCheck'
+import { checkCircuit, circuitSummary, checkCircuitFull, splitSentences } from './circuitCheck'
 
 const ATOM_BY_ID = Object.fromEntries(ATOMS.map(a => [a.id, a]))
 
@@ -348,30 +348,84 @@ function AssembledPromptPanel({ cefrLevel, worldTexture, scope, effectiveForce, 
 
 // ─── Circuit display ─────────────────────────────────────────────────────────
 
+const CIRCUIT_STYLE = {
+  fixed_unit:   { bg: '#e8d8f4', border: '#b890d8', color: '#4a1a8a', label: 'unit'         },
+  construction: { bg: '#fde8c8', border: '#d8a050', color: '#7a4000', label: 'construction' },
+  banked:       { bg: T.greenBg,  border: T.greenBord,  color: T.green,   label: 'banked'  },
+  function:     { bg: T.card,     border: T.border,      color: T.textDim, label: 'fn'      },
+  unknown:      { bg: T.redBg,    border: T.redBord,     color: T.red,     label: '?'       },
+  punctuation:  { bg: 'transparent', border: 'transparent', color: T.textDim, label: ''    },
+}
+
 function CircuitDisplay({ tokens }) {
-  const summary = circuitSummary(tokens)
-  const colors = { banked: '#1a6a1a', function: '#aaa', unknown: '#c00', punctuation: '#999' }
+  const nonPunct = tokens.filter(t => t.type !== 'punctuation')
+  const unknown  = nonPunct.filter(t => t.type === 'unknown')
+  const passed   = nonPunct.length - unknown.length
+  const clean    = unknown.length === 0
 
   return (
     <div style={{ marginTop: 12, padding: '12px 14px', background: T.codeBg, border: `1px solid ${T.border}`, borderRadius: 5 }}>
       <Label>Circuit Check</Label>
-      <div style={{ lineHeight: 2.4, fontSize: 16 }}>
-        {tokens.map((t, i) => (
-          <span key={i} style={{
-            color: colors[t.status],
-            marginRight: t.status === 'punctuation' ? 0 : 5,
-            textDecoration: t.status === 'unknown' ? 'underline dotted #c00' : 'none',
-            fontWeight: t.status === 'banked' ? 600 : 400,
-          }}>{t.word}</span>
-        ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 10 }}>
+        {tokens.map((t, i) => {
+          const s = CIRCUIT_STYLE[t.type] ?? CIRCUIT_STYLE.unknown
+          if (t.type === 'punctuation') return (
+            <span key={i} style={{ color: T.textDim, fontSize: 18, paddingBottom: 18 }}>{t.surface}</span>
+          )
+          return (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+              <div style={{ padding: '6px 12px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 5, color: s.color, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {t.surface}
+              </div>
+              <span style={{ fontSize: 9, color: s.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t.atomClass ?? s.label}</span>
+            </div>
+          )
+        })}
       </div>
-      <div style={{ marginTop: 10, fontSize: 12, color: summary.clean ? T.green : T.red, borderTop: `1px solid ${T.border}`, paddingTop: 8 }}>
-        {summary.passed}/{summary.total} content words passed
-        {summary.unknownWords.length > 0 && (
-          <span style={{ color: T.red }}> · unknown: {summary.unknownWords.join(', ')}</span>
-        )}
+      <div style={{ fontSize: 12, color: clean ? T.green : T.red, borderTop: `1px solid ${T.border}`, paddingTop: 8 }}>
+        {passed}/{nonPunct.length} passed
+        {unknown.length > 0 && <span style={{ color: T.red }}> · unknown: {unknown.map(t => t.surface).join(', ')}</span>}
       </div>
-      <div style={{ marginTop: 4, fontSize: 11, color: T.textDim }}>green = banked · gray = function word · red underline = not in bank</div>
+    </div>
+  )
+}
+
+// ─── Sentence circuit display ────────────────────────────────────────────────
+
+function SentenceCircuitDisplay({ text, wordBank, wordTokens }) {
+  const sentences = splitSentences(text)
+  if (sentences.length === 0) return null
+
+  const wordCircuitCount = wordTokens
+    ? new Set(wordTokens.map(t => t.sentenceIndex ?? 1)).size
+    : null
+  const sentenceCount = sentences.length
+  const aligned = wordCircuitCount === null || wordCircuitCount === sentenceCount
+
+  return (
+    <div style={{ marginTop: 8, padding: '10px 12px', background: T.codeBg, border: `1px solid ${T.border}`, borderRadius: 5 }}>
+      <Label>Sentence Circuit</Label>
+      {sentences.map(s => {
+        const tokens  = checkCircuit(s.text, wordBank)
+        const summary = circuitSummary(tokens)
+        return (
+          <div key={s.index} style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 5 }}>
+            <span style={{ fontSize: 10, fontFamily: 'monospace', color: T.textDim, flexShrink: 0, width: 18 }}>S{s.index}</span>
+            <span style={{ fontSize: 13, color: summary.clean ? T.green : T.red, flex: 1, lineHeight: 1.5 }}>
+              {s.text}{s.terminator ?? ''}
+            </span>
+            <span style={{ fontSize: 11, color: T.textDim, flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {summary.passed}/{summary.total}
+              {!summary.clean && ` · ${summary.unknownWords.join(', ')}`}
+            </span>
+          </div>
+        )
+      })}
+      <div style={{ fontSize: 11, color: aligned ? T.green : T.red, borderTop: `1px solid ${T.border}`, paddingTop: 6, marginTop: 4 }}>
+        {aligned
+          ? `✓ both circuits agree: ${sentenceCount} sentence${sentenceCount !== 1 ? 's' : ''}`
+          : `✗ mismatch — sentence circuit: ${sentenceCount}, word circuit: ${wordCircuitCount}`}
+      </div>
     </div>
   )
 }
@@ -379,23 +433,30 @@ function CircuitDisplay({ tokens }) {
 // ─── Layer section wrapper ───────────────────────────────────────────────────
 
 function LayerSection({ id, label, onGenerate, loading, prompt, showPrompt, onTogglePrompt, hasOutput, showOutput, onToggleOutput, children }) {
+  const [collapsed, setCollapsed] = useState(false)
   return (
     <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
       {/* Header bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: '#dcdcde', borderBottom: collapsed ? 'none' : `1px solid ${T.border}` }}>
+        <button onClick={() => setCollapsed(p => !p)}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 10, color: T.textDim, flexShrink: 0, lineHeight: 1 }}>
+          {collapsed ? '▶' : '▼'}
+        </button>
         <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700, flexShrink: 0 }}>{id}{label && <span style={{ fontWeight: 400, color: T.textDim }}> — {label}</span>}</span>
         <div style={{ flex: 1 }} />
-        {onGenerate && (
+        {!collapsed && onGenerate && (
           <button onClick={onGenerate} disabled={loading}
             style={{ ...btn('green', false), opacity: loading ? 0.5 : 1, cursor: loading ? 'default' : 'pointer', fontSize: 12, padding: '4px 14px' }}>
             {loading ? 'generating…' : 'generate'}
           </button>
         )}
-        <button onClick={onTogglePrompt}
-          style={{ ...btn('default', showPrompt), fontSize: 11, padding: '3px 10px' }}>
-          {showPrompt ? 'hide prompt' : 'prompt'}
-        </button>
-        {hasOutput && (
+        {!collapsed && (
+          <button onClick={onTogglePrompt}
+            style={{ ...btn('default', showPrompt), fontSize: 11, padding: '3px 10px' }}>
+            {showPrompt ? 'hide prompt' : 'prompt'}
+          </button>
+        )}
+        {!collapsed && hasOutput && (
           <button onClick={onToggleOutput}
             style={{ ...btn('default', showOutput), fontSize: 11, padding: '3px 10px' }}>
             {showOutput ? 'hide output' : 'output'}
@@ -403,19 +464,20 @@ function LayerSection({ id, label, onGenerate, loading, prompt, showPrompt, onTo
         )}
       </div>
 
-      {/* Prompt */}
-      {showPrompt && prompt && (
-        <div style={{ borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ padding: '6px 14px 4px', background: '#d4cfc0' }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#b07030', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Prompt</span>
+      {!collapsed && <>
+        {/* Prompt */}
+        {showPrompt && prompt && (
+          <div style={{ borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: '6px 14px 4px', background: '#d4cfc0' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#b07030', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Prompt</span>
+            </div>
+            <pre style={{ margin: 0, padding: '12px 14px', fontSize: 12, color: '#444', fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, background: '#d4cfc0' }}>
+              {prompt}
+            </pre>
           </div>
-          <pre style={{ margin: 0, padding: '12px 14px', fontSize: 12, color: '#444', fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, background: '#d4cfc0' }}>
-            {prompt}
-          </pre>
-        </div>
-      )}
-
-      {children}
+        )}
+        {children}
+      </>}
     </div>
   )
 }
@@ -552,8 +614,9 @@ export default function WritingLab({ onBack }) {
   const [showL4Output, setShowL4Output] = useState(false)
 
   // L5 state
-  const [mirrorOutput,  setMirrorOutput]  = useState(null)
-  const [circuitTokens, setCircuitTokens] = useState(null)
+  const [mirrorOutput,      setMirrorOutput]      = useState(null)
+  const [circuitTokens,     setCircuitTokens]     = useState(null)  // AI output circuit
+  const [userCircuitTokens, setUserCircuitTokens] = useState(null)  // user response circuit
   const [mirrorLoading, setMirrorLoading] = useState(false)
   const [mirrorError,   setMirrorError]   = useState(null)
   const [showL5Prompt,  setShowL5Prompt]  = useState(false)
@@ -813,39 +876,36 @@ export default function WritingLab({ onBack }) {
         )}
       </LayerSection>
 
-      {/* ── Portrait (feeds L2) ── */}
-      <div style={{ margin: '12px 0', padding: '14px 16px', background: '#d8d4c8', border: `1px solid #bcb490`, borderRadius: 6 }}>
-        <Label>Portrait — included in L2</Label>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-          <button onClick={() => setQuantOn(p => !p)}
-            style={{ ...btn('blue', quantOn), flexShrink: 0, marginTop: 2, fontSize: 11, padding: '3px 10px' }}>
-            quant
-          </button>
-          <textarea value={quantText} onChange={e => setQuantText(e.target.value)}
-            placeholder="quantitative portrait — patterns, composition, position"
-            style={{ ...textarea, minHeight: 48, opacity: quantOn ? 1 : 0.45, fontSize: 12 }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
-          <button onClick={() => setQualOn(p => !p)}
-            style={{ ...btn('blue', qualOn), flexShrink: 0, marginTop: 2, fontSize: 11, padding: '3px 10px' }}>
-            qual
-          </button>
-          <textarea value={qualText} onChange={e => setQualText(e.target.value)}
-            placeholder="who this person is — not how they learn, but who they are"
-            style={{ ...textarea, minHeight: 48, opacity: qualOn ? 1 : 0.45, fontSize: 12 }} />
-        </div>
-        <button onClick={handleGenerateSample} disabled={sampleState === 'loading'}
-          style={{ ...btn('blue', false), opacity: sampleState === 'loading' ? 0.4 : 1, cursor: sampleState === 'loading' ? 'default' : 'pointer' }}>
-          {sampleState === 'loading' ? 'generating…' : 'generate sample user'}
-        </button>
-      </div>
-
       {/* ── L2 ── */}
-      <LayerSection id="L2"
+      <LayerSection id="L2" label="Portrait"
         onGenerate={handleL2Generate} loading={l2Loading}
         prompt={computeL2Prompt()} showPrompt={showL2Prompt} onTogglePrompt={() => setShowL2Prompt(p => !p)}
         hasOutput={!!l2Result} showOutput={showL2Output} onToggleOutput={() => setShowL2Output(p => !p)}
       >
+        <div style={{ padding: '14px 16px', borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+            <button onClick={() => setQuantOn(p => !p)}
+              style={{ ...btn('blue', quantOn), flexShrink: 0, marginTop: 2, fontSize: 11, padding: '3px 10px' }}>
+              quant
+            </button>
+            <textarea value={quantText} onChange={e => setQuantText(e.target.value)}
+              placeholder="quantitative portrait — patterns, composition, position"
+              style={{ ...textarea, minHeight: 48, opacity: quantOn ? 1 : 0.45, fontSize: 12 }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+            <button onClick={() => setQualOn(p => !p)}
+              style={{ ...btn('blue', qualOn), flexShrink: 0, marginTop: 2, fontSize: 11, padding: '3px 10px' }}>
+              qual
+            </button>
+            <textarea value={qualText} onChange={e => setQualText(e.target.value)}
+              placeholder="who this person is — not how they learn, but who they are"
+              style={{ ...textarea, minHeight: 48, opacity: qualOn ? 1 : 0.45, fontSize: 12 }} />
+          </div>
+          <button onClick={handleGenerateSample} disabled={sampleState === 'loading'}
+            style={{ ...btn('blue', false), opacity: sampleState === 'loading' ? 0.4 : 1, cursor: sampleState === 'loading' ? 'default' : 'pointer' }}>
+            {sampleState === 'loading' ? 'generating…' : 'generate sample user'}
+          </button>
+        </div>
         {showL2Output && l2Result && (
           <OutputBlock text={l2Result} onCopy={() => navigator.clipboard.writeText(l2Result)} />
         )}
@@ -995,75 +1055,47 @@ export default function WritingLab({ onBack }) {
           </button>
           {error && <p style={{ fontSize: 12, color: T.red, marginTop: 10 }}>{error}</p>}
           {generatedPrompt && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ padding: '14px', background: T.greenBg, border: `1px solid ${T.greenBord}`, borderRadius: 6, marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: T.green, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Prompt</span>
-                  <button onClick={() => {
-                    navigator.clipboard.writeText([
-                      `CEFR: ${identity.cefrLevel ?? 'A1'}`,
-                      `GRAMMAR TARGET: ${targetAtomIds.size > 0 ? `${[...targetAtomIds].map(id => ATOM_BY_ID[id]?.label ?? id).join(', ')} (D${difficulty})` : '(none)'}`,
-                      `TARGET WORDS: ${grammarContextWords.join(', ') || '(none)'}`,
-                      `VOCABULARY: ${effectiveTopicKey ? `${effectiveTopicKey} — ${cappedTopicWords.join(', ')}` : '(none)'}`,
-                      `SCOPE: ${scope.sentences} · ${scope.structure}`,
-                      effectiveForce ? `FORCE: ${effectiveForce}` : null,
-                      ``,
-                      `PROMPT: ${generatedPrompt}`,
-                    ].filter(l => l !== null).join('\n'))
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 2000)
-                  }} style={{ ...btn(), fontSize: 11 }}>{copied ? 'copied ✓' : 'copy'}</button>
-                </div>
-                <p style={{ margin: 0, fontSize: 18, color: T.text, lineHeight: 1.6 }}>{generatedPrompt}</p>
+            <div style={{ marginTop: 14, padding: '14px', background: T.greenBg, border: `1px solid ${T.greenBord}`, borderRadius: 6, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: T.green, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Prompt</span>
+                <button onClick={() => {
+                  navigator.clipboard.writeText([
+                    `CEFR: ${identity.cefrLevel ?? 'A1'}`,
+                    `GRAMMAR TARGET: ${targetAtomIds.size > 0 ? `${[...targetAtomIds].map(id => ATOM_BY_ID[id]?.label ?? id).join(', ')} (D${difficulty})` : '(none)'}`,
+                    `TARGET WORDS: ${grammarContextWords.join(', ') || '(none)'}`,
+                    `VOCABULARY: ${effectiveTopicKey ? `${effectiveTopicKey} — ${cappedTopicWords.join(', ')}` : '(none)'}`,
+                    `SCOPE: ${scope.sentences} · ${scope.structure}`,
+                    effectiveForce ? `FORCE: ${effectiveForce}` : null,
+                    ``,
+                    `PROMPT: ${generatedPrompt}`,
+                  ].filter(l => l !== null).join('\n'))
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }} style={{ ...btn(), fontSize: 11 }}>{copied ? 'copied ✓' : 'copy'}</button>
               </div>
-              <textarea value={userResponse} onChange={e => setUserResponse(e.target.value)}
-                placeholder={s.writingLab.responsePlaceholder}
-                style={{ ...textarea, minHeight: 120, fontSize: 15 }} />
-              <button onClick={() => {}} disabled={!canSubmit}
-                style={{ ...btn('blue', false), marginTop: 10, width: '100%', padding: '10px', fontSize: 14, opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? 'pointer' : 'default' }}>
-                {s.writingLab.submit}
-              </button>
+              <p style={{ margin: 0, fontSize: 18, color: T.text, lineHeight: 1.6 }}>{generatedPrompt}</p>
             </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+            <button onClick={() => { setUserResponse(''); setUserCircuitTokens(null) }}
+              style={{ ...btn(), fontSize: 11, padding: '3px 10px' }}>clear</button>
+          </div>
+          <textarea value={userResponse}
+            onChange={e => {
+              setUserResponse(e.target.value)
+              setUserCircuitTokens(e.target.value.trim() ? checkCircuitFull(e.target.value, wordBank, atomWords) : null)
+            }}
+            placeholder={s.writingLab.responsePlaceholder}
+            style={{ ...textarea, minHeight: 120, fontSize: 15 }} />
+          <button onClick={() => {}} disabled={!canSubmit}
+            style={{ ...btn('blue', false), marginTop: 10, width: '100%', padding: '10px', fontSize: 14, opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? 'pointer' : 'default' }}>
+            {s.writingLab.submit}
+          </button>
+          {userCircuitTokens && <CircuitDisplay tokens={userCircuitTokens} />}
+          {userResponse.trim() && <SentenceCircuitDisplay text={userResponse} wordBank={wordBank} wordTokens={userCircuitTokens} />}
         </div>
       </LayerSection>
 
-      {/* ── Circuit Layer ── */}
-      <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
-        <div style={{ padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700 }}>Circuit</span>
-        </div>
-        <div style={{ padding: '12px 14px' }}>
-          {circuitTokens
-            ? <CircuitDisplay tokens={circuitTokens} />
-            : <span style={{ fontSize: 12, color: T.textDim, fontFamily: 'monospace' }}>no output yet</span>
-          }
-        </div>
-      </div>
-
-      {/* ── User Layer ── */}
-      <div style={{ marginBottom: 3, border: `1px solid ${T.border}`, borderRadius: 6, overflow: 'hidden', background: T.card }}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', background: '#dcdcde', borderBottom: `1px solid ${T.border}` }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 13, color: T.layerTag, fontWeight: 700 }}>User</span>
-          <div style={{ flex: 1 }} />
-          <button onClick={() => {
-            const sentence = generateRandomSentence()
-            setUserResponse(sentence)
-            setCircuitTokens(checkCircuit(sentence, wordBank))
-          }} style={{ ...btn(), fontSize: 11, padding: '3px 10px' }}>random</button>
-        </div>
-        <div style={{ padding: '12px 14px' }}>
-          <textarea
-            value={userResponse}
-            onChange={e => {
-              setUserResponse(e.target.value)
-              setCircuitTokens(e.target.value.trim() ? checkCircuit(e.target.value, wordBank) : null)
-            }}
-            placeholder="Write your response here…"
-            style={{ ...textarea, minHeight: 120, fontSize: 15 }}
-          />
-        </div>
-      </div>
 
     </div>
   )
