@@ -30,6 +30,7 @@ import MultiWordLab from './MultiWordLab'
 import InventoryMirror from './InventoryMirror'
 import GateConfigScreen from './GateConfigScreen'
 import StubScreen from './StubScreen'
+import IndexScreen from './IndexScreen'
 import './inventory-mirror.css'
 
 
@@ -111,6 +112,10 @@ export default function App() {
 
   if (view === 'mirror') {
     return <InventoryMirror onBack={() => setView('hub')} />
+  }
+
+  if (view === 'index') {
+    return <IndexScreen onBack={() => setView('hub')} />
   }
 
   if (view === 'gateConfig') {
@@ -212,6 +217,9 @@ export default function App() {
         <button className="dev-toggle" onClick={() => { setGateConfigDest(null); setView('gateConfig') }}>
           Gates
         </button>
+        <button className="dev-toggle" onClick={() => setView('index')}>
+          Index
+        </button>
       </div>
 
       {activeCappedAlert && (
@@ -222,6 +230,7 @@ export default function App() {
           </div>
         </div>
       )}
+
     </>
   )
 }
