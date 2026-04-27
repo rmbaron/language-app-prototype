@@ -387,4 +387,12 @@ export default {
     atomNone:     'none banked',
   },
 
+  worldSphere: {
+    title:        'World Sphere',
+    configureGate: 'configure gate',
+    gateOpen:     '✓ open',
+    gateLocked:   'locked',
+    gateNoRules:  'no gate set',
+  },
+
 }

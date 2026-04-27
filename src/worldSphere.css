@@ -74,3 +74,40 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+.world-sphere-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.world-sphere-tile .world-sphere-btn {
+  flex: 1;
+}
+
+.world-sphere-btn-gate {
+  font-size: 0.7rem;
+  color: #bbb;
+  display: block;
+  margin-top: 6px;
+}
+
+.world-sphere-btn-gate--open {
+  color: #4caf50;
+}
+
+.world-sphere-configure-btn {
+  background: none;
+  border: none;
+  font-size: 0.65rem;
+  color: #ccc;
+  cursor: pointer;
+  text-align: center;
+  padding: 2px 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.world-sphere-configure-btn:hover {
+  color: #888;
+}

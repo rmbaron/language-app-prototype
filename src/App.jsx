@@ -28,6 +28,8 @@ import WritingLab from './WritingLab'
 import CircuitTest from './CircuitTest'
 import MultiWordLab from './MultiWordLab'
 import InventoryMirror from './InventoryMirror'
+import GateConfigScreen from './GateConfigScreen'
+import StubScreen from './StubScreen'
 import './inventory-mirror.css'
 
 
@@ -37,6 +39,7 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [practicing, setPracticing] = useState(false)
   const [storeData, setStoreData] = useState(loadState)
+  const [gateConfigDest, setGateConfigDest] = useState(null)
   const [adminOpen, setAdminOpen] = useState(false)
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const [discoverOpen, setDiscoverOpen] = useState(false)
@@ -110,6 +113,22 @@ export default function App() {
     return <InventoryMirror onBack={() => setView('hub')} />
   }
 
+  if (view === 'gateConfig') {
+    return <GateConfigScreen initialDest={gateConfigDest} onBack={() => setView('worldSphere')} />
+  }
+
+  if (view === 'friend') {
+    return <StubScreen name="Friend" onBack={() => setView('worldSphere')} />
+  }
+
+  if (view === 'experiences') {
+    return <StubScreen name="Experiences" onBack={() => setView('worldSphere')} />
+  }
+
+  if (view === 'outside') {
+    return <StubScreen name="Outside" onBack={() => setView('worldSphere')} />
+  }
+
   if (view === 'circuitTest') {
     return <CircuitTest onClose={() => setView('hub')} />
   }
@@ -123,7 +142,11 @@ export default function App() {
       {view === 'hub' ? (
         <Hub onNavigate={id => { setSelected(null); setPracticing(false); setView(id) }} />
       ) : view === 'worldSphere' ? (
-        <WorldSphere onBack={() => setView('hub')} onNavigate={id => setView(id)} />
+        <WorldSphere
+            onBack={() => setView('hub')}
+            onNavigate={id => setView(id)}
+            onConfigureGate={id => { setGateConfigDest(id); setView('gateConfig') }}
+          />
       ) : view === 'practice' ? (
         <PracticeHub onBack={() => setView('worldSphere')} onNavigate={id => setView(id)} />
       ) : view === 'sentenceLab' ? (
@@ -185,6 +208,9 @@ export default function App() {
         </button>
         <button className="dev-toggle" onClick={() => setView('multiWordLab')}>
           Multi-Word
+        </button>
+        <button className="dev-toggle" onClick={() => { setGateConfigDest(null); setView('gateConfig') }}>
+          Gates
         </button>
       </div>
 
