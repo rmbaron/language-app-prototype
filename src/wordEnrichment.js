@@ -7,12 +7,11 @@
 // is infrastructure. When the API key is ready, only that function changes.
 //
 // Flow:
-//   1. prePopulateFromWordData()  — free, derives Layer 1 from existing wordData
-//   2. getMissingLayerOne()       — finds seed words still without Layer 1
-//   3. runLayerOneBatch()         — enriches them via API, up to batchLimit
+//   1. getMissingLayerOne()       — finds seed words still without Layer 1
+//   2. runLayerOneBatch()         — enriches them via API, up to batchLimit
 
 import { WORD_SEED } from './wordSeed.en'
-import { getLayerOne, setLayerOne, getMissingLayerOne, prePopulateFromWordData } from './wordLayerOne'
+import { getLayerOne, setLayerOne, getMissingLayerOne } from './wordLayerOne'
 
 // How many words to enrich per batch run.
 // Keeps API costs predictable during testing.
@@ -38,8 +37,7 @@ async function enrichOneWord(wordId, baseForm, lang) {
 
 // ── Batch processor ───────────────────────────────────────────
 //
-// Runs at app start. Pre-populates from wordData first (free),
-// then enriches any remaining missing words via API up to batchLimit.
+// Runs at app start. Finds seed words missing Layer 1 and enriches up to batchLimit.
 // Fire-and-forget — never blocks the UI.
 
 export async function enrichWord(wordId, lang = 'en') {
@@ -50,16 +48,13 @@ export async function enrichWord(wordId, lang = 'en') {
 }
 
 export async function runLayerOneBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
-  // Step 1: free pre-population from existing wordData
-  prePopulateFromWordData(lang)
-
-  // Step 2: find seed words still missing Layer 1
+  // Step 1: find seed words missing Layer 1
   const missing = getMissingLayerOne(WORD_SEED, lang)
   if (missing.length === 0) return
 
   console.log(`[enrichment] ${missing.length} words missing Layer 1. Enriching up to ${batchLimit}.`)
 
-  // Step 3: enrich up to batchLimit words
+  // Step 2: enrich up to batchLimit words
   const batch = missing.slice(0, batchLimit)
   for (const word of batch) {
     try {

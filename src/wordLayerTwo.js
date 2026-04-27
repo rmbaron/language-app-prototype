@@ -64,32 +64,30 @@ export function hasRealLayerTwo(wordId, lang = 'en') {
 
 // ── Layer 2 → Layer 3 connector ───────────────────────────────
 
-// Returns seed words that are fully live (contentReady: true) and not already
-// in wordData, shaped to the word object format the recommender and search expect.
-// Importing wordData here would be circular — callers pass the wordData ID set.
-// All seed words with at least L1 data — used by ContentManager to show every
-// enriched word regardless of contentReady status.
-export function getAllEnrichedSeedWords(lang = 'en', wordDataIds = new Set()) {
+// All seed words with at least L1 data.
+// Used by wordRegistry as the base layer for getResolvedWord.
+export function getAllEnrichedSeedWords(lang = 'en') {
   return WORD_SEED
-    .filter(w => w.language === lang && !wordDataIds.has(w.id))
+    .filter(w => w.language === lang)
     .flatMap(w => {
       const l1 = getLayerOne(w.id, lang)
       if (!l1) return []
       return [{ id: w.id, baseForm: w.baseForm, language: w.language,
-                meaning: l1.meaning, forms: [],
+                meaning: l1.meaning,
                 classifications: { grammaticalCategory: l1.grammaticalCategory } }]
     })
 }
 
-export function getLiveSeedWords(lang = 'en', wordDataIds = new Set()) {
+// Seed words that have Layer 2 and contentReady — used by the recommender.
+export function getLiveSeedWords(lang = 'en') {
   return WORD_SEED
-    .filter(w => w.language === lang && !wordDataIds.has(w.id))
+    .filter(w => w.language === lang)
     .flatMap(w => {
       const l1 = getLayerOne(w.id, lang)
       const l2 = getLayerTwo(w.id, lang)
       if (!l1 || !l2?.contentReady) return []
       return [{ id: w.id, baseForm: w.baseForm, language: w.language,
-                meaning: l1.meaning, forms: [],
+                meaning: l1.meaning,
                 classifications: { grammaticalCategory: l1.grammaticalCategory } }]
     })
 }

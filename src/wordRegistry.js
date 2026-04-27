@@ -1,13 +1,12 @@
 // Word Registry — the resolved word record layer.
 //
 // This is the ONLY place the rest of the app reads word objects from.
-// Components never import from wordLayerOne, wordLayerTwo, or wordData directly.
+// Components never import from wordLayerOne or wordLayerTwo directly.
 //
 // getResolvedWord(wordId, lang) composes the pipeline layers in priority order:
 //   L2 (grammaticalAtom, forms, cefrLevel, ...) wins when available
 //   L1 (grammaticalCategory, meaning) fills gaps
-//   wordData fallback for forms if L2 not yet enriched
-//   null for fields that haven't been designed or enriched yet
+//   null for fields not yet enriched or designed
 //
 // Future layers slot in here:
 //   L3 content (contentReady, available lanes)
@@ -19,18 +18,6 @@
 import { getAllEnrichedSeedWords } from './wordLayerTwo'
 import { getLayerOne } from './wordLayerOne'
 import { getLayerTwo } from './wordLayerTwo'
-import _wordDataAll from './wordData'
-
-// ── Internal: wordData forms fallback ────────────────────────────────────────
-// wordData.en.js has static forms for words that predate the pipeline.
-// Used only as a fallback when L2 forms aren't available yet.
-const _wordDataForms = Object.fromEntries(
-  (_wordDataAll ?? []).map(w => [w.id, w.forms?.length > 0 ? w.forms : null])
-)
-
-function getWordDataForms(wordId) {
-  return _wordDataForms[wordId] ?? null
-}
 
 // ── Resolved word record ──────────────────────────────────────────────────────
 
@@ -43,11 +30,8 @@ export function getResolvedWord(wordId, lang = 'en') {
   const l1 = getLayerOne(wordId, lang)
   const l2 = getLayerTwo(wordId, lang)
 
-  // forms: L2 wins (rich, with type + tenses). Falls back to wordData static forms.
-  // null if neither exists yet.
-  const forms = l2?.forms?.length > 0
-    ? l2.forms
-    : (getWordDataForms(wordId) ?? null)
+  // forms: from L2 enrichment (rich: type + tenses). null until L2 is enriched.
+  const forms = l2?.forms?.length > 0 ? l2.forms : null
 
   return {
     id:       wordId,

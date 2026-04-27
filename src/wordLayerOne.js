@@ -10,11 +10,6 @@
 // Shared across users in the same browser for now.
 // Swap to Firestore later without changing the interface above this file.
 //
-// Pre-population: words already in wordData.en.js have their Layer 1
-// data derived from there automatically, so no API call is needed for them.
-
-import wordDataWords from './wordData'
-
 const KEY_PREFIX = 'lapp-l1'
 
 function storageKey(lang, wordId) {
@@ -53,23 +48,3 @@ export function getMissingLayerOne(seedWords, lang = 'en') {
   })
 }
 
-// ── Pre-population from wordData ──────────────────────────────
-//
-// Words already in wordData.en.js have grammaticalCategory and meaning.
-// Pre-populate their Layer 1 entries from there so no API call is needed.
-// Call this once at app start — it's a no-op for words already cached.
-
-export function prePopulateFromWordData(lang = 'en') {
-  const words = wordDataWords.filter(w => w.language === lang)
-  for (const word of words) {
-    if (hasLayerOne(word.id, lang)) continue
-    const cat = word.classifications?.grammaticalCategory
-    if (!cat || !word.meaning) continue
-    setLayerOne(word.id, lang, {
-      grammaticalCategory: cat,
-      meaning:             word.meaning,
-      semanticSubtype:     null,   // will be filled by API if/when needed
-      source:              'wordData',
-    })
-  }
-}

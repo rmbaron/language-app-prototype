@@ -144,7 +144,7 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
             className={`word-bank-cat-btn ${categoryFilter === 'all' ? 'word-bank-cat-btn--active' : ''}`}
             onClick={() => handleFilterClick('all')}
           >
-            all ({bankWords.length})
+            <em>All</em> ({bankWords.length})
           </button>
           {visibleGrammaticalGroups.map(g => (
             <button
@@ -152,7 +152,7 @@ export default function WordBank({ onSelectWord, onBack, onAddWord }) {
               className={`word-bank-cat-btn ${categoryFilter === g.label ? 'word-bank-cat-btn--active' : ''}`}
               onClick={() => handleFilterClick(g.label)}
             >
-              {g.label.toLowerCase()} ({grammaticalCounts[g.label]})
+              <em>{g.label}</em> ({grammaticalCounts[g.label]})
             </button>
           ))}
         </div>
