@@ -395,4 +395,16 @@ export default {
     gateNoRules:  'no gate set',
   },
 
+  wordPractice: {
+    title:       'Practice',
+    chooseLane:  'Choose a lane to practice',
+    noMechanics: 'No exercises available for this lane yet.',
+    notBuilt:    'This exercise type is not yet built.',
+    correct:     'Correct!',
+    incorrect:   'Not quite — try again.',
+    tryAgain:    'Try again',
+    done:        'Done',
+    noExercise:  'Could not build an exercise for this word. Try a different lane.',
+  },
+
 }

@@ -17,9 +17,9 @@ export const FIXED_UNITS = [
   { id: 'in_spite_of',  text: 'in spite of',  atomClass: 'preposition' },
   { id: 'a_lot_of',     text: 'a lot of',     atomClass: 'determiner'  },
   // 3-word conjunctions
-  { id: 'as_soon_as',   text: 'as soon as',   atomClass: 'conjunction' },
-  { id: 'as_long_as',   text: 'as long as',   atomClass: 'conjunction' },
-  { id: 'as_well_as',   text: 'as well as',   atomClass: 'conjunction' },
+  { id: 'as_soon_as',   text: 'as soon as',   atomClass: 'subordinating_conjunction' },
+  { id: 'as_long_as',   text: 'as long as',   atomClass: 'subordinating_conjunction' },
+  { id: 'as_well_as',   text: 'as well as',   atomClass: 'coordinating_conjunction' },
   // 2-word prepositional phrases
   { id: 'next_to',      text: 'next to',      atomClass: 'preposition' },
   { id: 'because_of',   text: 'because of',   atomClass: 'preposition' },
@@ -27,7 +27,7 @@ export const FIXED_UNITS = [
   { id: 'instead_of',   text: 'instead of',   atomClass: 'preposition' },
   { id: 'in_front',     text: 'in front',     atomClass: 'preposition' },
   // 2-word conjunctions
-  { id: 'even_though',  text: 'even though',  atomClass: 'conjunction' },
-  { id: 'so_that',      text: 'so that',      atomClass: 'conjunction' },
-  { id: 'as_if',        text: 'as if',        atomClass: 'conjunction' },
+  { id: 'even_though',  text: 'even though',  atomClass: 'subordinating_conjunction' },
+  { id: 'so_that',      text: 'so that',      atomClass: 'subordinating_conjunction' },
+  { id: 'as_if',        text: 'as if',        atomClass: 'subordinating_conjunction' },
 ]

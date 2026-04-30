@@ -7,27 +7,7 @@ import { findWordInIndex } from './atomIndex'
 import { addToWordBank, addToRecommenderQueue } from './userStore'
 
 // atomId → category key in s.common.categories
-const ATOM_TO_CATEGORY = {
-  lexical_verb:          'verb',
-  copula:                'verb',
-  auxiliary:             'verb',
-  modal_auxiliary:       'verb',
-  progressive_auxiliary: 'verb',
-  personal_pronoun:      'pronoun',
-  object_pronoun:        'pronoun',
-  possessive_determiner: 'pronoun',
-  noun:                  'noun',
-  adjective:             'adjective',
-  determiner:            'determiner',
-  numeral:               'determiner',
-  demonstrative:         'demonstrative',
-  preposition:           'preposition',
-  interrogative:         'interrogative',
-  negation_marker:       'adverb',
-  conjunction:           'conjunction',
-  adverb:                'adverb',
-  interjection:          'interjection',
-}
+import { ATOM_TO_CATEGORY } from './atomToCategory.en.js'
 
 export default function AIText({ text, lang = 'en' }) {
   const { inventory, refreshInventory } = useInventory()

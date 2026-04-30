@@ -13,6 +13,7 @@ import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
 import { setLayerTwo, hasLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
 import { addWordToIndex, findWordInIndex, updateWordInIndex, rebuildAtomIndex } from './atomIndex'
+import { markFormsMapStale } from './formsMap'
 
 const BATCH_LIMIT = 5
 
@@ -47,6 +48,7 @@ export async function enrichWordL2(wordId, lang = 'en') {
   if (result) {
     const existing = findWordInIndex(word.id, lang)
     setLayerTwo(word.id, lang, { ...result, source: 'api' })
+    markFormsMapStale()
     if (result.grammaticalAtom && result.cefrLevel) {
       if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
         updateWordInIndex(word.id, { oldAtom: existing.atomId, oldLevel: existing.cefrLevel, newAtom: result.grammaticalAtom, newLevel: result.cefrLevel, lang })
@@ -72,6 +74,7 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
       if (result) {
         const existing = findWordInIndex(word.id, lang)
         setLayerTwo(word.id, lang, { ...result, source: 'api' })
+        markFormsMapStale()
         if (result.grammaticalAtom && result.cefrLevel) {
           if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {
             updateWordInIndex(word.id, { oldAtom: existing.atomId, oldLevel: existing.cefrLevel, newAtom: result.grammaticalAtom, newLevel: result.cefrLevel, lang })
@@ -134,6 +137,7 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
       if (result) {
         // Write new data before touching existing — safe replacement
         setLayerTwo(word.id, lang, { ...result, source: 'api', ...(note ? { enrichmentNote: note } : {}) })
+        markFormsMapStale()
         const existing = findWordInIndex(word.id, lang)
         if (result.grammaticalAtom && result.cefrLevel) {
           if (existing && (existing.atomId !== result.grammaticalAtom || existing.cefrLevel !== result.cefrLevel)) {

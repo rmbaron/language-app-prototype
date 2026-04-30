@@ -38,7 +38,7 @@ export const GRAMMAR_CLUSTERS = [
     id:          3,
     label:       'Clause expansion',
     description: 'Clause expansion — widens without changing sentence type',
-    atoms:       ['adverb', 'preposition', 'conjunction'],
+    atoms:       ['adverb', 'preposition', 'coordinating_conjunction'],
     extraRequirements: null,
   },
   {

@@ -50,6 +50,31 @@ export function getResolvedWord(wordId, lang = 'en') {
     frequency:        l2?.frequency        ?? null,
     forms:            forms,
 
+    // L2 — noun-specific
+    countability:       l2?.countability       ?? null,
+    properNoun:         l2?.properNoun         ?? null,
+    concreteness:       l2?.concreteness       ?? null,
+    animate:            l2?.animate            ?? null,
+
+    // L2 — verb-specific
+    transitivity:       l2?.transitivity       ?? null,
+    verbAspectClass:    l2?.verbAspectClass    ?? null,
+    commonCollocations: l2?.commonCollocations ?? null,
+
+    // L2 — adjective / adverb / numeral specifics
+    adjectivePosition:  l2?.adjectivePosition  ?? null,
+    adverbType:         l2?.adverbType         ?? null,
+    numeralType:        l2?.numeralType        ?? null,
+
+    // L2 — pronoun (and applicable noun) features
+    person:             l2?.person             ?? null,
+    number:             l2?.number             ?? null,
+    gender:             l2?.gender             ?? null,
+
+    // L2 — universal
+    colloquial:         l2?.colloquial         ?? false,
+    lemmaFamily:        l2?.lemmaFamily        ?? null,
+
     // L3 fields (future — content layer)
     contentReady:     l2?.contentReady     ?? false,
 

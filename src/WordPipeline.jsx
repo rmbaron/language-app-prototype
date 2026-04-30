@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { WORD_SEED } from './wordSeed.en'
 import { hasLayerOne, getLayerOne } from './wordLayerOne'
-import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, resetContentReady, markContentReady } from './wordLayerTwo'
+import { hasLayerTwo, getLayerTwo, hasRealLayerTwo, clearLayerTwo, resetContentReady, markContentReady } from './wordLayerTwo'
 import { runLayerOneBatch, enrichWord } from './wordEnrichment'
 import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2, getReEnrichCampaign, setReEnrichCampaign, clearReEnrichCampaign } from './wordEnrichmentTwo'
 import { clearWordContent } from './contentStore'
 import { getAtomIndex, getAtomIndexRebuiltAt, rebuildAtomIndex, findWordInIndex } from './atomIndex'
+import { markFormsMapStale } from './formsMap'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -44,7 +45,7 @@ function Badge({ label, status }) {
   )
 }
 
-function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
+function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3, freshSince }) {
   const [open, setOpen] = useState(level !== 'Unleveled')
   const [expanded, setExpanded] = useState(null)
 
@@ -77,6 +78,8 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
           </div>
           {words.map(({ word, s }) => {
             const indexed = findWordInIndex(word.id, 'en')
+            const l2data  = freshSince != null ? getLayerTwo(word.id, 'en') : null
+            const isFresh = freshSince != null && l2data?.enrichedAt && l2data.enrichedAt >= freshSince
             return (
             <div key={word.id}>
             <div style={{
@@ -95,6 +98,12 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                   ? <span title={`indexed: ${indexed.atomId} / ${indexed.cefrLevel}`} style={{ width: 6, height: 6, borderRadius: '50%', background: '#5fcf5f', flexShrink: 0 }} />
                   : <span title="not in atom index" style={{ width: 6, height: 6, borderRadius: '50%', background: '#333', flexShrink: 0 }} />
                 }
+                {isFresh && (
+                  <span
+                    title={`fresh — enriched after ${new Date(freshSince).toLocaleString()} (at ${new Date(l2data.enrichedAt).toLocaleString()})`}
+                    style={{ width: 6, height: 6, borderRadius: '50%', background: '#6fa8cf', flexShrink: 0 }}
+                  />
+                )}
               </span>
               <Badge label={s.l1 === 'none' ? '—' : s.l1} status={s.l1} />
               <Badge label={s.l2 === 'none' ? '—' : s.l2} status={s.l2} />
@@ -113,8 +122,9 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                     onClick={() => onEnrich(word.id, 'l3')}>L3</button>
                 )}
                 {s.l2 === 'api' && (
-                  <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11, color: '#cf6f6f' }}
-                    onClick={() => onClearL2(word.id)}>↺L2</button>
+                  <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11, color: '#6fa8cf' }}
+                    title="Re-enrich L2 (overwrites existing data)"
+                    onClick={() => onEnrich(word.id, 'l2')}>↻L2</button>
                 )}
                 {s.l3 === 'ready' && (
                   <button className="dev-toggle" style={{ padding: '1px 6px', fontSize: 11, color: '#cf6f6f' }}
@@ -155,6 +165,52 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3 }) {
                       </div>
                     )}
                     {!l2.forms?.length && <div><span style={{ color: '#555' }}>forms:</span> —</div>}
+
+                    {/* ── New schema fields (showing only those present) ── */}
+                    {(() => {
+                      const fmt = v => {
+                        if (v == null) return '—'
+                        if (typeof v === 'boolean') return v ? 'true' : 'false'
+                        if (typeof v === 'object') return JSON.stringify(v)
+                        return String(v)
+                      }
+                      const rows = [
+                        ['countability', l2.countability],
+                        ['properNoun', l2.properNoun],
+                        ['concreteness', l2.concreteness],
+                        ['animate', l2.animate],
+                        ['transitivity', l2.transitivity],
+                        ['verbAspectClass', l2.verbAspectClass],
+                        ['commonCollocations', l2.commonCollocations],
+                        ['adjectivePosition', l2.adjectivePosition],
+                        ['adverbType', l2.adverbType],
+                        ['numeralType', l2.numeralType],
+                        ['person', l2.person],
+                        ['number', l2.number],
+                        ['gender', l2.gender],
+                        ['colloquial', l2.colloquial],
+                        ['lemmaFamily', l2.lemmaFamily],
+                      ]
+                      const present = rows.filter(([, v]) => v !== undefined)
+                      const missing = rows.filter(([, v]) => v === undefined).map(([k]) => k)
+                      return (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed #222' }}>
+                          {present.length === 0
+                            ? <div style={{ color: '#7a4a4a' }}>no new schema fields present (pre-update enrichment)</div>
+                            : present.map(([k, v]) => (
+                              <div key={k} style={{ paddingLeft: 12 }}>
+                                <span style={{ color: '#555', minWidth: 160, display: 'inline-block' }}>{k}:</span>
+                                <span style={{ color: v == null ? '#444' : '#7a9acf' }}>{fmt(v)}</span>
+                              </div>
+                            ))}
+                          {missing.length > 0 && present.length > 0 && (
+                            <div style={{ marginTop: 4, paddingLeft: 12, color: '#7a4a4a', fontSize: 10 }}>
+                              missing fields: {missing.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </>}
                   {!l1 && !l2 && <div style={{ color: '#444' }}>no data</div>}
                 </div>
@@ -175,6 +231,26 @@ export default function WordPipeline({ onClose }) {
   const [reEnrichProgress, setReEnrichProgress] = useState(null)
   const [campaign, setCampaign] = useState(() => getReEnrichCampaign())
   const [campaignNote, setCampaignNote] = useState(() => getReEnrichCampaign()?.note ?? '')
+
+  // "Show fresh since" — a view-only filter independent of the re-enrich
+  // campaign. Adds a colored dot to words enriched at or after this
+  // timestamp. Always set to a valid timestamp — no null state — so the
+  // freshness mechanic is never silently off. Default: start of today.
+  function startOfToday() {
+    const t = new Date()
+    t.setHours(0, 0, 0, 0)
+    return t.getTime()
+  }
+  const [freshSince, setFreshSince] = useState(() => {
+    const raw = localStorage.getItem('lapp-pipeline-fresh-since')
+    const ts  = raw ? parseInt(raw, 10) : NaN
+    return Number.isFinite(ts) ? ts : startOfToday()
+  })
+  function applyFreshSince(ts) {
+    if (!Number.isFinite(ts)) return
+    localStorage.setItem('lapp-pipeline-fresh-since', String(ts))
+    setFreshSince(ts)
+  }
   const [search, setSearch]           = useState('')
   const [newWord, setNewWord]         = useState('')
   const [addError, setAddError]       = useState(null)
@@ -256,6 +332,7 @@ export default function WordPipeline({ onClose }) {
 
   function handleClearL2(wordId) {
     clearLayerTwo(wordId, 'en')
+    markFormsMapStale()
     forceUpdate(n => n + 1)
   }
 
@@ -341,6 +418,54 @@ export default function WordPipeline({ onClose }) {
                 {running === 'l3' ? 'Running…' : 'Run L3'}
               </button>
             </div>
+
+            {/* ── Show-fresh-since filter (view-only) ─────────────────────── */}
+            {/* A blue dot appears next to L2 badges of words enriched after  */}
+            {/* this timestamp. Independent of the re-enrich campaign — this  */}
+            {/* is a viewing tool, not a re-enrichment trigger.               */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, padding: '6px 10px', background: '#0d1520', border: '1px solid #1a2a3a', borderRadius: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6fa8cf', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: '#6fa8cf', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>show fresh since:</span>
+              <input
+                type="datetime-local"
+                value={freshSince ? new Date(freshSince - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                onChange={e => {
+                  const v = e.target.value
+                  if (!v) { applyFreshSince(null); return }
+                  const ts = new Date(v).getTime()
+                  if (Number.isFinite(ts)) applyFreshSince(ts)
+                }}
+                style={{ flex: 1, padding: '3px 6px', borderRadius: 3, background: '#111', border: '1px solid #222', color: '#aaa', fontSize: 11, fontFamily: 'monospace' }}
+              />
+              <button
+                className="dev-toggle"
+                style={{ padding: '2px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                onClick={() => applyFreshSince(Date.now())}
+              >
+                now
+              </button>
+              {freshSince != null && (
+                <button
+                  className="dev-toggle"
+                  style={{ padding: '2px 8px', fontSize: 11, color: '#cf6f6f' }}
+                  onClick={() => applyFreshSince(null)}
+                >
+                  clear
+                </button>
+              )}
+              {freshSince != null && (() => {
+                const freshCount = WORD_SEED.filter(w => {
+                  const l2 = getLayerTwo(w.id, 'en')
+                  return l2?.enrichedAt && l2.enrichedAt >= freshSince
+                }).length
+                return (
+                  <span style={{ fontSize: 11, color: '#666', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                    {freshCount} fresh
+                  </span>
+                )
+              })()}
+            </div>
+
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="range" min={1} max={150} value={batchSize}
@@ -505,7 +630,7 @@ export default function WordPipeline({ onClose }) {
       </div>
 
       {orderedGroups.map(({ level, words }) => (
-        <LevelGroup key={level} level={level} words={words} onEnrich={handleEnrich} onClearL2={handleClearL2} onClearL3={handleClearL3} />
+        <LevelGroup key={level} level={level} words={words} onEnrich={handleEnrich} onClearL2={handleClearL2} onClearL3={handleClearL3} freshSince={freshSince} />
       ))}
 
       {orderedGroups.length === 0 && (

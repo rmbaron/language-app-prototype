@@ -33,6 +33,10 @@ import MetaCircuitScreen from './MetaCircuitScreen'
 import PromptFactoryScreen from './PromptFactoryScreen'
 import StubScreen from './StubScreen'
 import IndexScreen from './IndexScreen'
+import WordPracticeDevScreen from './WordPracticeDevScreen'
+import ContentPoolScreen from './ContentPoolScreen'
+import GrammarBreakerScreen from './GrammarBreakerScreen'
+import './atomWiring'  // runs the atom-wiring sanity check at app load — reports issues to console
 import './inventory-mirror.css'
 
 
@@ -148,6 +152,18 @@ export default function App() {
     return <CircuitTest onClose={() => setView('hub')} />
   }
 
+  if (view === 'wordPracticeTest') {
+    return <WordPracticeDevScreen onClose={() => setView('hub')} />
+  }
+
+  if (view === 'contentPool') {
+    return <ContentPoolScreen onBack={() => setView('hub')} />
+  }
+
+  if (view === 'grammarBreaker') {
+    return <GrammarBreakerScreen onClose={() => setView('hub')} />
+  }
+
   if (view === 'multiWordLab') {
     return <MultiWordLab onClose={() => setView('hub')} />
   }
@@ -197,45 +213,58 @@ export default function App() {
 
 
       <div className="dev-controls">
-        <button className="dev-toggle" onClick={() => setAdminOpen(true)}>
-          Admin
-        </button>
-        <button className="dev-toggle" onClick={() => setPipelineOpen(true)}>
-          Pipeline
-        </button>
-        <button className="dev-toggle" onClick={() => setDiscoverOpen(true)}>
-          Discover
-        </button>
-        <button className="dev-toggle" onClick={() => setOnboardingOpen(true)}>
-          Onboarding
-        </button>
-        <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
-          Flashcards
-        </button>
-        <button className="dev-toggle" onClick={() => setView('mirror')}>
-          Mirror
-        </button>
-        <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
-          Celestial
-        </button>
-        <button className="dev-toggle" onClick={() => setView('circuitTest')}>
-          Circuit Test
-        </button>
-        <button className="dev-toggle" onClick={() => setView('multiWordLab')}>
-          Multi-Word
-        </button>
-        <button className="dev-toggle" onClick={() => setView('metaCircuit')}>
-          Meta Circuit
-        </button>
-        <button className="dev-toggle" onClick={() => setView('promptFactory')}>
-          Prompt Factory
-        </button>
-        <button className="dev-toggle" onClick={() => { setGateConfigDest(null); setView('gateConfig') }}>
-          Gates
-        </button>
-        <button className="dev-toggle" onClick={() => setView('index')}>
-          Index
-        </button>
+        <div className="dev-controls-row">
+          <button className="dev-toggle" onClick={() => setOnboardingOpen(true)}>
+            Onboarding
+          </button>
+          <button className="dev-toggle" onClick={() => setView('grammarBreaker')}>
+            Grammar Breaker
+          </button>
+        </div>
+        <div className="dev-controls-row">
+          <button className="dev-toggle" onClick={() => setAdminOpen(true)}>
+            Admin
+          </button>
+          <button className="dev-toggle" onClick={() => setPipelineOpen(true)}>
+            Pipeline
+          </button>
+          <button className="dev-toggle" onClick={() => setDiscoverOpen(true)}>
+            Discover
+          </button>
+          <button className="dev-toggle" onClick={() => setFlashcardOpen(true)}>
+            Flashcards
+          </button>
+          <button className="dev-toggle" onClick={() => setView('mirror')}>
+            Mirror
+          </button>
+          <button className="dev-toggle" onClick={() => setCelestialOpen(true)}>
+            Celestial
+          </button>
+          <button className="dev-toggle" onClick={() => setView('circuitTest')}>
+            Circuit Test
+          </button>
+          <button className="dev-toggle" onClick={() => setView('multiWordLab')}>
+            Multi-Word
+          </button>
+          <button className="dev-toggle" onClick={() => setView('metaCircuit')}>
+            Meta Circuit
+          </button>
+          <button className="dev-toggle" onClick={() => setView('promptFactory')}>
+            Prompt Factory
+          </button>
+          <button className="dev-toggle" onClick={() => { setGateConfigDest(null); setView('gateConfig') }}>
+            Gates
+          </button>
+          <button className="dev-toggle" onClick={() => setView('index')}>
+            Index
+          </button>
+          <button className="dev-toggle" onClick={() => setView('wordPracticeTest')}>
+            WP Test
+          </button>
+          <button className="dev-toggle" onClick={() => setView('contentPool')}>
+            Pool
+          </button>
+        </div>
       </div>
 
       {activeCappedAlert && (

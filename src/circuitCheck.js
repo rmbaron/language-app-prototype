@@ -5,15 +5,15 @@ import { FIXED_UNITS } from './multiWordUnits.en.js'
 // Keep this minimal: only articles and pure coordinating conjunctions.
 // Pronouns, auxiliaries, prepositions — all go through the bank check.
 export const ALWAYS_PASS_WORDS = [
-  { word: 'a',   atomClass: 'determiner'  },
-  { word: 'an',  atomClass: 'determiner'  },
-  { word: 'the', atomClass: 'determiner'  },
-  { word: 'and', atomClass: 'conjunction' },
-  { word: 'but', atomClass: 'conjunction' },
-  { word: 'or',  atomClass: 'conjunction' },
-  { word: 'so',  atomClass: 'conjunction' },
-  { word: 'yet', atomClass: 'conjunction' },
-  { word: 'nor', atomClass: 'conjunction' },
+  { word: 'a',   atomClass: 'indefinite_article' },
+  { word: 'an',  atomClass: 'indefinite_article' },
+  { word: 'the', atomClass: 'definite_article'   },
+  { word: 'and', atomClass: 'coordinating_conjunction' },
+  { word: 'but', atomClass: 'coordinating_conjunction' },
+  { word: 'or',  atomClass: 'coordinating_conjunction' },
+  { word: 'so',  atomClass: 'coordinating_conjunction' },
+  { word: 'yet', atomClass: 'coordinating_conjunction' },
+  { word: 'nor', atomClass: 'coordinating_conjunction' },
 ]
 const ALWAYS_PASS = new Set(ALWAYS_PASS_WORDS.map(w => w.word))
 

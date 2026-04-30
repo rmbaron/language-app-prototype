@@ -1151,9 +1151,35 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.practice-lane-btn:hover {
+.practice-lane-btn:hover:not(.practice-lane-btn--unavailable) {
   border-color: var(--lane-color);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.practice-lane-btn--unavailable {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Word practice shared primitives ── */
+
+.wp-sentence {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  color: #1a1a1a;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.wp-mechanic-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wp-lane-picker {
+  width: 100%;
 }
 
 /* ── Practice confirm & result ── */

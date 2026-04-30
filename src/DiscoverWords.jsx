@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getRecommendations, getAIRecommendedCount } from './wordRecommender'
-import { getWordBank, recordAttempt, THRESHOLD } from './userStore'
+import { getWordBank, recordAttempt, THRESHOLD, loadState } from './userStore'
 import { loadProfile, getActiveLanguage, getCefrLevel, addTopic, getInterfaceLanguage } from './learnerProfile'
 import { getStrings } from './uiStrings'
 import { getWordSlotInfo } from './cefrLevels'
