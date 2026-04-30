@@ -252,4 +252,40 @@ export const ATOMS = [
     description: 'The word "to" when used to license a bare-infinitive verb ("I want TO go"). Distinct from preposition "to" ("I go TO school"). Always set as alternateAtom on the word "to"; never as primary (primary stays preposition).',
     examples: ['to (only as alternateAtom on the word "to")'],
   },
+
+  // ─── Verb umbrella ───────────────────────────────────────────────────────
+  {
+    id: 'verb',
+    label: 'Verb (umbrella)',
+    group: 'Verbs',
+    description: 'Umbrella atom shared by every verb-class word as an alternate atom. Use for cross-cutting patterns that fire on "any verb-class word" without caring about subtype (lexical / copula / auxiliary / modal). Never the primary atom — every verb has a more specific primary class. Same shape as the determiner / conjunction / pronoun umbrellas.',
+    examples: ['(used as alternateAtom on all verb-class words)'],
+  },
+
+  // ─── Construction atomClasses (structure tokens) ─────────────────────────
+  // These atoms are NEVER primary on a single word. They appear ONLY on
+  // collapsed multi-word construction tokens emitted by the multi-word-aware
+  // tokenizer in src/circuitCheck.js. Defined here so the atom-wiring sanity
+  // check covers them and typos surface at app load. See verbConstructions.en.js.
+  {
+    id: 'modal_construction',
+    label: 'Modal construction (structure)',
+    group: 'Verbs',
+    description: 'STRUCTURE-ONLY atom. Stamped on collapsed multi-word tokens from VERB_CONSTRUCTIONS where the leading verb is a modal — e.g. "will go", "will have eaten", "will be drinking". Never the primary atom on a single word.',
+    examples: ['(used only on collapsed construction tokens)'],
+  },
+  {
+    id: 'perfect_construction',
+    label: 'Perfect construction (structure)',
+    group: 'Verbs',
+    description: 'STRUCTURE-ONLY atom. Stamped on collapsed multi-word tokens for perfect aspect — e.g. "have eaten", "have been drinking". Never the primary atom on a single word.',
+    examples: ['(used only on collapsed construction tokens)'],
+  },
+  {
+    id: 'progressive_construction',
+    label: 'Progressive construction (structure)',
+    group: 'Verbs',
+    description: 'STRUCTURE-ONLY atom. Stamped on collapsed multi-word tokens for progressive aspect — e.g. "is drinking", "was eating". Never the primary atom on a single word.',
+    examples: ['(used only on collapsed construction tokens)'],
+  },
 ]

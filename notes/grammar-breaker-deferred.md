@@ -313,3 +313,68 @@ When returning to this list:
 3. Prefer fixing **6c** (defensive validation) any time another pattern-library change ships — it's a 5-line free win.
 4. The count/mass/proper schema work is the prerequisite for **6a + 6b**.
 5. Items 2 and 4 share the same constraint-solving mechanism — consider doing them together.
+
+---
+
+## Added 2026-04-30 — large structural items still ahead
+
+### Bigram-debt scaling / coverage-check at scale (one ticket)
+
+**What:** A1 has ~50 patterns, mostly bigram-shape (one pattern per surface combination). At B1+ this scales linearly with the structures we want to license — ~200+ patterns easily, most enumerating shapes that one slot rule could cover. Two angles on the same root issue:
+- *Bigram debt* — author burden, file size, duplication risk grows with each level
+- *Coverage check at scale* — coverage requires a pattern for every shape; bigram style forces one pattern per shape, slot style covers many shapes per pattern
+
+**Fix:** Slot-style migration. New patterns (this session forward) already get the slot-style discipline (see `north_star_grammar_circuit.md`). Existing bigram patterns stay until a quieter session does an opportunistic migration.
+
+**Migration process (six steps, reversible until the last):**
+
+1. **Pick a target cluster.** Find bigram patterns that implement one underlying rule. Best initial candidates:
+   - Six `copula_*` patterns → one `copula_complement` slot pattern
+   - Five `verb_object_*` patterns → one `verb_object_slot` pattern
+   - Three `*_bare_singular_count_noun` patterns → one position-aware rule
+2. **Author the slot pattern alongside the bigrams.** Don't delete anything. Write the new pattern in the same file. Detector matches the head atom, walks adjacent tokens against an inline list of valid slot-fillers, returns the full span when the slot is filled by any valid configuration.
+3. **Verify equivalence in the Flow tab.** Run a battery of test sentences. Both legacy + new should fire on previously-allowed sentences (over-satisfaction is fine). Forbidden sentences should neither newly fail nor newly pass. Test edge cases (empty NP, adjective-separated, etc.). Fix any regression before continuing.
+4. **Mark legacy bigrams as deprecated.** Add `// LEGACY — replaced by <slot_pattern_id>. Retire after soak.` above each. Don't delete yet.
+5. **Soak.** Leave both alive for the rest of the current session (or the next). Use the Flow tab during normal work; watch for anything off.
+6. **Delete the legacy bigrams.** Pure deletion. The slot pattern alone now covers the cluster.
+
+**Safety guarantee:** The validator is monotonic in pattern additions — new patterns can only ADD allowed-coverage or ADD rejection. No moment where the circuit "breaks." The one risk: an over-permissive allowed slot lets a broken sentence pass. Step 3's Flow tab regression battery is the safeguard. Don't skip it.
+
+**When to revisit:** Before B1 pattern authoring scales up — ideally as a focused refactor pass once A1 is solid.
+
+### Word-level vs grammar-level construction divergence
+
+**What:** Modal/perfect/progressive recognition lives in two places that don't share rules:
+- Word-level: `tokenizeFull` + `verbConstructions.en.js` — collapses "will go" to one token for word-bank credit
+- Grammar-level: `verbChainPatterns.js` — patterns like `subject_modal_verb` inspect three separate tokens
+
+Today this is small (only modal+verb is bidirectional). When perfect and progressive get allowed grammar patterns (post-A1), the divergence becomes a real coupling concern — change one layer, remember to mirror in the other.
+
+**Fix:** Eventual reconciliation. Two paths:
+- *Path A:* Grammar tokenizer also collapses constructions, then patterns inspect collapsed tokens. Cleanest, but breaks the current "grammar tokenizer is simple" design.
+- *Path B:* Word-level construction recognizer reads from a shared declarative table; grammar-level patterns are derived from the same table. Single source of truth.
+
+**When to revisit:** When perfect/progressive get allowed grammar patterns (B1).
+
+### L2 enrichment quality / coverage
+
+**What:** Patterns now depend on L2 fields (`countability`, `properNoun`, `number` on demonstratives, `transitivity`, etc.). They're correctly silent when L2 is missing — but they only catch what L2 has labeled. If L2 is wrong, the pattern is wrong silently.
+
+**Fix:** Three layers (in order of value):
+1. **L2 health view** — pipeline-tab dashboard showing per-atom L2 field coverage. Surfaces gaps without manual inspection.
+2. **L2 dependency map** — pattern files declare which L2 fields they consume; a script flags patterns whose dependencies aren't universally enriched.
+3. **Mandatory step in atom/pattern runbook** — adding an L2-dependent pattern requires updating the enricher prompt + running re-enrichment.
+
+**When to revisit:** Whenever a pattern starts misbehaving silently, or before B1 pattern work that depends on more L2 fields.
+
+### Unbuilt structural items (test the substrate hardest)
+
+These genuinely don't exist yet. Each will be a real test of how general the substrate is. The first four should fit naturally; the fifth might need new mechanisms.
+
+1. **Question formation** — yes/no questions, wh-on-object, wh-on-subject. Currently has only `sentence_initial_auxiliary` boundary pattern; no real question patterns.
+2. **Embedded clauses** — relative clauses ("the man WHO eats"), complement clauses ("I think THAT she eats"). Requires cross-clause reasoning.
+3. **Passive voice** — "be + past_participle" with subject-object inversion. Atom shape exists; pattern doesn't.
+4. **Cross-clause coreference enforcement** — reflexive pronouns must match the subject's person/number/gender. Currently `verb_reflexive_pronoun` fires structurally without coreference check.
+5. **Discourse-level phenomena** — answering "no" to a yes/no question, ellipsis ("Yes, I do"), discourse coherence. These may genuinely need a layer above grammar.
+
+**When to revisit:** Each is its own session. 1, 2, 3 fit the existing substrate. 4 needs feature-matching across token boundaries (a small extension). 5 may push the substrate hard — re-evaluate when getting there.

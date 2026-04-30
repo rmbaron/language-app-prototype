@@ -2,7 +2,7 @@
 // a noun phrase: determiners, demonstratives, possessive determiners,
 // attributive adjectives.
 
-import { hasAtom, hasFormType } from './_helpers'
+import { hasAtom, hasFormType, hasDeterminerClass } from './_helpers'
 
 export default [
   {
@@ -123,17 +123,23 @@ export default [
     license: { alwaysForbidden: true },
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['indefinite_article', 'noun', 'adjective'],
+    consumesL2Fields: ['countability'],
   },
 
+  // (`indefinite_article_with_proper_noun` retired here — subsumed by
+  // `determiner_with_proper_noun` below, which uses the `determiner` umbrella
+  // and catches every determiner-class word including `a/an`. Single slot rule
+  // replaced what would have been five per-determiner-subtype patterns.)
+
   {
-    id:          'indefinite_article_with_proper_noun',
+    id:          'determiner_with_proper_noun',
     group:       'noun_phrase',
-    description: 'Indefinite article "a" or "an" followed (with optional adjective) by a proper noun — broken English in standard usage. e.g. "a Mary", "an London", "a good John". Proper nouns name a specific entity and don\'t combine with the indefinite article.',
+    description: 'Any determiner-class word followed (with optional adjective) by a proper noun — broken English at A1. e.g. "the Mary", "this London", "my Mary", "some Mary". Proper nouns are inherently specific and don\'t take determiners. Includes the indefinite-article case but covers definite, demonstrative, possessive, and quantifier determiners too via the `determiner` umbrella.',
     type:        'trigram',
     detector(tokens) {
       const out = []
       for (let i = 0; i < tokens.length - 1; i++) {
-        if (!hasAtom(tokens[i], 'indefinite_article')) continue
+        if (!hasAtom(tokens[i], 'determiner')) continue
         for (let j = i + 1; j < tokens.length && j <= i + 3; j++) {
           if (hasAtom(tokens[j], 'adjective')) continue
           if (hasAtom(tokens[j], 'noun') && tokens[j].properNoun) {
@@ -146,6 +152,79 @@ export default [
     },
     license: { alwaysForbidden: true },
     coupling: 'noun_phrase_internal',
-    detectsAtoms: ['indefinite_article', 'noun', 'adjective'],
+    detectsAtoms: ['determiner', 'noun', 'adjective'],
+    consumesL2Fields: ['properNoun'],
+  },
+
+  // ─── Bare singular count noun without a determiner (slot-style, single rule)
+  // ONE position-agnostic forbidden pattern. Catches:
+  //   "Cat runs" (subject)         "I see cat" (object)         "She is teacher" (copula complement)
+  //   "Good cat runs"              "I see good cat"              "She is happy dog"
+  // Walks left from any singular common count noun through an optional adjective
+  // stack — if no determiner-class word licenses the NP, fire. Replaces what
+  // were three separate position-specific bigram/trigram patterns
+  // (bare_singular_count_noun_verb, verb_object_bare_singular_count_noun,
+  // copula_bare_singular_count_noun). Each had the same underlying rule;
+  // position was an enumeration artifact, not a real grammatical distinction.
+  {
+    id:          'bare_singular_count_noun_unlicensed',
+    group:       'noun_phrase',
+    description: 'Singular common count noun appearing without a determiner anywhere in its noun phrase. e.g. "cat runs" (should be "the cat"), "I see cat" (should be "the cat" or "a cat"), "She is happy dog" (still missing the determiner), "Good cat runs". Singular common count nouns require a determiner; an adjective alone does not license them. Position-agnostic — fires wherever the bare noun appears.',
+    type:        'morphology',
+    detector(tokens) {
+      const out = []
+      for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i]
+        if (!hasAtom(t, 'noun')) continue
+        if (t.countability !== 'count') continue
+        if (t.properNoun) continue
+        if (hasFormType(t, 'plural')) continue
+        // Walk left through any adjective stack — only a determiner-class word licenses
+        let k = i - 1
+        while (k >= 0 && hasAtom(tokens[k], 'adjective')) k--
+        if (k >= 0 && hasDeterminerClass(tokens[k])) continue
+        out.push({ span: [i, i] })
+      }
+      return out
+    },
+    license: { alwaysForbidden: true },
+    coupling: 'noun_phrase_internal',
+    detectsAtoms: ['noun', 'adjective'],
+    consumesL2Fields: ['countability', 'properNoun'],
+  },
+
+  // ─── Demonstrative number agreement (slot-style, single rule) ────────────
+  // ONE forbidden pattern that catches both directions of the agreement
+  // mismatch: "this dogs" (singular dem + plural noun) and "these dog"
+  // (plural dem + singular noun). Reads `number` from the demonstrative's L2
+  // enrichment; if not enriched yet, the pattern stays silent (no false
+  // positives). Replaces what would have been four bigram patterns.
+  {
+    id:          'demonstrative_number_mismatch',
+    group:       'noun_phrase',
+    description: 'Demonstrative + noun where the demonstrative\'s number doesn\'t match the noun\'s number. e.g. "this dogs" (singular dem + plural noun), "these dog" (plural dem + singular noun). Use this/that for singular nouns; these/those for plural.',
+    type:        'bigram',
+    detector(tokens) {
+      const out = []
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const dem = tokens[i]
+        if (!hasAtom(dem, 'demonstrative')) continue
+        if (dem.number == null) continue
+        const noun = tokens[i + 1]
+        if (!hasAtom(noun, 'noun')) continue
+        const nounIsPlural = Array.isArray(noun.formType)
+          ? noun.formType.includes('plural')
+          : noun.formType === 'plural'
+        const demIsPlural  = dem.number === 'plural'
+        if (nounIsPlural !== demIsPlural) {
+          out.push({ span: [i, i + 1] })
+        }
+      }
+      return out
+    },
+    license: { alwaysForbidden: true },
+    coupling: 'noun_phrase_internal',
+    detectsAtoms: ['demonstrative', 'noun'],
+    consumesL2Fields: ['number'],
   },
 ]

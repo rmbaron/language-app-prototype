@@ -13,6 +13,9 @@ export default [
     detector(tokens) {
       const out = []
       for (let i = 0; i < tokens.length - 1; i++) {
+        // modal + bare lexical-verb-or-copula. NOT a verb-umbrella case —
+        // modal + auxiliary ("can do") is a real shape but a different pattern,
+        // and modal + modal isn't licensed. Keep the explicit list here.
         if (hasAtom(tokens[i], 'modal_auxiliary') &&
             hasAnyAtom(tokens[i + 1], ['lexical_verb', 'copula'])) {
           out.push({ span: [i, i + 1] })

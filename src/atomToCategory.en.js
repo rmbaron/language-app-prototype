@@ -16,6 +16,12 @@ export const ATOM_TO_CATEGORY = {
   modal_auxiliary:           'verb',
   progressive_auxiliary:     'verb',
   perfect_auxiliary:         'verb',
+  verb:                      'verb',  // umbrella
+
+  // Verb construction structure tokens (never primary on a single word)
+  modal_construction:        'verb',
+  perfect_construction:      'verb',
+  progressive_construction:  'verb',
 
   // Pronouns
   personal_pronoun:          'pronoun',

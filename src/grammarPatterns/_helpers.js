@@ -24,3 +24,20 @@ export function hasFormType(token, type) {
   if (token?.formType == null) return false
   return Array.isArray(token.formType) ? token.formType.includes(type) : token.formType === type
 }
+
+// Determiner-class membership — articles, demonstratives, and possessive
+// determiners all license the head noun of an NP. Single source of truth so
+// patterns don't repeat the three-element atom list. When every determiner-
+// class word reliably carries the `determiner` umbrella alternateAtom, this
+// helper can collapse to `hasAtom(token, 'determiner')` in one place.
+export function hasDeterminerClass(token) {
+  return hasAnyAtom(token, ['determiner', 'demonstrative', 'possessive_determiner'])
+}
+
+// Verb-class membership — lexical verbs, copula, do-support auxiliary, modals.
+// Single source of truth so patterns don't repeat the verb-class atom list.
+// When every verb-class word reliably carries the `verb` umbrella alternateAtom
+// (after L2 re-enrichment), this helper can collapse to `hasAtom(token, 'verb')`.
+export function hasVerbClass(token) {
+  return hasAnyAtom(token, ['verb', 'lexical_verb', 'copula', 'auxiliary', 'modal_auxiliary'])
+}

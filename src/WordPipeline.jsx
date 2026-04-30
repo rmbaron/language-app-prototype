@@ -7,6 +7,7 @@ import { runLayerTwoBatch, enrichWordL2, forceReEnrichAllL2, getReEnrichCampaign
 import { clearWordContent } from './contentStore'
 import { getAtomIndex, getAtomIndexRebuiltAt, rebuildAtomIndex, findWordInIndex } from './atomIndex'
 import { markFormsMapStale } from './formsMap'
+import GrammarBreakerL2Health from './GrammarBreakerL2Health'
 
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
@@ -255,6 +256,7 @@ export default function WordPipeline({ onClose }) {
   const [newWord, setNewWord]         = useState('')
   const [addError, setAddError]       = useState(null)
   const [, forceUpdate]               = useState(0)
+  const [showL2Health, setShowL2Health] = useState(false)
 
   async function handleAddWord() {
     const trimmed = newWord.trim()
@@ -371,10 +373,19 @@ export default function WordPipeline({ onClose }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
         <button className="dev-toggle" onClick={onClose}>← Back</button>
         <span style={{ fontWeight: 600, fontSize: 15, color: '#ccc' }}>Word Pipeline</span>
-        <span style={{ fontSize: 12, color: '#555', marginLeft: 'auto' }}>
+        <button className="dev-toggle" onClick={() => setShowL2Health(v => !v)} style={{ marginLeft: 'auto' }}>
+          {showL2Health ? 'Hide L2 Health' : 'L2 Health'}
+        </button>
+        <span style={{ fontSize: 12, color: '#555' }}>
           {filtered.length} / {WORD_SEED.length} words
         </span>
       </div>
+
+      {showL2Health && (
+        <div style={{ marginBottom: 20 }}>
+          <GrammarBreakerL2Health />
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
         <input

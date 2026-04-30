@@ -21,8 +21,14 @@ import { PATTERNS } from './grammarBreakerPatterns'
 import { isPatternEnabled } from './grammarBreakerConfig'
 
 // ── Function-word table (built once from ALWAYS_PASS_WORDS) ─────────────────
-const FUNCTION_ATOMS = Object.fromEntries(
-  ALWAYS_PASS_WORDS.map(w => [w.word, w.atomClass])
+// Each entry maps the surface word to its full atom list (primary + umbrellas).
+// Mirrors how L2-enriched words carry [grammaticalAtom, ...alternateAtoms] —
+// the same closed-class umbrella mechanism applies to function words too.
+const FUNCTION_ATOM_LISTS = Object.fromEntries(
+  ALWAYS_PASS_WORDS.map(w => [
+    w.word,
+    [w.atomClass, ...(w.umbrellaAtoms ?? [])],
+  ])
 )
 
 // ── Tokenization ────────────────────────────────────────────────────────────
@@ -58,8 +64,8 @@ export function tokenize(text, lang = 'en') {
     }
 
     // Function words (a/the/and/or/...)
-    if (FUNCTION_ATOMS[lower]) {
-      return { surface, position: i, charSpan, atoms: [FUNCTION_ATOMS[lower]],
+    if (FUNCTION_ATOM_LISTS[lower]) {
+      return { surface, position: i, charSpan, atoms: FUNCTION_ATOM_LISTS[lower],
                formType: 'base', base: lower, isPunctuation: false,
                isFunctionWord: true, isUnknown: false }
     }
@@ -182,13 +188,19 @@ export function validateSentence(text, activeAtoms, lang = 'en') {
   // explicitly rejected. Function words DO need coverage; they have
   // grammatical roles in patterns.
   //
-  // Suppression: if ANY token is unknown, skip the coverage check.
-  // Patterns that would have covered the surrounding tokens often depend
-  // on the unknown word being a noun/verb/etc. — so coverage gaps near
-  // unknowns are usually false positives. The word-level breaker is
-  // already flagging the unknown word; grammar shouldn't double-fail.
-  const hasUnknown = tokens.some(t => t.isUnknown)
-  if (!hasUnknown) {
+  // Suppression: skip the coverage check whenever ANY content token is
+  // grammatically opaque to the validator. Two cases:
+  //   isUnknown — surface form not in formsMap (no base resolves)
+  //   atoms.length === 0 — known surface, but no atom info (e.g. word in
+  //                        seed but not yet L2-enriched)
+  // In both cases the grammar circuit has no information about that token
+  // and patterns near it can't fire — so a coverage gap there is a false
+  // positive. The word-level breaker handles word-level concerns; grammar
+  // should stay silent rather than double-fail.
+  const hasOpaqueContentToken = tokens.some(t =>
+    !t.isPunctuation && !t.isFunctionWord && (t.isUnknown || (t.atoms?.length ?? 0) === 0)
+  )
+  if (!hasOpaqueContentToken) {
     const coveredTokens = new Set()
     for (const f of fired) {
       if (!f.verdict.allowed) continue

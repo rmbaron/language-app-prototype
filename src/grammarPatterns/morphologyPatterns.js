@@ -3,7 +3,7 @@
 // All license: alwaysForbidden — these flag features above A1 regardless
 // of which atoms are unlocked.
 
-import { hasAtom, hasAnyAtom, hasFormType } from './_helpers'
+import { hasAtom, hasFormType, hasVerbClass } from './_helpers'
 
 export default [
   {
@@ -14,8 +14,7 @@ export default [
     detector(tokens) {
       const out = []
       for (let i = 0; i < tokens.length; i++) {
-        if (hasFormType(tokens[i], 'past') &&
-            hasAnyAtom(tokens[i], ['lexical_verb', 'copula', 'auxiliary'])) {
+        if (hasFormType(tokens[i], 'past') && hasVerbClass(tokens[i])) {
           out.push({ span: [i, i], info: { formType: 'past' } })
         }
       }

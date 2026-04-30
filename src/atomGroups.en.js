@@ -30,6 +30,8 @@ export const ATOM_GROUPS = {
   verb_lexical:            ['lexical_verb'],
   verb_copula:             ['copula'],
   verb_auxiliary:          ['auxiliary', 'modal_auxiliary', 'perfect_auxiliary', 'progressive_auxiliary'],
+  verb_all:                ['verb'],  // umbrella
+  verb_constructions:      ['modal_construction', 'perfect_construction', 'progressive_construction'],
 
   // ─── Nominal modifiers ──────────────────────────────────────────────────
   determiner_class:        ['determiner', 'indefinite_article', 'definite_article', 'quantifier_determiner', 'demonstrative', 'possessive_determiner'],

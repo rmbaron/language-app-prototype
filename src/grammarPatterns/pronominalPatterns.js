@@ -1,7 +1,7 @@
 // Pronominal patterns — reflexive objects and indefinite-pronoun positions.
 // Both depend on pronoun atoms beyond the basic personal/object pair.
 
-import { hasAtom, hasAnyAtom } from './_helpers'
+import { hasAtom, hasVerbClass } from './_helpers'
 
 export default [
   // ─── Reflexive (Tier 3, structural only — no coreference enforcement) ────
@@ -34,7 +34,7 @@ export default [
       const out = []
       for (let i = 0; i < tokens.length - 1; i++) {
         if (hasAtom(tokens[i], 'indefinite_pronoun') &&
-            hasAnyAtom(tokens[i + 1], ['lexical_verb', 'copula', 'auxiliary'])) {
+            hasVerbClass(tokens[i + 1])) {
           out.push({ span: [i, i + 1] })
         }
       }

@@ -237,6 +237,94 @@ function CellLabel({ text, lit, color = F.text, mono = false }) {
   )
 }
 
+// ── Rejection panel — explain why the typed sentence was rejected ──────────
+
+// Renders one row per failure with whatever information the validator
+// produced. Coverage gaps, forbidden-pattern matches, and missing-required-
+// atom failures all get the same shape: reason + offending surface span.
+function RejectionPanel({ signature, onPickPattern }) {
+  const { failures, tokens } = signature
+
+  // Recompose the surface text for a token-index span [a, b].
+  function spanText(span) {
+    if (!span || tokens == null) return ''
+    const [a, b] = span
+    const out = []
+    for (let i = a; i <= b && i < tokens.length; i++) out.push(tokens[i].surface)
+    return out.join(' ')
+  }
+
+  function failureLabel(f) {
+    if (f.patternId === '_coverage_gap') return 'coverage gap'
+    return f.patternId
+  }
+
+  function failureReason(f) {
+    if (f.patternId === '_coverage_gap') {
+      const tokens = f.info?.uncoveredTokens ?? []
+      const surfaces = tokens.map(t => `"${t.surface}"`).join(', ')
+      return `no allowed pattern licenses ${surfaces} — the sentence is incomplete or uses a structure the circuit doesn't yet recognize`
+    }
+    return f.reason ?? 'no reason provided'
+  }
+
+  return (
+    <div style={{
+      marginTop: 8, padding: '10px 14px',
+      background: 'rgba(232, 95, 122, 0.06)',
+      border: `1px solid ${F.forbidden}`, borderRadius: 6,
+      fontSize: 12, color: F.text, lineHeight: 1.55,
+    }}>
+      <div style={{ fontSize: 10, letterSpacing: '0.12em', color: F.forbidden, textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
+        Why rejected
+      </div>
+      {failures.length === 0 ? (
+        <div style={{ color: F.textDim, fontStyle: 'italic' }}>
+          allowed = false but no failure recorded — this shouldn't happen, please flag
+        </div>
+      ) : (
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {failures.map((f, i) => {
+            const surface = spanText(f.span)
+            const isCoverageGap = f.patternId === '_coverage_gap'
+            return (
+              <li key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
+                <span style={{ color: F.forbidden, fontWeight: 700 }}>✗</span>
+                {isCoverageGap ? (
+                  <span style={{ fontFamily: 'monospace', color: F.forbidden, fontWeight: 600 }}>
+                    {failureLabel(f)}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onPickPattern(f.patternId)}
+                    style={{
+                      background: 'transparent', border: 'none', padding: 0,
+                      color: F.forbidden, fontFamily: 'monospace', fontWeight: 600,
+                      cursor: 'pointer', textDecoration: 'underline',
+                      textDecorationStyle: 'dotted', textUnderlineOffset: 3,
+                      fontSize: 'inherit',
+                    }}
+                  >
+                    {failureLabel(f)}
+                  </button>
+                )}
+                {surface && (
+                  <span style={{ color: F.textDim }}>
+                    at <span style={{ color: F.text, fontStyle: 'italic' }}>"{surface}"</span>
+                  </span>
+                )}
+                <span style={{ color: F.textDim, flexBasis: '100%', paddingLeft: 18 }}>
+                  {failureReason(f)}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
@@ -280,12 +368,17 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
     const couplingSet = new Set()
     const compositeSet = new Set()
     const unknownTokens = []
+    const atomlessTokens = []
     for (const t of result.tokens) {
       if (t.isPunctuation) continue
       if (t.isUnknown) { unknownTokens.push(t.surface); continue }
+      if (!t.isFunctionWord && (!t.atoms || t.atoms.length === 0)) {
+        atomlessTokens.push(t.surface)
+      }
       if (Array.isArray(t.atoms)) for (const a of t.atoms) atomSet.add(a)
     }
     for (const f of result.fired) {
+      if (!f.verdict.allowed) continue
       patternSet.add(f.patternId)
       const p = PATTERNS.find(x => x.id === f.patternId)
       if (p) {
@@ -293,7 +386,22 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
         compositesForCoupling(p.coupling).forEach(c => compositeSet.add(c.id))
       }
     }
-    return { atomSet, patternSet, couplingSet, compositeSet, fired: result.fired, allowed: result.allowed, unknownTokens }
+    // Forbidden patterns that fired — light them up in the Guards section so
+    // the user can SEE which tripwire matched.
+    const firedForbidden = new Set()
+    for (const f of result.fired) {
+      if (f.verdict.allowed) continue
+      firedForbidden.add(f.patternId)
+      patternSet.add(f.patternId)  // also light its chip
+    }
+    return {
+      atomSet, patternSet, couplingSet, compositeSet,
+      fired: result.fired, failures: result.failures,
+      allowed: result.allowed,
+      tokens: result.tokens,
+      unknownTokens, atomlessTokens,
+      firedForbidden,
+    }
   }, [sentence, atoms])
 
   // ── Lit-up sets per column ──────────────────────────────────────────
@@ -580,9 +688,19 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
                   ⚠ unknown: {sentenceSignature.unknownTokens.join(', ')}
                 </span>
               )}
+              {sentenceSignature.atomlessTokens.length > 0 && (
+                <span style={{ marginLeft: 10, color: F.forbidden, fontWeight: 600 }} title="known surface form, but no grammar info — needs L2 enrichment">
+                  ⚠ no grammar info: {sentenceSignature.atomlessTokens.join(', ')}
+                </span>
+              )}
             </div>
           )}
         </div>
+
+        {/* ── Why rejected — always explain, with whatever info we have ─── */}
+        {sentenceSignature && !sentenceSignature.allowed && (
+          <RejectionPanel signature={sentenceSignature} onPickPattern={pickPattern} />
+        )}
       </div>
 
       {/* ── Four columns ──────────────────────────────────────────────── */}

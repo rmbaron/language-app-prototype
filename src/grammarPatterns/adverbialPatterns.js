@@ -1,7 +1,7 @@
 // Adverbial patterns — adverb position by type, plus prepositional phrases.
 // Both fill the adverbial slot at the clause level.
 
-import { hasAtom, hasAnyAtom } from './_helpers'
+import { hasAtom, hasDeterminerClass } from './_helpers'
 
 export default [
   {
@@ -37,6 +37,7 @@ export default [
     },
     license: { requiresAtoms: ['adverb'] },
     coupling: 'adverbial_position',
+    consumesL2Fields: ['adverbType'],
   },
 
   {
@@ -54,6 +55,7 @@ export default [
     },
     license: { requiresAtoms: ['adverb'] },
     coupling: 'adverbial_position',
+    consumesL2Fields: ['adverbType'],
   },
 
   {
@@ -74,6 +76,7 @@ export default [
     },
     license: { requiresAtoms: ['adverb', 'lexical_verb'] },
     coupling: 'adverbial_position',
+    consumesL2Fields: ['adverbType'],
   },
 
   {
@@ -94,6 +97,7 @@ export default [
     },
     license: { requiresAtoms: ['adverb', 'adjective'] },
     coupling: 'adverbial_position',
+    consumesL2Fields: ['adverbType'],
   },
 
   {
@@ -110,7 +114,7 @@ export default [
           continue
         }
         if (i + 2 < tokens.length &&
-            hasAnyAtom(tokens[i + 1], ['determiner', 'demonstrative', 'possessive_determiner']) &&
+            hasDeterminerClass(tokens[i + 1]) &&
             hasAtom(tokens[i + 2], 'noun')) {
           out.push({ span: [i, i + 2] })
         }

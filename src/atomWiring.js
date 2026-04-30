@@ -19,6 +19,7 @@ import { ATOM_PIONEERS } from './atomPioneers.en.js'
 import { ATOM_GROUPS } from './atomGroups.en.js'
 import { ATOM_TO_CATEGORY } from './atomToCategory.en.js'
 import { ALWAYS_PASS_WORDS } from './circuitCheck.js'
+import { FIXED_UNITS } from './multiWordUnits.en.js'
 
 export function checkAtomWiring() {
   const atomIds = new Set(ATOMS.map(a => a.id))
@@ -69,6 +70,15 @@ export function checkAtomWiring() {
         message: `function word "${fw.word}" has atomClass "${fw.atomClass}" — no such atom is defined in ATOMS`,
       })
     }
+    for (const umb of fw.umbrellaAtoms ?? []) {
+      if (!atomIds.has(umb)) {
+        issues.push({
+          atomId:  umb,
+          kind:    'function_word_orphan_umbrella',
+          message: `function word "${fw.word}" lists umbrella atom "${umb}" — no such atom is defined in ATOMS`,
+        })
+      }
+    }
   }
 
   // ── 5. ATOM_PIONEERS keys must reference defined atoms ────────────────────
@@ -103,6 +113,26 @@ export function checkAtomWiring() {
         kind:    'category_orphan',
         message: `ATOM_TO_CATEGORY has entry for "${key}" but no such atom is defined`,
       })
+    }
+  }
+
+  // ── 8. Multi-word fixed units must reference defined atoms ────────────────
+  for (const unit of FIXED_UNITS) {
+    if (!atomIds.has(unit.atomClass)) {
+      issues.push({
+        atomId:  unit.atomClass,
+        kind:    'fixed_unit_orphan_atom',
+        message: `fixed unit "${unit.text}" has atomClass "${unit.atomClass}" — no such atom is defined in ATOMS`,
+      })
+    }
+    for (const umb of unit.umbrellaAtoms ?? []) {
+      if (!atomIds.has(umb)) {
+        issues.push({
+          atomId:  umb,
+          kind:    'fixed_unit_orphan_umbrella',
+          message: `fixed unit "${unit.text}" lists umbrella atom "${umb}" — no such atom is defined in ATOMS`,
+        })
+      }
     }
   }
 

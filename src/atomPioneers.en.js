@@ -51,7 +51,13 @@ export const ATOM_PIONEERS = {
   pronoun:               null,    // umbrella; every pronoun's alternateAtom
   conjunction:           null,    // umbrella; every conjunction's alternateAtom
   determiner:            null,    // umbrella; every determiner-class word's alternateAtom
+  verb:                  null,    // umbrella; every verb-class word's alternateAtom
 
   // ── Alternate-atom-only atoms — never primary, no pioneer needed ────────
   infinitive_marker:     null,    // alternateAtom on the word "to" (primary stays preposition)
+
+  // ── Structure-only atoms — stamped on collapsed multi-word construction tokens
+  modal_construction:       null, // never primary on a single word
+  perfect_construction:     null, // never primary on a single word
+  progressive_construction: null, // never primary on a single word
 }

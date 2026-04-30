@@ -1,19 +1,27 @@
 import { buildBankSurfaceSet, resolveToBase } from './morphology.en.js'
 import { FIXED_UNITS } from './multiWordUnits.en.js'
+import { matchVerbConstruction } from './verbConstructions.en.js'
 
 // Words that always pass — no lexical meaning, never banked as vocabulary.
 // Keep this minimal: only articles and pure coordinating conjunctions.
 // Pronouns, auxiliaries, prepositions — all go through the bank check.
+//
+// Each entry carries:
+//   atomClass:     primary specific atom (e.g. 'indefinite_article')
+//   umbrellaAtoms: cross-cutting umbrella atoms (e.g. 'determiner') — same
+//                  shape as alternateAtoms on L2-enriched words, so patterns
+//                  that match the umbrella ('determiner', 'conjunction') fire
+//                  on these closed-class function words too.
 export const ALWAYS_PASS_WORDS = [
-  { word: 'a',   atomClass: 'indefinite_article' },
-  { word: 'an',  atomClass: 'indefinite_article' },
-  { word: 'the', atomClass: 'definite_article'   },
-  { word: 'and', atomClass: 'coordinating_conjunction' },
-  { word: 'but', atomClass: 'coordinating_conjunction' },
-  { word: 'or',  atomClass: 'coordinating_conjunction' },
-  { word: 'so',  atomClass: 'coordinating_conjunction' },
-  { word: 'yet', atomClass: 'coordinating_conjunction' },
-  { word: 'nor', atomClass: 'coordinating_conjunction' },
+  { word: 'a',   atomClass: 'indefinite_article',       umbrellaAtoms: ['determiner']  },
+  { word: 'an',  atomClass: 'indefinite_article',       umbrellaAtoms: ['determiner']  },
+  { word: 'the', atomClass: 'definite_article',         umbrellaAtoms: ['determiner']  },
+  { word: 'and', atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
+  { word: 'but', atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
+  { word: 'or',  atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
+  { word: 'so',  atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
+  { word: 'yet', atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
+  { word: 'nor', atomClass: 'coordinating_conjunction', umbrellaAtoms: ['conjunction'] },
 ]
 const ALWAYS_PASS = new Set(ALWAYS_PASS_WORDS.map(w => w.word))
 
@@ -64,22 +72,19 @@ export function splitSentences(text) {
 
 // ─── Multi-word aware tokenizer ──────────────────────────────────────────────
 
-// Returns tokens with multi-word units collapsed.
-// Each token: { surface, type: 'fixed_unit'|'construction'|'single'|'punctuation', atomClass?, constructionType? }
-export function tokenizeFull(text, atomWords = {}) {
-  const sorted = [...FIXED_UNITS].sort((a, b) => b.text.split(' ').length - a.text.split(' ').length)
-
-  // Build word → atomClass reverse map
-  const wordToAtom = {}
-  for (const [atomId, words] of Object.entries(atomWords)) {
-    for (const w of words) wordToAtom[w] = atomId
-  }
-
-  const modalTriggers  = new Set((atomWords['modal_auxiliary'] ?? []).map(w => w.toLowerCase()))
-  const copulaWords    = new Set((atomWords['copula']          ?? []).map(w => w.toLowerCase()))
-  const lexicalVerbs   = new Set((atomWords['lexical_verb']    ?? []).map(w => w.toLowerCase()))
-  // have/has/had as perfect auxiliary — hardcoded since perfect_auxiliary has no standalone words
-  const perfectTriggers = new Set(['have', 'has', 'had'])
+// Returns tokens with multi-word units collapsed. Two collapse mechanisms,
+// both data-driven:
+//   FIXED_UNITS         — exact multi-word phrases (in front of, as soon as)
+//   VERB_CONSTRUCTIONS  — atom-shape patterns (modal + verb, copula + verb-ing, ...)
+//
+// Adding a new multi-word phrase = add a row to FIXED_UNITS.
+// Adding a new verb construction = add a row to VERB_CONSTRUCTIONS. No new
+// branches here — this function is generic.
+//
+// Each emitted token: { surface, type, sentenceIndex, atomClass?, atoms?,
+//   unitId? (fixed_unit), constructionType? (construction) }
+export function tokenizeFull(text, atomWords = {}, lang = 'en') {
+  const fixedSorted = [...FIXED_UNITS].sort((a, b) => b.text.split(' ').length - a.text.split(' ').length)
   // \.{3} before [.,;:] so ellipsis is one token; [!?]+ so !! and ??? collapse to one token
   const raw = text.match(/[a-zA-Z'']+|\.{3}|[!?]+|[.,;:]/g) ?? []
   const result = []
@@ -94,101 +99,39 @@ export function tokenizeFull(text, atomWords = {}) {
       i++; continue
     }
 
-    // Try fixed units first (longest match)
+    // Try fixed units first (longest match wins)
     let matched = false
-    for (const unit of sorted) {
+    for (const unit of fixedSorted) {
       const uWords = unit.text.split(' ')
       const len = uWords.length
       if (i + len > raw.length) continue
       const slice = raw.slice(i, i + len).map(w => w.toLowerCase()).join(' ')
       if (slice === unit.text) {
-        result.push({ surface: raw.slice(i, i + len).join(' '), type: 'fixed_unit', unitId: unit.id, atomClass: unit.atomClass, sentenceIndex })
+        const atoms = [unit.atomClass, ...(unit.umbrellaAtoms ?? [])]
+        result.push({
+          surface: raw.slice(i, i + len).join(' '),
+          type: 'fixed_unit', unitId: unit.id,
+          atomClass: unit.atomClass, atoms,
+          sentenceIndex,
+        })
         i += len; matched = true; break
       }
     }
     if (matched) continue
 
-    // Try modal constructions — longest match first to avoid consuming a prefix
-    // and leaving the rest stranded. Order: 4-token → 3-token → 2-token.
-    const lower = raw[i].toLowerCase()
-    if (modalTriggers.has(lower) && i + 1 < raw.length) {
-      const n1 = raw[i + 1].toLowerCase()
-      const n1Base = resolveToBase(n1)
-      const n1IsPerfectAux = perfectTriggers.has(n1) || perfectTriggers.has(n1Base)
-      const n1IsBeForm     = copulaWords.has(n1) || copulaWords.has(n1Base)
-
-      // 4-token: will have been drinking (future_perfect_continuous)
-      if (n1IsPerfectAux && i + 3 < raw.length) {
-        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
-        const n3 = raw[i + 3].toLowerCase(); const n3Base = resolveToBase(n3)
-        if ((copulaWords.has(n2) || copulaWords.has(n2Base)) &&
-            n3.endsWith('ing') && n3 !== n3Base &&
-            (lexicalVerbs.has(n3Base) || wordToAtom[n3Base] === 'lexical_verb')) {
-          result.push({ surface: [raw[i],raw[i+1],raw[i+2],raw[i+3]].join(' '), type: 'construction', constructionType: 'future_perfect_continuous', atomClass: 'modal_construction', sentenceIndex })
-          i += 4; continue
-        }
-      }
-
-      // 3-token: will be drinking (future_continuous)
-      if (n1IsBeForm && i + 2 < raw.length) {
-        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
-        if (n2.endsWith('ing') && n2 !== n2Base &&
-            (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb')) {
-          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'future_continuous', atomClass: 'modal_construction', sentenceIndex })
-          i += 3; continue
-        }
-      }
-
-      // 3-token: will have drunk (future_perfect)
-      if (n1IsPerfectAux && i + 2 < raw.length) {
-        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
-        if (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb') {
-          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'future_perfect', atomClass: 'modal_construction', sentenceIndex })
-          i += 3; continue
-        }
-      }
-
-      // 2-token: will drink (future_simple / modal)
-      if (wordToAtom[n1Base] === 'lexical_verb' || wordToAtom[n1] === 'lexical_verb') {
-        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'modal', atomClass: 'modal_construction', sentenceIndex })
-        i += 2; continue
-      }
-    }
-
-    // Try progressive construction: be-form + verb-ing (present/past continuous)
-    const isBeForm = copulaWords.has(lower) || copulaWords.has(resolveToBase(lower))
-    if (isBeForm && i + 1 < raw.length) {
-      const nextLower = raw[i + 1].toLowerCase()
-      const nextBase  = resolveToBase(nextLower)
-      const isIngForm = nextLower.endsWith('ing') && nextLower !== nextBase
-      if (isIngForm && (lexicalVerbs.has(nextBase) || lexicalVerbs.has(nextLower) || wordToAtom[nextBase] === 'lexical_verb' || wordToAtom[nextLower] === 'lexical_verb')) {
-        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'progressive', atomClass: 'progressive_construction', sentenceIndex })
-        i += 2; continue
-      }
-    }
-
-    // Try perfect constructions — longest match first.
-    if (perfectTriggers.has(lower) && i + 1 < raw.length) {
-      const n1 = raw[i + 1].toLowerCase(); const n1Base = resolveToBase(n1)
-      const n1IsBeForm = copulaWords.has(n1) || copulaWords.has(n1Base)
-
-      // 3-token: have been drinking (present/past perfect_continuous)
-      if (n1IsBeForm && i + 2 < raw.length) {
-        const n2 = raw[i + 2].toLowerCase(); const n2Base = resolveToBase(n2)
-        if (n2.endsWith('ing') && n2 !== n2Base &&
-            (lexicalVerbs.has(n2Base) || wordToAtom[n2Base] === 'lexical_verb')) {
-          result.push({ surface: [raw[i],raw[i+1],raw[i+2]].join(' '), type: 'construction', constructionType: 'perfect_continuous', atomClass: 'perfect_construction', sentenceIndex })
-          i += 3; continue
-        }
-      }
-
-      // 2-token: have drunk (present/past perfect)
-      const isLexVerb = lexicalVerbs.has(n1Base) || lexicalVerbs.has(n1)
-        || wordToAtom[n1Base] === 'lexical_verb' || wordToAtom[n1] === 'lexical_verb'
-      if (isLexVerb) {
-        result.push({ surface: raw[i] + ' ' + raw[i + 1], type: 'construction', constructionType: 'perfect', atomClass: 'perfect_construction', sentenceIndex })
-        i += 2; continue
-      }
+    // Try verb constructions (declarative table, longest match wins)
+    const construction = matchVerbConstruction(raw, i, atomWords, lang)
+    if (construction) {
+      const len = construction.shape.length
+      result.push({
+        surface: raw.slice(i, i + len).join(' '),
+        type: 'construction',
+        constructionType: construction.id,
+        atomClass: construction.atomClass,
+        atoms: [construction.atomClass],
+        sentenceIndex,
+      })
+      i += len; continue
     }
 
     result.push({ surface: raw[i], type: 'single', sentenceIndex })
