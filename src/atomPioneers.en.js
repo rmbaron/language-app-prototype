@@ -55,6 +55,8 @@ export const ATOM_PIONEERS = {
 
   // ── Alternate-atom-only atoms — never primary, no pioneer needed ────────
   infinitive_marker:     null,    // alternateAtom on the word "to" (primary stays preposition)
+  perfect_auxiliary:     null,    // alternateAtom on "have" (primary stays lexical_verb)
+  progressive_auxiliary: null,    // alternateAtom on "be" (primary stays copula)
 
   // ── Structure-only atoms — stamped on collapsed multi-word construction tokens
   modal_construction:       null, // never primary on a single word

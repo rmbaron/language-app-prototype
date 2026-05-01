@@ -20,6 +20,13 @@ import { ATOM_GROUPS } from './atomGroups.en.js'
 import { ATOM_TO_CATEGORY } from './atomToCategory.en.js'
 import { ALWAYS_PASS_WORDS } from './circuitCheck.js'
 import { FIXED_UNITS } from './multiWordUnits.en.js'
+import { PROMPT_LABEL } from './systemVocabulary.js'
+import {
+  deriveAtomToCategory,
+  deriveAtomPioneers,
+  deriveAtomGroups,
+  derivePromptLabels,
+} from './atomMetadataDerivations.js'
 
 export function checkAtomWiring() {
   const atomIds = new Set(ATOMS.map(a => a.id))
@@ -145,5 +152,66 @@ if (!_result.ok) {
   console.warn(`[atomWiring] ${_result.issues.length} wiring issue(s) detected on load:`)
   for (const i of _result.issues) {
     console.warn(`  [${i.kind}] ${i.message}`)
+  }
+}
+
+// ── Atom-metadata parity check (Phase 3 of metadata consolidation) ─────────
+// Compares the four legacy lookup maps against derived projections from each
+// atom's `defaults` block. While both shapes coexist, this confirms the
+// per-atom defaults are an exact replica of the legacy maps. After consumer
+// migration retires the legacy files (Phase 5), this check becomes obsolete.
+
+function deepEqualMap(legacy, derived, name) {
+  const legacyKeys  = Object.keys(legacy).sort()
+  const derivedKeys = Object.keys(derived).sort()
+  const issues      = []
+
+  if (legacyKeys.length !== derivedKeys.length) {
+    issues.push(`key count mismatch: legacy=${legacyKeys.length} derived=${derivedKeys.length}`)
+  }
+
+  const allKeys = new Set([...legacyKeys, ...derivedKeys])
+  for (const k of allKeys) {
+    if (!(k in legacy))  { issues.push(`only in derived: "${k}" → ${JSON.stringify(derived[k])}`); continue }
+    if (!(k in derived)) { issues.push(`only in legacy:  "${k}" → ${JSON.stringify(legacy[k])}`);  continue }
+    if (JSON.stringify(legacy[k]) !== JSON.stringify(derived[k])) {
+      issues.push(`mismatch at "${k}": legacy=${JSON.stringify(legacy[k])} derived=${JSON.stringify(derived[k])}`)
+    }
+  }
+
+  return { name, ok: issues.length === 0, issues }
+}
+
+// Derived ATOM_GROUPS values are arrays — sort each before compare so order
+// in the per-atom defaults.groups field doesn't matter.
+function normalizeGroupsForCompare(groupsMap) {
+  const out = {}
+  for (const [k, v] of Object.entries(groupsMap)) {
+    out[k] = Array.isArray(v) ? [...v].sort() : v
+  }
+  return out
+}
+
+const _parityResults = [
+  deepEqualMap(ATOM_TO_CATEGORY, deriveAtomToCategory(ATOMS), 'category'),
+  deepEqualMap(ATOM_PIONEERS,    deriveAtomPioneers(ATOMS),   'pioneers'),
+  deepEqualMap(
+    normalizeGroupsForCompare(ATOM_GROUPS),
+    normalizeGroupsForCompare(deriveAtomGroups(ATOMS)),
+    'groups',
+  ),
+  deepEqualMap(PROMPT_LABEL,     derivePromptLabels(ATOMS),   'promptLabels'),
+]
+
+const _parityOk = _parityResults.every(r => r.ok)
+if (_parityOk) {
+  console.log(`[atomMetadata] parity OK — 4/4 maps match (category, pioneers, groups, promptLabels)`)
+} else {
+  console.error(`[atomMetadata] DATA PARITY FAILED — derived projections do not match legacy maps. Do not switch consumers until this is resolved.`)
+  for (const r of _parityResults) {
+    if (!r.ok) {
+      console.error(`  [${r.name}] ${r.issues.length} issue(s):`)
+      for (const msg of r.issues) console.error(`    ${msg}`)
+    }
   }
 }
