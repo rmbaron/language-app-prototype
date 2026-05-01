@@ -13,7 +13,7 @@
 //
 // Source of truth for the macro-layer architecture: notes/macro-layer-sketch.md
 
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { getSlotRoles, getSlotRoleByShortLabel } from './slotRoles'
 import { getArgumentStructures } from './argumentStructures'
 import { getSubjectShapes, getSubjectShape } from './subjectShapes'
@@ -24,6 +24,45 @@ const SLOT_ROLES = getSlotRoles('en')
 const VERB_STRUCTURES = getArgumentStructures('en')
 const SUBJECT_SHAPES = getSubjectShapes('en')
 const EXCEPTION_SHAPES = getExceptionShapes('en')
+
+// ── Frame library ───────────────────────────────────────────────────────────
+// Inverts the verb-first argumentStructures data into a frame-first index.
+// Structure comes first; words follow. There are 7 frames; there can be
+// arbitrarily many words per frame.
+
+const FRAME_METADATA = {
+  'S+V':       { label: 'Intransitive',                          description: 'Verb takes only a subject. No object, no complement, no obligatory adverbial.' },
+  'S+V+O':     { label: 'Transitive',                            description: 'Verb takes a subject and a single direct object.' },
+  'S+V+O+O':   { label: 'Ditransitive',                          description: 'Verb takes two objects: indirect (recipient) before direct (theme). "He gave [me] [a book]."' },
+  'S+V+O+A':   { label: 'Transitive + obligatory adverbial',     description: 'Verb takes a subject, an object, and an obligatory adverbial. Includes the dative-shifted form of ditransitives ("He gave a book to me") and verbs that require a locative ("She put the book on the table").' },
+  'S+V+O+C':   { label: 'Transitive + object complement',        description: 'Verb takes a subject, an object, and a complement that predicates over the object. "She makes him happy."' },
+  'S+V+A':     { label: 'Intransitive + obligatory adverbial',   description: 'Verb takes a subject and an obligatory adverbial. The verb cannot stand without it. "He lives in London."' },
+  'S+V+C':     { label: 'Copular',                               description: 'Linking verb (be, seem, become, etc.) connects the subject to a complement that predicates over it. "She is happy."' },
+}
+
+const FRAME_LIBRARY = (() => {
+  const byFrame = new Map()
+  for (const verb of VERB_STRUCTURES) {
+    for (const frame of verb.frames) {
+      const sig = frame.slots.join('+')
+      if (!byFrame.has(sig)) {
+        const meta = FRAME_METADATA[sig] ?? { label: sig, description: '' }
+        byFrame.set(sig, {
+          signature: sig,
+          slots: frame.slots,
+          label: meta.label,
+          description: meta.description,
+          verbs: [],
+        })
+      }
+      byFrame.get(sig).verbs.push({ verb, frame })
+    }
+  }
+  // Sort by slot count, then by signature.
+  return [...byFrame.values()].sort((a, b) =>
+    a.slots.length - b.slots.length || a.signature.localeCompare(b.signature)
+  )
+})()
 
 const T = {
   page: '#ffffff', card: '#e8e8ea', border: '#c4c4c6',
@@ -249,28 +288,19 @@ function classifyLane(tokens, originalText) {
   return { lane: 'fundamental', exceptionType: null }
 }
 
-// ── Verb argument structure card ────────────────────────────────────────────
+// ── Frame card — frame first, words underneath ─────────────────────────────
 
-function VerbStructureCard({ verb, expanded, onToggle }) {
+function FrameCard({ frame, matchedVerbId, expanded, onToggle }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 6, padding: '14px 16px', marginBottom: 10 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-        <div style={{
-          padding: '4px 12px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 4,
-          fontSize: 17, fontWeight: 800, fontFamily: 'monospace', color: T.amber,
-        }}>
-          {verb.baseForm}
-        </div>
+      {/* Header — slot signature + general label + verb count */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+        <SlotSignature slots={frame.slots} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, color: T.textDim, fontFamily: 'monospace' }}>
-            {verb.verbId} · {verb.frames.length} frame{verb.frames.length === 1 ? '' : 's'}
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{frame.label}</div>
+          <div style={{ fontSize: 11, color: T.textDim, fontFamily: 'monospace', marginTop: 1 }}>
+            {frame.signature} · {frame.verbs.length} verb{frame.verbs.length === 1 ? '' : 's'}
           </div>
-          {!verb.inSeed && (
-            <div style={{ fontSize: 10, color: T.amber, fontStyle: 'italic', marginTop: 2 }}>
-              not yet in word seed — declared as architecture demo
-            </div>
-          )}
         </div>
         <button onClick={onToggle}
           style={{ padding: '4px 10px', background: '#fff', border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 11, color: T.textDim, cursor: 'pointer' }}>
@@ -278,48 +308,74 @@ function VerbStructureCard({ verb, expanded, onToggle }) {
         </button>
       </div>
 
-      {/* Frames — always shown (the signature is the main content) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {verb.frames.map(frame => (
-          <div key={frame.id} style={{ background: '#fff', border: `1px solid ${T.border}`, borderRadius: 5, padding: '10px 12px' }}>
-            {/* Frame header: label + slot signature + example */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: expanded ? 8 : 0 }}>
-              <div style={{ fontSize: 11, color: T.textSub, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', minWidth: 140 }}>
-                {frame.label}
-              </div>
-              <SlotSignature slots={frame.slots} />
-              <div style={{ fontSize: 12, color: T.text, fontStyle: 'italic', flex: 1 }}>
-                "{frame.example}"
-              </div>
-            </div>
+      {/* Description (always shown) */}
+      <div style={{ fontSize: 12, color: T.textSub, lineHeight: 1.55, marginBottom: 8 }}>
+        {frame.description}
+      </div>
 
-            {/* Frame details — only when expanded */}
-            {expanded && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}` }}>
-                {frame.notes && (
-                  <div style={{ fontSize: 12, color: T.textSub, lineHeight: 1.55, marginBottom: frame.slotNotes ? 8 : 0 }}>
-                    {frame.notes}
-                  </div>
-                )}
-                {frame.slotNotes && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {Object.entries(frame.slotNotes).map(([idx, note]) => {
-                      const slotChar = frame.slots[Number(idx)]
-                      return (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontSize: 10, color: T.textDim, fontFamily: 'monospace', minWidth: 50 }}>
-                            slot {idx} ({slotChar})
-                          </span>
-                          <span style={{ fontSize: 11, color: T.textSub, lineHeight: 1.5, flex: 1 }}>{note}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+      {/* Verbs that use this frame — each row is one verb */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {frame.verbs.map(({ verb, frame: verbFrame }) => {
+          const isVerbMatched = matchedVerbId === verb.verbId
+          return (
+            <div key={verb.verbId + ':' + verbFrame.id}
+              style={{
+                background: '#fff',
+                border: `1px solid ${isVerbMatched ? T.amberBord : T.border}`,
+                outline: isVerbMatched ? `2px solid ${T.amberBord}` : 'none',
+                outlineOffset: '1px',
+                borderRadius: 5,
+                padding: '8px 12px',
+                transition: 'outline 200ms, border 200ms',
+              }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{
+                  padding: '3px 10px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 4,
+                  fontSize: 14, fontWeight: 800, fontFamily: 'monospace', color: T.amber,
+                }}>
+                  {verb.baseForm}
+                </span>
+                <span style={{ fontSize: 11, color: T.textDim, fontFamily: 'monospace' }}>
+                  {verbFrame.label}
+                </span>
+                <span style={{ fontSize: 12, color: T.text, fontStyle: 'italic', flex: 1 }}>
+                  "{verbFrame.example}"
+                </span>
+                {!verb.inSeed && (
+                  <span style={{ fontSize: 9, color: T.amber, fontStyle: 'italic' }}>
+                    not in seed
+                  </span>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Per-verb frame notes — only when expanded */}
+              {expanded && (verbFrame.notes || verbFrame.slotNotes) && (
+                <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${T.border}` }}>
+                  {verbFrame.notes && (
+                    <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.5, marginBottom: verbFrame.slotNotes ? 6 : 0 }}>
+                      {verbFrame.notes}
+                    </div>
+                  )}
+                  {verbFrame.slotNotes && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {Object.entries(verbFrame.slotNotes).map(([idx, note]) => {
+                        const slotChar = verbFrame.slots[Number(idx)]
+                        return (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <span style={{ fontSize: 10, color: T.textDim, fontFamily: 'monospace', minWidth: 50 }}>
+                              slot {idx} ({slotChar})
+                            </span>
+                            <span style={{ fontSize: 10, color: T.textSub, lineHeight: 1.5, flex: 1 }}>{note}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -480,7 +536,6 @@ function FuturePhasePlaceholder({ phase, title, description }) {
 export default function GrammarBreakerForwardFlowTab() {
   const [expanded, setExpanded] = useState({})
   const [typedSentence, setTypedSentence] = useState('')
-  const verbCardRefs = useRef({})
 
   // Phase 3a — process the typed sentence forward.
   //
@@ -555,9 +610,6 @@ export default function GrammarBreakerForwardFlowTab() {
     return set
   }, [lane, subjectText, matchedVerb])
 
-  // (Auto-scroll on verb match removed — the amber glow is enough.
-  // verbCardRefs is kept in case future phases want it for inspection actions.)
-
   function toggle(id) {
     setExpanded(curr => ({ ...curr, [id]: !curr[id] }))
   }
@@ -568,16 +620,6 @@ export default function GrammarBreakerForwardFlowTab() {
     setExpanded(curr => {
       const next = { ...curr }
       for (const r of SLOT_ROLES) delete next[r.id]
-      return next
-    })
-  }
-  function expandAllVerbs() {
-    setExpanded(curr => ({ ...curr, ...Object.fromEntries(VERB_STRUCTURES.map(v => [v.verbId, true])) }))
-  }
-  function collapseAllVerbs() {
-    setExpanded(curr => {
-      const next = { ...curr }
-      for (const v of VERB_STRUCTURES) delete next[v.verbId]
       return next
     })
   }
@@ -752,37 +794,42 @@ export default function GrammarBreakerForwardFlowTab() {
         })}
       </div>
 
-      {/* Verb Argument Structures section */}
+      {/* Frame Library section — frame first, words underneath.
+          The structure (slot signature) is the primary entity; the words
+          that fit each frame are listed beneath it. There can be many
+          words per frame, but the count of frames is small. */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <Section>Verb Argument Structures ({VERB_STRUCTURES.length}) — the central engine</Section>
+          <Section>Frame Library ({FRAME_LIBRARY.length}) — the structural inventory</Section>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={expandAllVerbs}
+            <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(FRAME_LIBRARY.map(f => [`frame-${f.signature}`, true])) }))}
               style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
               expand all
             </button>
-            <button onClick={collapseAllVerbs}
+            <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const f of FRAME_LIBRARY) delete n[`frame-${f.signature}`]; return n })}
               style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
               collapse all
             </button>
           </div>
         </div>
         <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          Each verb declares which slot patterns it permits. Once the verb in a sentence is identified, the trajectory of the rest is largely determined. Free adjuncts (yesterday, in the kitchen) can attach without being declared — only argument slots are listed here.
+          The 7 frames an English clause's predicate can take. Frame is the structure (slot signature); the verbs that fit each frame are listed underneath. Adding more verbs grows the lists, not the frame count. Free adjuncts (yesterday, in the kitchen) can attach to any frame without being declared — only argument slots are listed.
         </div>
         <div>
-          {VERB_STRUCTURES.map(verb => {
-            const isMatch = matchedVerb?.verbId === verb.verbId
+          {FRAME_LIBRARY.map(frame => {
+            const isFrameMatched = matchedVerb && frame.verbs.some(v => v.verb.verbId === matchedVerb.verbId)
             return (
-              <div key={verb.verbId}
-                ref={el => { verbCardRefs.current[verb.verbId] = el }}
+              <div key={frame.signature}
                 style={{
-                  outline: isMatch ? `3px solid ${T.amber}` : 'none',
+                  outline: isFrameMatched ? `3px solid ${T.amber}` : 'none',
                   outlineOffset: '3px',
                   borderRadius: 6,
                   transition: 'outline 200ms',
                 }}>
-                <VerbStructureCard verb={verb} expanded={!!expanded[verb.verbId]} onToggle={() => toggle(verb.verbId)} />
+                <FrameCard frame={frame}
+                  matchedVerbId={matchedVerb?.verbId ?? null}
+                  expanded={!!expanded[`frame-${frame.signature}`]}
+                  onToggle={() => toggle(`frame-${frame.signature}`)} />
               </div>
             )
           })}

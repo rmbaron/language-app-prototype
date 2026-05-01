@@ -136,9 +136,12 @@ export function detectSubjectShape(subjectText) {
   if (rawTokens.length === 1) {
     const c = categories[0]
     if (c === 'pronoun' || c === 'pronoun_object') return 'pronoun'
+    // Gerund (-ing form) checked BEFORE proper noun heuristic — a capitalized
+    // -ing form ("Swimming") at sentence start would otherwise be misclassified
+    // as a proper noun. The -ing suffix is a stronger signal than capitalization.
+    if (looksLikeGerund(rawTokens[0])) return 'gerund'
     if (looksLikeProperNoun(rawTokens[0])) return 'proper_noun'
     if (c === 'noun' || (c && c.startsWith('noun'))) return 'bare_noun'
-    if (looksLikeGerund(rawTokens[0])) return 'gerund'
     return null
   }
 
@@ -187,6 +190,21 @@ export function detectSubjectShape(subjectText) {
     const allButLastAreAdj = allButLast.length > 0 && allButLast.every(c => c === 'adjective')
     if (isNoun(last) && allButLastAreAdj) {
       return 'bare_noun'
+    }
+  }
+
+  // Infinitive: word 0 is "to", word 1 is a verb-like base form.
+  // E.g. "To err is human" — subject "To err".
+  // We don't have an exhaustive verb list here; any word after "to" makes
+  // this an infinitive subject. Refinement (validating the word is actually
+  // a verb) is future work.
+  if (rawTokens.length >= 2) {
+    const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
+    if (t0 === 'to') {
+      const t1 = rawTokens[1].toLowerCase().replace(/[^\w'-]/g, '')
+      if (t1.length > 0 && /^[a-z]+$/.test(t1)) {
+        return 'infinitive'
+      }
     }
   }
 

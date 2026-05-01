@@ -177,14 +177,13 @@ Once the lane is identified, the system can also look at later words:
 ## Current state
 
 What's working:
-- All 9 Subject shapes are cataloged. Detection works for: pronoun, proper noun (via capitalization heuristic), determiner+noun, determiner+adjective+noun, quantifier+noun (with optional adjectives), bare noun (single mass/plural noun, plus adjective+noun without determiner), and a noun-number heuristic (singular/plural). Coordinated, gerund, and infinitive are cataloged but not yet detected.
+- All 9 Subject shapes are cataloged and detected. Detection works for: pronoun, proper noun (via capitalization heuristic), determiner+noun, determiner+adjective+noun, quantifier+noun (with optional adjectives), bare noun (single mass/plural noun, plus adjective+noun without determiner), coordinated subjects (joined by "and"/"or"), gerund (-ing form at sentence start), and infinitive ("to" + verb-base). Plus a noun-number heuristic (singular/plural).
 - All 8 Exception shapes are cataloged. All 8 are detected at position 0 — imperative, yes/no question, wh-question, adverbial fronting, negative inversion, quotative inversion, minor sentence/interjection, and dummy insertion (the existential branch).
 - Live detection runs on a text input in the Forward Flow tab; the matching shape's card lights up.
 - An A/An agreement check warns when *"a apple"* or *"an dog"* is typed.
 
 What's not working yet:
 - Inflected verb forms don't match base forms (typing *"gave"* doesn't match `give`'s argument structures).
-- Coordinated subjects, gerunds, and infinitives aren't detected as Subject shapes.
 - The "It was X that..." cleft form isn't detected (only the *"there"* branch of dummy insertion is).
 - After-verb processing (Object / Complement / Adverbial slot identification) hasn't been built yet — that's the next major layer.
 - Subject-verb agreement isn't enforced.
