@@ -5,17 +5,45 @@
 
 import { hasAtom, hasFormType, hasVerbClass } from './_helpers'
 
+// ── Forbidden verb-form dispatch table ─────────────────────────────────────
+// Each row maps a forbidden formType to its detection rule. The unified
+// forbidden_verb_morphology pattern walks tokens and emits a match for any
+// token matching one of the rules.
+//
+// Adding another above-A1 verb form = add one row here. No new pattern.
+//
+//   formType:        the inflected form to flag
+//   requireVerbClass: also require the token to carry a verb-class atom
+//                    (guards against non-verb words that share a tag)
+//   excludeFormTypes: skip if the token is also tagged with any of these
+//                    (e.g. past_participle is skipped when also 'past'
+//                    or 'base' — overloaded surfaces aren't a morphology
+//                    signal on their own)
+const FORBIDDEN_VERB_FORMS = [
+  { formType: 'past',                requireVerbClass: true,  excludeFormTypes: [] },
+  { formType: 'present_participle',  requireVerbClass: false, excludeFormTypes: [] },
+  { formType: 'past_participle',     requireVerbClass: false, excludeFormTypes: ['past', 'base'] },
+]
+
 export default [
+  // ─── Above-A1 verb morphology (slot-style, single data-driven rule) ─────
+  // Replaces past_simple_morphology, present_participle_morphology, and
+  // past_participle_morphology with one pattern that walks the dispatch table.
   {
-    id:          'past_simple_morphology',
+    id:          'forbidden_verb_morphology',
     group:       'morphology',
-    description: 'Verb in past simple form (-ed for regulars, irregular past). Above A1.',
+    description: 'Above-A1 verb inflection: past simple (-ed / irregular), present participle (-ing), past participle. Data-driven dispatch over the FORBIDDEN_VERB_FORMS table at the top of the file. Adding a new above-A1 verb form = one row in the table; no new pattern.',
     type:        'morphology',
     detector(tokens) {
       const out = []
       for (let i = 0; i < tokens.length; i++) {
-        if (hasFormType(tokens[i], 'past') && hasVerbClass(tokens[i])) {
-          out.push({ span: [i, i], info: { formType: 'past' } })
+        const t = tokens[i]
+        for (const rule of FORBIDDEN_VERB_FORMS) {
+          if (!hasFormType(t, rule.formType)) continue
+          if (rule.requireVerbClass && !hasVerbClass(t)) continue
+          if (rule.excludeFormTypes.some(ex => hasFormType(t, ex))) continue
+          out.push({ span: [i, i], info: { formType: rule.formType } })
+          break
         }
       }
       return out
@@ -25,47 +53,7 @@ export default [
     detectsAtoms: ['lexical_verb', 'copula', 'auxiliary'],
   },
 
-  {
-    id:          'present_participle_morphology',
-    group:       'morphology',
-    description: '-ing form on a verb (progressive aspect, gerund). Above A1 until progressive unlocks.',
-    type:        'morphology',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length; i++) {
-        if (hasFormType(tokens[i], 'present_participle')) {
-          out.push({ span: [i, i], info: { formType: 'present_participle' } })
-        }
-      }
-      return out
-    },
-    license: { alwaysForbidden: true },
-    coupling: 'morphology_inflection',
-    detectsAtoms: ['lexical_verb', 'copula', 'auxiliary'],
-  },
-
-  {
-    id:          'past_participle_morphology',
-    group:       'morphology',
-    description: 'Past participle form on a verb (perfect aspect). Above A1.',
-    type:        'morphology',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length; i++) {
-        if (hasFormType(tokens[i], 'past_participle') &&
-            !hasFormType(tokens[i], 'past') && !hasFormType(tokens[i], 'base')) {
-          // Skip surfaces also tagged 'past' (e.g. 'had') — caught by past_simple_morphology
-          // Skip surfaces also tagged 'base' (e.g. 'come', 'run') — overloaded surface, not a morphology signal
-          out.push({ span: [i, i], info: { formType: 'past_participle' } })
-        }
-      }
-      return out
-    },
-    license: { alwaysForbidden: true },
-    coupling: 'morphology_inflection',
-    detectsAtoms: ['lexical_verb', 'copula', 'auxiliary'],
-  },
-
+  // ─── Possessive clitic — kept separate (surface-regex, not formType) ────
   {
     id:          'possessive_clitic',
     group:       'morphology',
