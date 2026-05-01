@@ -1,61 +1,21 @@
 // Atom Groups — pedagogical clustering of atoms.
 //
+// DERIVED FILE for ATOM_GROUPS. Source of truth is each atom's
+// `defaults.groups` field in src/grammarAtoms.en.js. To put an atom in a
+// new group (or change which groups it belongs to), edit defaults.groups on
+// the atom record — not this file.
+//
 // This is the layer ABOVE atoms used for tier presets, bulk-toggle UX in the
 // grammar breaker dev panel, and curriculum sequencing. Atoms themselves stay
-// linguistic and stable; this file is your curricular slicing of them.
-//
-// Labels are arbitrary — pick whatever names work for the curriculum. They
-// don't need to match linguistic terms. Future redesign just changes the
-// labels and / or the atom membership; nothing in the validator or pattern
-// library breaks.
+// linguistic and stable; group membership is curatorial.
 //
 // Each entry: groupLabel → array of atom IDs that belong to that group.
+// (Inverted from the per-atom defaults.groups arrays.)
 
 import { ATOMS } from './grammarAtoms.en.js'
+import { deriveAtomGroups } from './atomMetadataDerivations.js'
 
-export const ATOM_GROUPS = {
-  // ─── Pronouns ───────────────────────────────────────────────────────────
-  pronoun_subject:        ['personal_pronoun'],
-  pronoun_object:          ['object_pronoun'],
-  pronoun_possessive:      ['possessive_determiner', 'possessive_pronoun'],
-  pronoun_demonstrative:   ['demonstrative'],
-  pronoun_reflexive:       ['reflexive_pronoun'],
-  pronoun_indefinite:      ['indefinite_pronoun'],
-  pronoun_relative:        ['relative_pronoun'],
-  pronoun_reciprocal:      ['reciprocal_pronoun'],
-  pronoun_interrogative:   ['interrogative'],
-  pronoun_all:             ['pronoun'],  // umbrella
-
-  // ─── Verbs ──────────────────────────────────────────────────────────────
-  verb_lexical:            ['lexical_verb'],
-  verb_copula:             ['copula'],
-  verb_auxiliary:          ['auxiliary', 'modal_auxiliary', 'perfect_auxiliary', 'progressive_auxiliary'],
-  verb_all:                ['verb'],  // umbrella
-  verb_constructions:      ['modal_construction', 'perfect_construction', 'progressive_construction'],
-
-  // ─── Nominal modifiers ──────────────────────────────────────────────────
-  determiner_class:        ['determiner', 'indefinite_article', 'definite_article', 'quantifier_determiner', 'demonstrative', 'possessive_determiner'],
-  determiner_articles:     ['indefinite_article', 'definite_article'],
-  determiner_quantifiers:  ['quantifier_determiner'],
-  determiner_all:          ['determiner'],  // umbrella
-  numeral_class:           ['numeral'],
-  adjective_class:         ['adjective'],
-
-  // ─── Adverbials ─────────────────────────────────────────────────────────
-  adverb_class:            ['adverb'],
-  preposition_class:       ['preposition'],
-
-  // ─── Connectors ─────────────────────────────────────────────────────────
-  conjunction_coordinating:    ['coordinating_conjunction'],
-  conjunction_subordinating:   ['subordinating_conjunction'],
-  conjunction_all:             ['conjunction'],  // umbrella
-
-  // ─── Standalone / other ─────────────────────────────────────────────────
-  negation:                ['negation_marker'],
-  interjection_class:      ['interjection'],
-  infinitive_marker_class: ['infinitive_marker'],
-  noun_class:              ['noun'],
-}
+export const ATOM_GROUPS = deriveAtomGroups(ATOMS)
 
 // ── Open vs closed class ────────────────────────────────────────────────────
 // Linguistic distinction. Open class atoms accumulate vocabulary indefinitely;

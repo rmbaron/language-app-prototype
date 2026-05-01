@@ -15,28 +15,13 @@
 import { getGrammarClusters } from './grammarClustering'
 import { SYSTEM_WORDS } from './systemWords.en'
 import { CONSTRUCTOR_TIERS } from './constructorTiers.en'
+import { ATOMS } from './grammarAtoms.en.js'
+import { derivePromptLabels } from './atomMetadataDerivations.js'
 
-// Concise labels for AI prompt blocks — shorter than full atom labels
-export const PROMPT_LABEL = {
-  personal_pronoun:      'Pronoun',
-  object_pronoun:        'Object pronoun',
-  noun:                  'Noun',
-  lexical_verb:          'Verb',
-  copula:                'Be',
-  auxiliary:             'Do',
-  modal_auxiliary:       'Modal',
-  adjective:             'Adjective',
-  determiner:            'Determiner',
-  numeral:               'Number',
-  demonstrative:         'Demonstrative',
-  possessive_determiner: 'Possessive',
-  preposition:           'Preposition',
-  interrogative:         'Question word',
-  negation_marker:       'Negation',
-  conjunction:           'Conjunction',
-  adverb:                'Adverb',
-  interjection:          'Interjection',
-}
+// Concise labels for AI prompt blocks — shorter than full atom labels.
+// DERIVED from each atom's defaults.promptLabel field. To change a label,
+// edit the atom record in grammarAtoms.en.js — not here.
+export const PROMPT_LABEL = derivePromptLabels(ATOMS)
 
 // All system words at clusters 1..upToCluster, grouped by atom.
 // Structure-unlock atoms (progressive_auxiliary etc.) have no index entries
