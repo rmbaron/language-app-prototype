@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { getWordBank } from './userStore'
 import { getBankedWords } from './wordRegistry'
-import { getActiveLanguage } from './learnerProfile'
+import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
+import { getStrings } from './uiStrings'
 import { LANES } from './lanes'
 import { MECHANICS_REGISTRY, getAvailableMechanics } from './wordPracticeMechanics'
 import WordPractice from './WordPractice'
@@ -10,6 +11,7 @@ const MECHANIC_IDS = Object.keys(MECHANICS_REGISTRY)
 
 export default function WordPracticeDevScreen({ onClose }) {
   const lang = getActiveLanguage()
+  const s = getStrings(getInterfaceLanguage())
   const bankWords = useMemo(() => getBankedWords(getWordBank(), lang), [lang])
 
   const [selectedWordId, setSelectedWordId] = useState(bankWords[0]?.id ?? null)
@@ -64,7 +66,7 @@ export default function WordPracticeDevScreen({ onClose }) {
               return (
                 <div key={lane.id} style={{ marginBottom: 12 }}>
                   <p className="wl-cluster-section-name" style={{ marginBottom: 4 }}>
-                    {lane.label}
+                    {s.common.lanes[lane.id]}
                     {available.length === 0 && (
                       <span className="wl-empty"> — none available</span>
                     )}

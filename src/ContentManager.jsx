@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getAllWords, getWord } from './wordRegistry'
-import { getActiveLanguage } from './learnerProfile'
+import { getActiveLanguage, getInterfaceLanguage } from './learnerProfile'
+import { getStrings } from './uiStrings'
 import { LANES } from './lanes'
 import { getContent, addContent, updateContent, removeContent, getPronunciation, setPronunciation, getContentIndex } from './contentStore'
 import { ATOMS } from './grammarAtoms.en'
@@ -89,6 +90,7 @@ function ItemDisplay({ item, lane, onEdit, onRemove }) {
 }
 
 function LaneSection({ wordId, lane }) {
+  const s = getStrings(getInterfaceLanguage())
   const [items, setItems] = useState(() => getContent(wordId, lane.id))
   const [addText, setAddText] = useState('')
   const [addAudioUrl, setAddAudioUrl] = useState('')
@@ -180,7 +182,7 @@ function LaneSection({ wordId, lane }) {
   return (
     <div className="cm-lane">
       <div className="cm-lane-header">
-        <span className="cm-lane-title">{lane.label}</span>
+        <span className="cm-lane-title">{s.common.lanes[lane.id]}</span>
         <div className="cm-lane-header-right">
           <span className="cm-lane-count">{items.length} item{items.length !== 1 ? 's' : ''}</span>
           <button className="cm-btn cm-btn--import-toggle" onClick={toggleImport}>
