@@ -27,43 +27,38 @@ export default [
     coupling: 'modal_verb_chain',
   },
 
+  // ─── Subject + Modal + (lexical verb | copula) — slot-style, single rule ─
+  // ONE pattern that covers both the lexical-verb and copula cases. Per-match
+  // license carries the actual verb-class atom, so [pronoun, modal, lex_verb]
+  // and [pronoun, modal, copula] each gate independently — same semantics as
+  // the original two-pattern enumeration.
+  //
+  // Replaces subject_modal_verb and subject_modal_copula.
   {
-    id:          'subject_modal_verb',
+    id:          'subject_modal_verb_chain',
     group:       'modal',
-    description: 'Pronoun subject + modal + lexical verb. e.g. "I can help", "she will eat".',
+    description: 'Pronoun subject + modal + bare verb (lexical or copula). e.g. "I can help", "she will eat", "I can be", "she will be". Per-match license preserves the atom-by-atom gating of the legacy two-pattern split.',
     type:        'trigram',
     detector(tokens) {
       const out = []
       for (let i = 0; i < tokens.length - 2; i++) {
-        if (hasAtom(tokens[i], 'personal_pronoun') &&
-            hasAtom(tokens[i + 1], 'modal_auxiliary') &&
-            hasAtom(tokens[i + 2], 'lexical_verb')) {
-          out.push({ span: [i, i + 2] })
-        }
+        if (!hasAtom(tokens[i], 'personal_pronoun')) continue
+        if (!hasAtom(tokens[i + 1], 'modal_auxiliary')) continue
+        const verbAtom = hasAtom(tokens[i + 2], 'lexical_verb') ? 'lexical_verb'
+                       : hasAtom(tokens[i + 2], 'copula')       ? 'copula'
+                       : null
+        if (!verbAtom) continue
+        out.push({
+          span:    [i, i + 2],
+          license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary', verbAtom] },
+          info:    { verbAtom },
+        })
       }
       return out
     },
-    license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary', 'lexical_verb'] },
-    coupling: 'modal_verb_chain',
-  },
-
-  {
-    id:          'subject_modal_copula',
-    group:       'modal',
-    description: 'Pronoun subject + modal + copula. e.g. "I can be", "she will be".',
-    type:        'trigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
-        if (hasAtom(tokens[i], 'personal_pronoun') &&
-            hasAtom(tokens[i + 1], 'modal_auxiliary') &&
-            hasAtom(tokens[i + 2], 'copula')) {
-          out.push({ span: [i, i + 2] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary', 'copula'] },
+    // Pattern-level fallback (the looser of the two original requires lists).
+    // Real licenses come from per-match overrides above.
+    license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary'] },
     coupling: 'modal_verb_chain',
   },
 
