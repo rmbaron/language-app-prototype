@@ -115,7 +115,7 @@ export const VERB_ARGUMENT_STRUCTURES = [
   {
     verbId:   'put',
     baseForm: 'put',
-    inSeed:   false,
+    inSeed:   true,
     frames: [
       {
         id:      'svoa-required',
