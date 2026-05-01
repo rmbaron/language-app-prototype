@@ -168,6 +168,13 @@ export function validateSentence(text, activeAtoms, lang = 'en') {
         group:     pattern.group,
         span:      m.span,
         info:      m.info ?? null,
+        // The effective license used for this match, plus a flag so dev
+        // surfaces can distinguish per-match overrides from the pattern's
+        // static license. Necessary because the Flow tab must show users
+        // when a slot rule emits a per-shape license different from the
+        // pattern-level one.
+        license:               effectiveLicense,
+        licenseFromMatch:      m.license != null,
         verdict,
       }
       fired.push(fireRecord)

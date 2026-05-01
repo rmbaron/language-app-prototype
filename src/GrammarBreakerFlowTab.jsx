@@ -881,16 +881,63 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
           {selectedAtom && (() => {
             const a = atoms.find(x => x.id === selectedAtom)
             if (!a) return null
+            const d = a.defaults
             return <>
               <div style={{ fontSize: 10, letterSpacing: '0.12em', color: F.label, textTransform: 'uppercase', marginBottom: 6 }}>Atom</div>
               <div><span style={{ fontFamily: 'monospace', fontWeight: 700, color: isOpenClass(a.id) ? F.openAtom : F.closedAtom }}>{a.id}</span> — {a.label}</div>
               <div style={{ color: F.textDim, marginTop: 4 }}>{a.description}</div>
+              {d && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${F.border}` }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.12em', color: F.label, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Design defaults
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 12px', fontFamily: 'monospace', fontSize: 11 }}>
+                    <span style={{ color: F.label }}>category</span>
+                    <span style={{ color: F.text }}>{d.category ?? <span style={{ color: F.textDim, fontStyle: 'italic' }}>—</span>}</span>
+                    <span style={{ color: F.label }}>pioneer</span>
+                    <span style={{ color: d.pioneer == null ? F.textDim : F.text, fontStyle: d.pioneer == null ? 'italic' : 'normal' }}>
+                      {d.pioneer ?? 'null (umbrella / alt-only / structure-only)'}
+                    </span>
+                    <span style={{ color: F.label }}>groups</span>
+                    <span style={{ color: F.text }}>
+                      {(d.groups ?? []).length === 0
+                        ? <span style={{ color: F.textDim, fontStyle: 'italic' }}>(none)</span>
+                        : d.groups.join(', ')}
+                    </span>
+                    <span style={{ color: F.label }}>promptLabel</span>
+                    <span style={{ color: d.promptLabel == null ? F.textDim : F.text, fontStyle: d.promptLabel == null ? 'italic' : 'normal' }}>
+                      {d.promptLabel ?? '(omitted)'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </>
           })()}
           {selectedPattern && (() => {
             const p = PATTERNS.find(x => x.id === selectedPattern)
             if (!p) return null
             const patternAtoms = [...atomsForPattern(p)]
+            // Fired matches for this pattern in the current sentence (if any).
+            // Surfaces per-match info (data-driven slot rules attach context
+            // here — adverbType, verbAtom, formType, etc.) and per-match
+            // license overrides (so users can see when a slot rule emits a
+            // license different from the pattern's static one).
+            const firedForPattern = sentenceSignature?.fired?.filter(f => f.patternId === p.id) ?? []
+            function spanText(span) {
+              const tokens = sentenceSignature?.tokens
+              if (!span || !tokens) return ''
+              const [a, b] = span
+              const out = []
+              for (let i = a; i <= b && i < tokens.length; i++) out.push(tokens[i].surface)
+              return out.join(' ')
+            }
+            function licenseSummary(lic) {
+              if (!lic) return '(none)'
+              if (lic.alwaysForbidden) return 'alwaysForbidden'
+              if (lic.requiresAtoms?.length) return `requires [${lic.requiresAtoms.join(', ')}]`
+              return '(empty)'
+            }
+            const patternLicSummary = licenseSummary(p.license)
             return <>
               <div style={{ fontSize: 10, letterSpacing: '0.12em', color: F.label, textTransform: 'uppercase', marginBottom: 6 }}>Pattern</div>
               <div>
@@ -906,7 +953,54 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
                   ))}
                 </div>
               )}
+              <div style={{ marginTop: 4, fontFamily: 'monospace', fontSize: 11, color: F.textDim }}>
+                pattern license: <span style={{ color: F.text }}>{patternLicSummary}</span>
+              </div>
               <div style={{ color: F.textDim, marginTop: 4 }}>{p.description}</div>
+
+              {firedForPattern.length > 0 && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${F.border}` }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.12em', color: F.label, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Fired in this sentence ({firedForPattern.length})
+                  </div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {firedForPattern.map((f, i) => {
+                      const surface = spanText(f.span)
+                      const matchLicSummary = licenseSummary(f.license)
+                      const licenseDiffers = f.licenseFromMatch && matchLicSummary !== patternLicSummary
+                      const allowed = f.verdict?.allowed
+                      return (
+                        <li key={i} style={{ paddingLeft: 6, borderLeft: `2px solid ${allowed ? F.allowed : F.forbidden}`, paddingTop: 2, paddingBottom: 2 }}>
+                          <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                            <span style={{ color: allowed ? F.allowed : F.forbidden, fontWeight: 600 }}>
+                              {allowed ? '✓' : '✗'}
+                            </span>
+                            {' '}
+                            <span style={{ color: F.text }}>"{surface}"</span>
+                            {' '}
+                            <span style={{ color: F.textDim }}>span [{f.span[0]}–{f.span[1]}]</span>
+                          </div>
+                          {f.info && Object.keys(f.info).length > 0 && (
+                            <div style={{ fontFamily: 'monospace', fontSize: 10, color: F.textDim, marginTop: 2 }}>
+                              info: {Object.entries(f.info).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' · ')}
+                            </div>
+                          )}
+                          {licenseDiffers && (
+                            <div style={{ fontFamily: 'monospace', fontSize: 10, color: F.coupling, marginTop: 2 }}>
+                              ↳ per-match license: {matchLicSummary}
+                            </div>
+                          )}
+                          {!allowed && f.verdict?.reason && (
+                            <div style={{ fontSize: 10, color: F.forbidden, marginTop: 2, fontStyle: 'italic' }}>
+                              {f.verdict.reason}
+                            </div>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
             </>
           })()}
           {selectedCoupling && (() => {
