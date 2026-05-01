@@ -156,7 +156,13 @@ export function validateSentence(text, activeAtoms, lang = 'en') {
     }
 
     for (const m of matches) {
-      const verdict = evaluateLicense(pattern.license, activeAtomSet)
+      // Per-match license override (m.license) takes precedence over the
+      // pattern-level license. Used by data-driven slot rules where each
+      // match shape has its own coverage requirements (e.g. adverb_position
+      // — sentence-end variants need only [adverb], pre-verb variants need
+      // [adverb, lexical_verb]).
+      const effectiveLicense = m.license ?? pattern.license
+      const verdict = evaluateLicense(effectiveLicense, activeAtomSet)
       const fireRecord = {
         patternId: pattern.id,
         group:     pattern.group,
