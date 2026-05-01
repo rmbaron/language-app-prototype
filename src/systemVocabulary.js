@@ -17,6 +17,7 @@ import { SYSTEM_WORDS } from './systemWords.en'
 import { CONSTRUCTOR_TIERS } from './constructorTiers.en'
 import { ATOMS } from './grammarAtoms.en.js'
 import { derivePromptLabels } from './atomMetadataDerivations.js'
+import { aiPromptLangName } from './aiPromptLanguageNames.js'
 
 // Concise labels for AI prompt blocks — shorter than full atom labels.
 // DERIVED from each atom's defaults.promptLabel field. To change a label,
@@ -72,18 +73,13 @@ export function clearSnapshot() {
 // "You are speaking with someone. This is their world."
 // Passed as the second layer of the three-layer AI call architecture.
 
-const LANG_NAMES = {
-  en: 'English', es: 'Spanish', fr: 'French', de: 'German',
-  it: 'Italian', pt: 'Portuguese', ja: 'Japanese', zh: 'Chinese', ko: 'Korean',
-}
-
 // portrait is optional qualitative text from interaction history — empty until that layer is built.
 export function buildLearnerIntroduction(inventory, portrait = null) {
   const { wordBank, identity } = inventory
   const { nativeLang, lang } = identity
 
-  const langName   = LANG_NAMES[lang]   ?? lang
-  const nativeName = LANG_NAMES[nativeLang] ?? nativeLang
+  const langName   = aiPromptLangName(lang)
+  const nativeName = aiPromptLangName(nativeLang)
 
   const lines = []
 

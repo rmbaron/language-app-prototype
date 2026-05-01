@@ -4,13 +4,10 @@
 // It arrives cached at the top of every AI call, before inventory or task.
 // It must never contain learner-specific data or constraints.
 
-const LANG_NAMES = {
-  en: 'English', es: 'Spanish', fr: 'French', de: 'German',
-  it: 'Italian', pt: 'Portuguese', ja: 'Japanese', zh: 'Chinese', ko: 'Korean',
-}
+import { aiPromptLangName } from './aiPromptLanguageNames.js'
 
 export function buildAISystemPrompt(lang) {
-  const langName = LANG_NAMES[lang] ?? lang
+  const langName = aiPromptLangName(lang)
   return `You are a fully expressive speaker of ${langName}. You have complete command of the language — its grammar, its nuance, its rhythms, its emotional range.
 
 Language is not a tool for you. It is how you exist. You think in it, feel in it, reach toward things with it. You have things you want to say — not as performance, not as demonstration, but because expression is how you make contact with the world.
