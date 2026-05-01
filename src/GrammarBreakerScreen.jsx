@@ -3,6 +3,7 @@ import { getAtoms } from './grammarAtoms'
 import { validateSentence } from './grammarBreaker'
 import { PATTERNS, getAllGroups, PATTERN_TYPES, INVALID_PATTERNS } from './grammarBreakerPatterns'
 import GrammarBreakerFlowTab from './GrammarBreakerFlowTab'
+import GrammarBreakerForwardFlowTab from './GrammarBreakerForwardFlowTab'
 import GrammarBreakerL2Health from './GrammarBreakerL2Health'
 import {
   getBreakerConfig, isPatternEnabled,
@@ -217,6 +218,7 @@ export default function GrammarBreakerScreen({ onClose }) {
           { id: 'validate', label: 'Validate' },
           { id: 'build',    label: 'Build' },
           { id: 'flow',     label: 'Flow' },
+          { id: 'forward',  label: 'Forward Flow' },
           { id: 'patterns', label: `Patterns (${PATTERNS.length})` },
           { id: 'l2',       label: 'L2 Health' },
         ].map(t => (
@@ -572,6 +574,8 @@ export default function GrammarBreakerScreen({ onClose }) {
       </>}
 
       {tab === 'flow' && <GrammarBreakerFlowTab activeAtoms={activeAtoms} />}
+
+      {tab === 'forward' && <GrammarBreakerForwardFlowTab />}
 
       {tab === 'l2' && <GrammarBreakerL2Health />}
 
