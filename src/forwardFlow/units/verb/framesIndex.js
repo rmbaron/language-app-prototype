@@ -4,7 +4,7 @@
 //   getArgumentStructures(lang)         → all verb argument structure records
 //   getArgumentStructure(verbId, lang)  → single verb's record by id, or null
 
-import { VERB_ARGUMENT_STRUCTURES as EN_VERB_ARGUMENT_STRUCTURES } from './argumentStructures.en.js'
+import { VERB_ARGUMENT_STRUCTURES as EN_VERB_ARGUMENT_STRUCTURES } from './frames.en.js'
 
 const REGISTRIES = {
   en: EN_VERB_ARGUMENT_STRUCTURES,

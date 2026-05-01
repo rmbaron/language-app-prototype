@@ -2,7 +2,7 @@
 // Shows one position (Modal/Perfect/Progressive/Passive/Lexical) or one
 // non-position entry (Negation/Do-support).
 
-import { T } from './theme'
+import { T } from '../../theme'
 
 export function VerbChainCard({ entry, expanded, onToggle }) {
   // Decoration and mechanism get distinct visual treatment from the

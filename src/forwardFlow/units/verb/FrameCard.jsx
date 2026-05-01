@@ -1,8 +1,8 @@
 // Forward Flow — Frame card. One verb-frame (slot signature) + the verbs that fit it.
 
 import { useState } from 'react'
-import { T } from './theme'
-import { SlotSignature } from './primitives'
+import { T } from '../../theme'
+import { SlotSignature } from '../../primitives'
 
 // Frame card pagination — start with 30 verbs and expand on demand. The
 // frame's verb list grows linearly with the seed; this is the foundation

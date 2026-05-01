@@ -4,7 +4,7 @@
 // Structure comes first; words follow. There are 7 frames; there can be
 // arbitrarily many words per frame.
 
-import { getArgumentStructures } from '../argumentStructures'
+import { getArgumentStructures } from './framesIndex'
 
 const VERB_STRUCTURES = getArgumentStructures('en')
 

@@ -14,7 +14,7 @@
 //
 // Returns: a shape id from SUBJECT_SHAPES, or null if no shape matched.
 
-import { getAllWords } from './wordRegistry'
+import { getAllWords } from '../../../wordRegistry'
 
 // Closed-class function words — hardcoded so the detector works even before
 // these have been L1-enriched. The language never adds new pronouns or

@@ -16,12 +16,13 @@
 // Match on baseForm, lowercased, punctuation stripped. No morphology yet.
 
 import { useMemo } from 'react'
-import { getArgumentStructures } from '../argumentStructures'
+import { getArgumentStructures } from './units/verb/framesIndex'
 import {
   detectSubjectShape, detectNounNumber, checkArticleAgreement,
   computeSubjectFeatures, expectedVerbAgreement,
-} from '../subjectShapeDetector'
-import { classifyLane, classifyAuxToken, ALL_AUX_AND_NEG } from './dispatch'
+} from './units/subject/detector'
+import { classifyLane } from './units/exceptions/dispatch'
+import { classifyAuxToken, ALL_AUX_AND_NEG } from './units/verb/auxChain'
 
 const VERB_STRUCTURES = getArgumentStructures('en')
 

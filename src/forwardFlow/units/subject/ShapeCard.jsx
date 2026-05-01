@@ -1,6 +1,6 @@
 // Forward Flow — Subject Shape card. Renders one of the 9 Subject shapes.
 
-import { T } from './theme'
+import { T } from '../../theme'
 
 export function SubjectShapeCard({ shape, expanded, onToggle }) {
   return (

@@ -1,6 +1,6 @@
 // Forward Flow — Exception Shape card. One marked sentence opening.
 
-import { T } from './theme'
+import { T } from '../../theme'
 
 export function ExceptionShapeCard({ shape, expanded, onToggle }) {
   // Detected status: true (full), 'partial', false (not yet)

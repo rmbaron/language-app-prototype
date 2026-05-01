@@ -4,7 +4,7 @@
 //   getSubjectShapes(lang)     → all subject shape records
 //   getSubjectShape(id, lang)  → single shape by id, or null
 
-import { SUBJECT_SHAPES as EN_SUBJECT_SHAPES } from './subjectShapes.en.js'
+import { SUBJECT_SHAPES as EN_SUBJECT_SHAPES } from './shapes.en.js'
 
 const REGISTRIES = {
   en: EN_SUBJECT_SHAPES,

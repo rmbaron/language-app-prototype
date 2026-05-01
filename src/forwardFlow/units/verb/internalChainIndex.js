@@ -5,7 +5,7 @@
 //   getVerbChainPositions(lang)      → only the canonical chain positions, in order
 //   getVerbChainEntry(id, lang)      → single entry by id, or null
 
-import { VERB_INTERNAL_CHAIN as EN_VERB_INTERNAL_CHAIN } from './verbInternalChain.en.js'
+import { VERB_INTERNAL_CHAIN as EN_VERB_INTERNAL_CHAIN } from './internalChain.en.js'
 
 const REGISTRIES = {
   en: EN_VERB_INTERNAL_CHAIN,
