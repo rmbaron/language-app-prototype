@@ -37,6 +37,38 @@ A Spanish speaker learning English does not know what "verb", "noun", "← Back"
 
 ---
 
+## CRITICAL: Visibility rule — every change must be checkable on its surface
+
+**This rule applies to every code change, every session — forever.**
+
+Every code change must be checked against the surface where its effect lives — the dev panel, the Flow tab, the Patterns tab, the screen that displays the thing being changed. Don't ship a change without verifying it on that surface.
+
+The test: pretend the user is going to open the relevant tab right after the commit lands and ask **"where do I see this?"** If the answer is "you can't" — either update the surface in the same change set, or flag it explicitly as missing visibility before declaring the change done.
+
+### How to apply
+
+When making a code change, before declaring it done, ask:
+
+1. **What surface displays the thing I just changed?** (Flow tab? Patterns tab? Word profile? L2 Health dashboard? Index tab?)
+2. **Will the change be visible on that surface automatically** (because the surface iterates dynamically over the underlying data) — or will it require a UI update?
+3. **If it requires a UI update**, do it in the same change set. If you can't, surface the gap explicitly in the commit message and flag it as a follow-up.
+4. **If no surface exists yet** for the kind of thing being changed, that's a signal — propose adding one before doing the change, not after.
+
+### Why this matters
+
+Changes that aren't visible on a testing surface are changes the user can't verify. Even if the code is correct, an invisible change feels broken — and over time, the gap between "what the code does" and "what the user can see it doing" grows into a fog where bugs hide. The dev surfaces are where the system is *legible* to the user; keeping them in sync with the code is non-optional.
+
+This rule is *broader* than the testing surfaces themselves: it includes any UI element that displays state, any dashboard, any panel, any popover. If the change touches behavior, the place that shows that behavior gets touched too.
+
+### Examples
+
+- Added a new pattern? The Patterns tab and Flow tab should show it (auto, if the surface iterates `PATTERNS`). The Patterns tab's count should change. **If the new pattern emits useful `info`, the Flow tab should render it — that's a UI update.**
+- Added per-match license to the validator? The Flow tab's fired-match panel should display the per-match license when present. **UI update required.**
+- Added a `defaults` block to atom records? The atom display surfaces (Flow tab column 1, Patterns tab atom view) should expose the defaults. **UI update required, even if defaults are derivable.**
+- Added a row to a dispatch table (`ADVERB_POSITION_RULES`, `FORBIDDEN_VERB_FORMS`, `VERB_CONSTRUCTIONS`)? There should be a surface that shows the table. **If no such surface exists, that's the signal to add one.**
+
+---
+
 ## Architecture rules
 
 ### Content store
