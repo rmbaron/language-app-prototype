@@ -236,6 +236,112 @@ export function checkArticleAgreement(subjectText) {
   return null
 }
 
+// ── Subject-Verb linking ────────────────────────────────────────────────────
+//
+// Once a Subject is identified, its features (person, number) determine
+// what verb form should follow. This is the central hand-off from the
+// Subject layer to the Verb layer in the forward-momentum pipeline.
+//
+// Returns: { person: '1st'|'2nd'|'3rd', number: 'singular'|'plural'|'unknown' }
+// or null when the subject text/shape can't yield features.
+
+const PRONOUN_FEATURES = {
+  i:    { person: '1st', number: 'singular' },
+  you:  { person: '2nd', number: 'unknown'  }, // syncretic — same form for sg & pl
+  he:   { person: '3rd', number: 'singular' },
+  she:  { person: '3rd', number: 'singular' },
+  it:   { person: '3rd', number: 'singular' },
+  we:   { person: '1st', number: 'plural'   },
+  they: { person: '3rd', number: 'plural'   },
+}
+
+// Quantifiers that imply singular vs. plural agreement, when they're the head.
+// "every child", "each student" → 3rd singular
+// "some people", "all dogs", "many fish" → 3rd plural (usually paired with plural noun)
+const QUANTIFIER_HEAD_NUMBER = {
+  every: 'singular',
+  each:  'singular',
+  no:    'singular', // "no one is here" — usually singular by convention
+  some:  'plural',
+  all:   'plural',
+  many:  'plural',
+  few:   'plural',
+  several: 'plural',
+  most:  'plural',
+  any:   'unknown', // depends on the noun ("any dog" sg / "any dogs" pl)
+}
+
+export function computeSubjectFeatures(subjectText, shape) {
+  if (!subjectText || !shape) return null
+  const normalized = subjectText.trim().toLowerCase()
+  const tokens = normalized.split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w'-]/g, ''))
+
+  switch (shape) {
+    case 'pronoun': {
+      const lookup = PRONOUN_FEATURES[tokens[0]]
+      return lookup ?? { person: '3rd', number: 'unknown' }
+    }
+    case 'proper_noun':
+    case 'gerund':
+    case 'infinitive':
+      return { person: '3rd', number: 'singular' }
+    case 'coordinated': {
+      // "and" → plural; "or" → match nearer (default to singular as a placeholder)
+      const hasAnd = tokens.includes('and')
+      return { person: '3rd', number: hasAnd ? 'plural' : 'singular' }
+    }
+    case 'bare_noun':
+    case 'det_noun':
+    case 'det_adj_noun': {
+      const num = detectNounNumber(subjectText)
+      return { person: '3rd', number: num }
+    }
+    case 'quantifier_led': {
+      const q = tokens[0]
+      const qNum = QUANTIFIER_HEAD_NUMBER[q]
+      const nounNum = detectNounNumber(subjectText)
+      // Plural noun overrides the quantifier; otherwise use the quantifier default.
+      const number = nounNum === 'plural' ? 'plural' : (qNum ?? 'unknown')
+      return { person: '3rd', number }
+    }
+    default:
+      return null
+  }
+}
+
+// Given subject features, what verb-agreement pattern is expected?
+// This describes what the Verb slot should look like when filled.
+export function expectedVerbAgreement(features) {
+  if (!features) return null
+  const { person, number } = features
+
+  // 3rd person singular present is the only English verb form that takes -s.
+  // Every other person/number combination uses the base form.
+  if (person === '3rd' && number === 'singular') {
+    return {
+      label:    '3rd person singular',
+      pattern:  '-s ending (present)',
+      examples: ['runs', 'eats', 'is', 'has', 'does', 'goes'],
+      hint:     'present-tense verb takes -s; for be/have/do use is/has/does.',
+    }
+  }
+  if (person === '1st' && number === 'singular') {
+    return {
+      label:    '1st person singular',
+      pattern:  'base form (present)',
+      examples: ['run', 'eat', 'am', 'have', 'do'],
+      hint:     'present-tense verb is base form; for be/have/do use am/have/do.',
+    }
+  }
+  // 2nd singular, 2nd plural, 1st plural, 3rd plural all share the base form.
+  return {
+    label:    `${person} person ${number}`,
+    pattern:  'base form (present)',
+    examples: ['run', 'eat', 'are', 'have', 'do'],
+    hint:     'present-tense verb is base form; for be/have/do use are/have/do.',
+  }
+}
+
 // Heuristic: is the noun in a candidate Subject plural?
 // Returns 'singular' | 'plural' | 'unknown'.
 // Rough rule: ends in -s and length > 3 → plural; ends in -es/-ies → plural.
