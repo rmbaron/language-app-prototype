@@ -2,7 +2,7 @@
 // relationships. The bulk of micro-patterns live here because the clause is
 // where most A1 grammar action happens.
 
-import { hasAtom, hasAnyAtom, hasFormType, hasDeterminerClass } from './_helpers'
+import { hasAtom, hasAnyAtom, hasFormType, hasDeterminerClass, matchNounPhrase } from './_helpers'
 
 export default [
   // ─── Subject + Verb (pronoun-led) ────────────────────────────────────────
@@ -24,91 +24,41 @@ export default [
     coupling: 'subject_verb',
   },
 
-  // ─── Subject + Verb (bare-noun-led) ──────────────────────────────────────
+  // ─── Subject + Verb (NP-led, slot-style, single rule) ────────────────────
+  // ONE pattern that licenses every valid noun-phrase subject + lexical verb:
+  //   bare proper noun                 "Mary runs"
+  //   bare mass / both noun            "Water flows"
+  //   bare plural noun                 "Dogs run"
+  //   determined NP (det + noun)       "The cat runs"
+  //   determined NP with adjective     "The good cat sleeps"
+  //   possessive pronoun standalone    "Mine wins"
+  //
+  // The subject NP is the slot, fed by the shared matchNounPhrase helper in
+  // _helpers.js. Bare singular common count nouns are NOT licensed here —
+  // they're caught by bare_singular_count_noun_unlicensed.
+  //
+  // Replaces noun_verb_proper / noun_verb_mass / noun_verb_plural / det_noun_verb
+  // with one compositional slot rule.
   {
-    id:          'noun_verb_proper',
+    id:          'noun_phrase_subject_verb',
     group:       'core_clause',
-    description: 'Proper noun subject + lexical verb. e.g. "Mary runs", "John eats".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'noun') && tokens[i].properNoun &&
-            hasAtom(tokens[i + 1], 'lexical_verb')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['noun', 'lexical_verb'] },
-    coupling: 'subject_verb',
-    consumesL2Fields: ['properNoun'],
-  },
-
-  {
-    id:          'noun_verb_mass',
-    group:       'core_clause',
-    description: 'Mass noun subject + lexical verb. e.g. "Water flows", "Music plays".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'noun') &&
-            (tokens[i].countability === 'mass' || tokens[i].countability === 'both') &&
-            hasAtom(tokens[i + 1], 'lexical_verb')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['noun', 'lexical_verb'] },
-    coupling: 'subject_verb',
-    consumesL2Fields: ['countability'],
-  },
-
-  {
-    id:          'noun_verb_plural',
-    group:       'core_clause',
-    description: 'Plural noun subject + lexical verb. e.g. "Dogs run", "Cats sleep".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'noun') && hasFormType(tokens[i], 'plural') &&
-            hasAtom(tokens[i + 1], 'lexical_verb')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['noun', 'lexical_verb'] },
-    coupling: 'subject_verb',
-  },
-
-  {
-    id:          'det_noun_verb',
-    group:       'core_clause',
-    description: 'Determined noun phrase as subject + lexical verb. e.g. "The cat runs", "My friend eats", "This dog sleeps", "The good cat sleeps".',
+    description: 'Noun-phrase subject + lexical verb: bare proper noun ("Mary runs"), bare mass noun ("Water flows"), bare plural noun ("Dogs run"), determined NP ("The good cat sleeps"), or possessive pronoun standalone ("Mine wins"). One slot rule covering every valid NP-subject + verb shape at A1.',
     type:        'trigram',
     detector(tokens) {
       const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
-        if (!hasDeterminerClass(tokens[i])) continue
-        if (hasAtom(tokens[i + 1], 'noun') && hasAtom(tokens[i + 2], 'lexical_verb')) {
-          out.push({ span: [i, i + 2] })
-          continue
-        }
-        if (i + 3 < tokens.length &&
-            hasAtom(tokens[i + 1], 'adjective') &&
-            hasAtom(tokens[i + 2], 'noun') &&
-            hasAtom(tokens[i + 3], 'lexical_verb')) {
-          out.push({ span: [i, i + 3] })
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const npEnd = matchNounPhrase(tokens, i)
+        if (npEnd === null) continue
+        const verbIdx = npEnd + 1
+        if (verbIdx < tokens.length && hasAtom(tokens[verbIdx], 'lexical_verb')) {
+          out.push({ span: [i, verbIdx] })
         }
       }
       return out
     },
-    license: { requiresAtoms: ['noun', 'lexical_verb'] },
+    license: { requiresAtoms: ['lexical_verb'] },
     coupling: 'subject_verb',
+    consumesL2Fields: ['countability', 'properNoun'],
   },
 
   // (`bare_singular_count_noun_verb` retired here — subsumed by
@@ -116,116 +66,43 @@ export default [
   // catches the same shape but is position-agnostic. Same rule fires whether
   // the bare noun is in subject, object, or complement position.)
 
-  // ─── Verb + Object ───────────────────────────────────────────────────────
+  // ─── Verb + Object (slot-style, single rule) ─────────────────────────────
+  // ONE pattern that licenses every valid verb object:
+  //   object pronoun                   "see her", "help me"
+  //   bare proper noun                 "see Mary", "like London"
+  //   bare mass / both noun            "drink water", "love music"
+  //   bare plural noun                 "want apples", "like cats"
+  //   determined NP (det + noun)       "see the cat", "want my book"
+  //   determined NP with adjective     "want a good book"
+  //   possessive pronoun standalone    "want mine"
+  //
+  // The object is the slot. Object-pronoun is a head-specific extension; the
+  // remaining shapes come from the shared matchNounPhrase helper.
+  //
+  // Replaces verb_object_proper_noun / verb_object_mass_noun /
+  // verb_object_plural_noun / verb_object_determined_noun / verb_object_pronoun
+  // with one compositional slot rule.
   {
-    id:          'verb_object_proper_noun',
+    id:          'verb_object_complement',
     group:       'core_clause',
-    description: 'Lexical verb directly followed by a proper noun (named entity). e.g. "I see Mary", "She likes London". Proper nouns do not require a determiner.',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'lexical_verb') &&
-            hasAtom(tokens[i + 1], 'noun') &&
-            tokens[i + 1].properNoun) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['lexical_verb', 'noun'] },
-    coupling: 'verb_object',
-    consumesL2Fields: ['properNoun'],
-  },
-
-  {
-    id:          'verb_object_mass_noun',
-    group:       'core_clause',
-    description: 'Lexical verb directly followed by a mass noun (no determiner needed). e.g. "I drink water", "She loves music", "We need help".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'lexical_verb') &&
-            hasAtom(tokens[i + 1], 'noun') &&
-            (tokens[i + 1].countability === 'mass' || tokens[i + 1].countability === 'both')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['lexical_verb', 'noun'] },
-    coupling: 'verb_object',
-    consumesL2Fields: ['countability'],
-  },
-
-  {
-    id:          'verb_object_plural_noun',
-    group:       'core_clause',
-    description: 'Lexical verb directly followed by a plural-form noun (no determiner needed). e.g. "I want apples", "She likes cats".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'lexical_verb') &&
-            hasAtom(tokens[i + 1], 'noun') &&
-            hasFormType(tokens[i + 1], 'plural')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['lexical_verb', 'noun'] },
-    coupling: 'verb_object',
-  },
-
-  {
-    id:          'verb_object_determined_noun',
-    group:       'core_clause',
-    description: 'Lexical verb followed by a determined noun phrase: verb + (det/dem/poss) + (adjective?) + noun. e.g. "I want a book", "She likes the cat", "We see my friend", "I want a good book".',
+    description: 'Lexical verb taking a valid object: object pronoun ("see her"), bare noun (proper / mass / plural — "see Mary", "drink water", "want apples"), determined noun phrase ("want a good book"), or possessive pronoun standalone ("want mine"). One slot rule covering every valid verb-object shape at A1.',
     type:        'trigram',
     detector(tokens) {
       const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
+      for (let i = 0; i < tokens.length - 1; i++) {
         if (!hasAtom(tokens[i], 'lexical_verb')) continue
-        if (!hasDeterminerClass(tokens[i + 1])) continue
-        if (hasAtom(tokens[i + 2], 'noun')) {
-          out.push({ span: [i, i + 2] })
-          continue
-        }
-        if (i + 3 < tokens.length &&
-            hasAtom(tokens[i + 2], 'adjective') &&
-            hasAtom(tokens[i + 3], 'noun')) {
-          out.push({ span: [i, i + 3] })
-        }
+        const endIdx = matchVerbObject(tokens, i + 1)
+        if (endIdx !== null) out.push({ span: [i, endIdx] })
       }
       return out
     },
-    license: { requiresAtoms: ['lexical_verb', 'noun'] },
+    license: { requiresAtoms: ['lexical_verb'] },
     coupling: 'verb_object',
+    consumesL2Fields: ['countability', 'properNoun'],
   },
 
   // (`verb_object_bare_singular_count_noun` retired here — subsumed by
-  // `bare_singular_count_noun_unlicensed` in nounPhrasePatterns.js. Same rule,
-  // position-agnostic.)
-
-  {
-    id:          'verb_object_pronoun',
-    group:       'core_clause',
-    description: 'Lexical verb directly followed by an object pronoun. e.g. "see her", "help me".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'lexical_verb') && hasAtom(tokens[i + 1], 'object_pronoun')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['lexical_verb', 'object_pronoun'] },
-    coupling: 'verb_object',
-  },
+  // `bare_singular_count_noun_unlicensed` in nounPhrasePatterns.js.)
 
   {
     id:          'intransitive_verb_with_direct_object',
@@ -279,14 +156,10 @@ export default [
   //   determined NP with adj       "is the good one" / "is a happy dog"
   //   possessive pronoun standalone "is mine" / "is yours"
   //
-  // The complement is the slot. Each shape above is a valid filler. Bare
-  // singular common count nouns are NOT licensed here — they're caught by
-  // `bare_singular_count_noun_unlicensed` (in nounPhrasePatterns.js).
-  //
-  // Replaces six per-complement-type bigram/trigram patterns with one
-  // compositional slot rule. New complement shapes (e.g. infinitive when A1
-  // expands) become small additions to the inline shape table, not new
-  // top-level patterns.
+  // The complement is the slot. Adjective alone is a head-specific extension
+  // (predicative adjectives are only legal after a copula); NP shapes come
+  // from the shared matchNounPhrase helper. Bare singular common count nouns
+  // are NOT licensed here — they're caught by bare_singular_count_noun_unlicensed.
   {
     id:          'copula_complement',
     group:       'copula',
@@ -307,43 +180,23 @@ export default [
   },
 ]
 
-// Helper: starting at `start`, return the index of the last token of a valid
-// copula complement, or null if no valid complement begins at `start`.
-//
-// Inline rather than in _helpers because it's specific to this pattern's
-// shape. If verb_object_slot adopts a similar shape later, the noun-phrase
-// portion here can be promoted to a shared helper.
+// Head-specific extensions of matchNounPhrase. Each adds the slot fillers
+// that are legal after the head but not for general NP positions.
+
+// matchCopulaComplement adds predicative adjective.
 function matchCopulaComplement(tokens, start) {
   if (start >= tokens.length) return null
   const t = tokens[start]
-
-  // Adjective alone (predicative)
+  // Adjective alone (predicative — only after copula)
   if (hasAtom(t, 'adjective')) return start
+  return matchNounPhrase(tokens, start)
+}
 
-  // Possessive pronoun standalone
-  if (hasAtom(t, 'possessive_pronoun')) return start
-
-  // Bare noun: proper, mass/both, or plural. Bare singular count nouns are
-  // intentionally NOT licensed here — `bare_singular_count_noun_unlicensed`
-  // flags them as broken.
-  if (hasAtom(t, 'noun')) {
-    if (t.properNoun) return start
-    if (t.countability === 'mass' || t.countability === 'both') return start
-    if (hasFormType(t, 'plural')) return start
-    return null
-  }
-
-  // Determined noun phrase: det + noun, or det + adj + noun
-  if (hasDeterminerClass(t)) {
-    if (start + 1 < tokens.length && hasAtom(tokens[start + 1], 'noun')) {
-      return start + 1
-    }
-    if (start + 2 < tokens.length &&
-        hasAtom(tokens[start + 1], 'adjective') &&
-        hasAtom(tokens[start + 2], 'noun')) {
-      return start + 2
-    }
-  }
-
-  return null
+// matchVerbObject adds object pronoun (case-marked accusative).
+function matchVerbObject(tokens, start) {
+  if (start >= tokens.length) return null
+  const t = tokens[start]
+  // Object pronoun ("him", "her", "me", "us", "them") — only as object
+  if (hasAtom(t, 'object_pronoun')) return start
+  return matchNounPhrase(tokens, start)
 }
