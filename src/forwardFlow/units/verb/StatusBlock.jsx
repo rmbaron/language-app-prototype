@@ -17,20 +17,25 @@ import { AgreementIssueStatus } from './statusBlocks/AgreementIssue'
 import { VerbMatchedStatus }    from './statusBlocks/VerbMatched'
 import { AuxChainStatus }       from './statusBlocks/AuxChain'
 import { VerbExpectedStatus }   from './statusBlocks/VerbExpected'
+import { VerbFailureStatus }    from './statusBlocks/VerbFailure'
+import { VerbHypothesesStatus } from './statusBlocks/VerbHypotheses'
 
 export function VerbStatusBlock({
-  lane, exceptionType,
+  lane, exceptionType, tokens,
   matchedVerb, matchedVerbForm,
   auxChain, auxConfiguration,
   expectedAgreement, agreementCheck,
+  pickedFrameSlots,
   statusOpen, toggleStatus,
 }) {
   const passthrough = { statusOpen, toggleStatus }
   return (
     <>
+      <VerbFailureStatus    matchedVerb={matchedVerb} tokens={tokens} lane={lane} />
       <AgreementIssueStatus agreementCheck={agreementCheck} {...passthrough} />
       <VerbMatchedStatus    matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm} {...passthrough} />
       <AuxChainStatus       auxChain={auxChain} auxConfiguration={auxConfiguration} exceptionType={exceptionType} {...passthrough} />
+      <VerbHypothesesStatus matchedVerb={matchedVerb} auxChain={auxChain} auxConfiguration={auxConfiguration} pickedFrameSlots={pickedFrameSlots} />
       <VerbExpectedStatus   lane={lane} expectedAgreement={expectedAgreement} {...passthrough} />
     </>
   )

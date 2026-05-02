@@ -1,10 +1,41 @@
-# Forward Flow Wiring — Verb Handoff
+# Forward Flow Wiring — Verb Handoff (now: Object Handoff)
 
 **Written:** 2026-05-02 by the previous Claude session.
+**Updated:** same evening — V wiring is now also done. O is next.
 **Audience:** the next Claude working on this codebase.
-**Purpose:** so the user doesn't have to re-explain the thesis or the build order, and so the V wiring lands without repeating the mistakes that produced today's rework.
+**Purpose:** so the user doesn't have to re-explain the thesis or the build order, and so the unit wirings continue cleanly.
 
 Read this whole file before touching any code.
+
+---
+
+## STATUS UPDATE — V is done
+
+The same Claude that wrote this handoff for V went ahead and did the V wiring in the same session, faster than expected. **All 8 V wiring tasks are committed.** What landed:
+
+- **Live one-liner:** V chip now shows aux chain tokens (slot-color-coded, with hover tooltips for slot labels), then the lexical verb (surface form), then `(config → form)` parenthetical (e.g. `Progressive-led → -ing form`).
+- **VerbStatusBlock:** added two new sub-blocks — `VerbFailureStatus` (amber banner with categorical reason when no verb matched) and `VerbHypothesesStatus` ("still in play" section for be-aux Prog/Pass ambiguity, aux-chain-forming, frame ambiguity).
+- **detector.js additions:** `diagnoseVerbFailure(tokens)` and `liveVerbHypotheses(matchedVerb, auxChain, auxConfiguration, pickedFrameSlots)`.
+- **No new schema, no new registry, no parallel pipelines.** Reused existing data flow from `useParsedSentence`.
+
+**Two real architectural issues discovered during baseline-sentence audit** — these are the next layer of work, NOT yet fixed:
+
+1. **`matchVerb` is greedy on aux-eligible verbs.** When `be`/`have`/`do` is in `VERB_STRUCTURES`, the first-match-wins loop in `useParsedSentence` (line ~55-63) commits to it as the lexical verb without checking for a real lexical downstream. Fix candidate: skip a `matchVerb` hit if the token is in `ALL_AUX_AND_NEG` AND a later token also matches `matchVerb`. Affects: "I am running", "She has eaten" (when have in registry), "Did you eat?" partially.
+
+2. **Aux chain back-walk doesn't handle inversion.** For "Did you eat?" the back-walker from verb stops at "you" (not in `ALL_AUX_AND_NEG`), so "Did" is never recognized as the do-support aux. Fix candidate: when `lane === 'exception'` (yes/no question), use a forward-walk from position 0; the subject is mid-sentence in inverted clauses.
+
+Both are factorial-feel symptoms — unnamed slots ("operator position can be aux OR lexical", "aux-chain-can-be-discontinuous-around-subject"). The fixes are slot extractions, not enumeration. Decide with the user before fixing — they're outside the V wiring scope and may want to be tackled deliberately.
+
+**Registry gaps discovered (separate concern from architecture):**
+- `want`, `leave`, `go` not in `verbFramesBootstrap.en.js` and likely not L2-enriched. Sentences using them fall to `diagnoseVerbFailure` correctly but can't fully parse.
+
+**Definition-of-done audit (10 baseline sentences):**
+- ✓ Works: "I run", "She runs", "She is happy", "She has eaten" (conditional on have not in VERB_STRUCTURES), "He gave me a book"
+- ⚠ Architectural: "I am running", "Did you eat?"
+- ⚠ Registry gap: "I will go", "I want to leave"
+- ⚠ Small clauses (deferred per macro-layer-sketch): "She made him cry"
+
+Now you're picking up at Object (O).
 
 ---
 
@@ -249,6 +280,56 @@ For each that doesn't produce meaningful state, identify whether it's an unwired
 - Build the Operations layer (negation, inversion, passive surface mapping, do-support insertion logic) — that's a separate phase per `notes/macro-layer-sketch.md`
 - Migrate or delete anything from the old grammar circuit
 - Add new schema/registry/index pieces without a kill target
+
+## Object (O) plan — for the session continuing this work
+
+O's organizing principle is closer to S than to V. Per memory `project_forwardflow_o_unit`, O reuses **all 5 of S's shape families** (the NP gaps are identical, S's shapes apply). Plus one O-only family (small clauses) — **deferred** per the macro-layer-sketch. Plus one O-specific firing pattern (ditransitive: O fires twice).
+
+The wiring jobs adapt S's pattern (not V's):
+
+1. **Family / shape in O live one-liner.** Currently O is NOT rendered in the live one-liner at all (only S and V are). Add an O chip that shows when `objectAnalysis` exists. Format: `O [him] (Bare/atomic → Bare pronominal)` or `O [a book] (Noun phrase → Basic noun phrase)`. For ditransitive, render O₁ + O₂ side by side.
+
+2. **Per-token engine reads in `ObjectStatusBlock`.** Same `engine reads` row pattern as S. The O region tokens come from `objectAnalysis.objects[*].tokens` or similar (audit how the analysis structures objects). Use `getCategory` per token; flag unknowns in amber.
+
+3. **Why-failed diagnostic.** Add `diagnoseObjectFailure(postVerbTokens, frame)` to `units/object/detector.js`. Reasons to distinguish: post-V tokens empty but frame requires O; post-V tokens present but no NP shape matched; frame requires Cs/A but those analyses ran instead of O's. Render an amber banner in `ObjectStatusBlock`.
+
+4. **Token-level styling for O tokens in the live one-liner.** Same `styledTokens` helper from `LiveDetectionPanel` should work — O is NP-shaped, same head/modifier/opener categories. **This is now the third site for `styledTokens`-style logic** (Subject in live one-liner, V's chain rendering in live one-liner, O coming up). At this point, *consider* extracting to a shared helper. Whether to extract or duplicate-once-more depends on how V's V-chain rendering ended up — V's is structurally different (uses `auxChain[].slot` not `getCategory`), so really it's S + O at site count 2 for `getCategory`-driven styling. Likely keep duplicating for now; revisit when C and A also need it.
+
+5. **Multi-hypothesis output for O.** Less load-bearing than V (per memory: "O's multi-hypothesis profile is closer to S's — edge cases at specific tokens, not dominant"). Surface:
+   - **Frame ambiguity from V** (already exposed via `VerbHypotheses`; doesn't need duplication in O, just be aware)
+   - **"that"-leading object**: that-clause vs demonstrative determiner vs demonstrative pronoun (resolved by next token)
+   - **`-ing` form**: gerund vs present-participle adverbial (resolved by V's lexical preferences)
+   - **possessive ("John's")**: possessive_np vs possessive_gerund (resolves at next constituent)
+   - **Small-clause vs SVOC ambiguity**: deferred (small clauses themselves not yet supported)
+
+6. **Detection branches + operations layer extraction.** O's `acceptance.en.js` lists 10 structures (probably the same 10 as S). The 4 catalog-only structures S needs detection for (`np_with_postmodifier`, `partitive`, `for_to_infinitive`, `clausal`) — wait, `for_to_infinitive` and `clausal` may not apply to O. Audit `units/object/acceptance.en.js` first.
+
+   **The S-specific detection helpers are now duplicated-for-the-second-time territory.** `isPartitive` and `isNPWithPostmodifier` apply to both S and O (NP-internal operations). Per memory `project_forwardflow_o_unit`: "build the operations layer ONCE, share between S and O. Don't author per-unit." When O wires these, **promote them to `src/forwardFlow/np/match.js` or a new `src/forwardFlow/np/operations.js`** so both S and O import from the shared site. This is the legitimate extract-at-the-second-site for these particular branches because the architecture memory explicitly mandates it.
+
+   `for_to_infinitive` and `clausal` (subject) likely stay subject-only — they're sentence-level openers, not object fillers. Verify against acceptance list.
+
+   `gerund_phrase`, `infinitive_phrase` already detect at the single-token level for S. For O, these need different detection: "I enjoy swimming" — "swimming" is a gerund_phrase O. "I want to leave" — "to leave" is an infinitive_phrase O. The gerund/infinitive clauses with internal arguments ("reading manuscripts") need real detector work.
+
+**Mistakes to avoid (continued from V):**
+- Don't touch the two architectural issues from V (matchVerb greediness, aux chain back-walk) while wiring O. Those are deliberate slot extractions to do separately with the user.
+- Don't fix `make` / SVOC / small-clauses while wiring O. Per memory, small clauses are a planned 6th family that requires a different commitment from the architecture. Defer.
+- Don't add a `detected` flag to a structure without actually wiring its detector. Subject's `gerund_phrase` and `infinitive_phrase` are still `detected: false` in `structures.en.js` because the detection is partial (single-token only). Don't flip them just because they fire sometimes.
+- Don't use the `parsed.tokens` field for the O region directly — it's the whole sentence. Use `objectAnalysis.objects[*]` and `objectAnalysis.remainder` (audit which fields exist). The O region is post-V and frame-dependent.
+
+**Definition of done for O — type these into Live Panel:**
+- "I see her." → bare config V, frame SVO, O = bare_pronominal "her"
+- "She likes apples." → bare config V, frame SVO, O = np_basic "apples"
+- "He gave me a book." → ditransitive, O₁ = bare_pronominal "me", O₂ = np_basic "a book"
+- "I enjoy swimming." → frame SVO, O = gerund_phrase "swimming"
+- "I want to leave." → registry gap on want; if want enriched, frame SV[Inf-O], O = infinitive_phrase
+- "I think that she is happy." → frame SV[That-O], O = clausal "that she is happy"
+- "I drank some of the water." → bare config V, O = partitive "some of the water"
+- "She loves the man on the corner." → frame SVO, O = np_with_postmodifier
+- "She made him cry." → ⚠ small-clause, deferred — verify diagnostic surfaces correctly
+
+After O, pause and check in with the user about C (Complement) and A (Adverbial). Don't fan out.
+
+---
 
 ## Closing note
 

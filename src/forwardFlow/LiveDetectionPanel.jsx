@@ -13,6 +13,27 @@ import { SlotChip } from './primitives'
 import { getStructure } from './structures.en.js'
 import { getShapeFamily } from './shapeFamilies.en.js'
 import { getCategory } from './categoryLookup'
+import { getAuxConfiguration } from './units/verb/auxConfigurationsIndex'
+import { BE_LED_AMBIGUOUS } from './units/verb/auxConfigurations.en.js'
+
+// Compact form-type / aux-config labels for the live one-liner.
+// Mirrors VerbMatchedStatus's local map and AuxChain's labeler — duplicated
+// at 2 sites by design (the "extract at 3+" rule).
+const VERB_FORM_LABEL = {
+  base: 'base', third_person_present: '3rd-sg present', present: 'present',
+  first_person_present: '1st-sg present', past: 'past',
+  past_participle: 'past participle', present_participle: '-ing form',
+}
+function verbFormLabel(type) {
+  if (!type) return null
+  if (Array.isArray(type)) return type.map(t => VERB_FORM_LABEL[t] ?? t).join(' / ')
+  return VERB_FORM_LABEL[type] ?? type
+}
+function verbConfigLabel(id) {
+  if (!id) return null
+  if (id === BE_LED_AMBIGUOUS) return 'BE-led (Prog or Pass)'
+  return getAuxConfiguration(id, 'en')?.label ?? null
+}
 
 // Token-level role styling for slot text in the live one-liner.
 // Heads (nouns, pronouns, proper-noun-ish) get the strong text color;
@@ -54,6 +75,7 @@ export function LiveDetectionPanel({ typedSentence, setTypedSentence, parsed }) 
   const toggleStatus = (id) => setStatusOpen(curr => ({ ...curr, [id]: !curr[id] }))
 
   const {
+    tokens,
     lane, exceptionType, matchedVerb, matchedVerbForm, subjectText,
     subjectShape, nounNumber, articleWarning,
     subjectFeatures, expectedAgreement, agreementCheck,
@@ -63,6 +85,8 @@ export function LiveDetectionPanel({ typedSentence, setTypedSentence, parsed }) 
 
   const subjectStruct      = subjectShape ? getStructure(subjectShape) : null
   const subjectFamilyLabel = subjectStruct?.family ? getShapeFamily(subjectStruct.family)?.label : null
+  const verbConfig         = auxConfiguration ? verbConfigLabel(auxConfiguration) : null
+  const verbForm           = matchedVerbForm?.type ? verbFormLabel(matchedVerbForm.type) : null
 
   return (
     <div style={{
@@ -106,16 +130,32 @@ export function LiveDetectionPanel({ typedSentence, setTypedSentence, parsed }) 
                 )}
               </span>
             )}
-            {matchedVerb && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {(matchedVerb || auxChain.length > 0) && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                 <SlotChip shortLabel="V" />
-                <span style={{
-                  padding: '1px 6px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 3,
-                  fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: T.amber,
-                }}>{matchedVerb.baseForm}</span>
+                {auxChain.map(({ token, slot }, i) => (
+                  <span key={i} title={slot?.label ?? 'unrecognized'} style={{
+                    padding: '1px 5px', fontSize: 11, fontFamily: 'monospace', fontWeight: 600,
+                    color: slot ? T.violet : T.amber, background: '#fff',
+                    border: `1px solid ${slot ? T.violetBord : T.amberBord}`, borderRadius: 3,
+                  }}>{token}</span>
+                ))}
+                {matchedVerb ? (
+                  <span style={{
+                    padding: '1px 6px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 3,
+                    fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: T.amber,
+                  }}>{matchedVerbForm?.surface ?? matchedVerb.baseForm}</span>
+                ) : (
+                  <span style={{ color: T.textDim, fontStyle: 'italic', fontSize: 11 }}>looking for verb…</span>
+                )}
+                {(verbConfig || verbForm) && (
+                  <span style={{ color: T.textDim }}>
+                    ({verbConfig ?? ''}{verbConfig && verbForm ? ' → ' : ''}{verbForm ?? ''})
+                  </span>
+                )}
               </span>
             )}
-            {!matchedVerb && subjectText && (
+            {!matchedVerb && auxChain.length === 0 && subjectText && (
               <span style={{ color: T.textDim, fontStyle: 'italic' }}>looking for a known verb…</span>
             )}
           </div>
@@ -133,7 +173,12 @@ export function LiveDetectionPanel({ typedSentence, setTypedSentence, parsed }) 
                 <span style={{
                   padding: '1px 6px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 3,
                   fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: T.amber,
-                }}>{matchedVerb.baseForm}</span>
+                }}>{matchedVerbForm?.surface ?? matchedVerb.baseForm}</span>
+                {(verbConfig || verbForm) && (
+                  <span style={{ color: T.textDim }}>
+                    ({verbConfig ?? ''}{verbConfig && verbForm ? ' → ' : ''}{verbForm ?? ''})
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -149,11 +194,12 @@ export function LiveDetectionPanel({ typedSentence, setTypedSentence, parsed }) 
           statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
         <VerbStatusBlock
-          lane={lane} exceptionType={exceptionType}
+          lane={lane} exceptionType={exceptionType} tokens={tokens}
           matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm}
           auxChain={auxChain} auxConfiguration={auxConfiguration}
           expectedAgreement={expectedAgreement}
           agreementCheck={agreementCheck}
+          pickedFrameSlots={objectAnalysis?.frame ?? null}
           statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
         <ObjectStatusBlock
