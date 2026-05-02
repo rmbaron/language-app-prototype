@@ -6,66 +6,61 @@
 // built, what's committed, what's expected next, what hypotheses are
 // still in play.
 //
-// This file is the orchestrator. The pieces it composes live in src/forwardFlow/:
-//   theme.js / primitives.jsx / SlotRoleCard.jsx — cross-unit shared bits
-//   useParsedSentence.js                         — cross-unit parsing pipeline
-//   units/<slot>/StatusBlock.jsx                 — per-unit live-status accordion
-//   units/<slot>/{SubTabContent,...}.jsx         — per-unit catalog sub-tab
+// This file is the orchestrator. Its job:
+//   - own shared state (subTab, expanded, search queries)
+//   - run useParsedSentence on the typed input
+//   - render the two-row nav strip
+//   - dispatch to one component per route
 //
-// Adding a unit's UI now happens entirely inside its folder. The orchestrator
-// owns shared state (expanded, statusOpen, search queries) and passes it down.
+// Per-route content lives in dedicated files:
+//   forwardFlow/LiveDetectionPanel.jsx        — above-the-tabs panel
+//   forwardFlow/findings/FindingsSubTabContent.jsx
+//   forwardFlow/library/WordCategoriesSubTab.jsx
+//   forwardFlow/units/<slot>/SubTabContent.jsx (incl. verb's compound view)
+//   forwardFlow/units/exceptions/SubTabContent.jsx
 //
 // Source of truth for the macro-layer architecture: notes/macro-layer-sketch.md
 
 import { useState } from 'react'
 import { getSlotRoles } from './slotRoles'
-import { STRUCTURES, getStructure } from './forwardFlow/structures.en.js'
+import { STRUCTURES } from './forwardFlow/structures.en.js'
 import { SUBJECT_ACCEPTS } from './forwardFlow/units/subject/acceptance.en.js'
 import { OBJECT_ACCEPTS } from './forwardFlow/units/object/acceptance.en.js'
 import { getExceptionShapes } from './forwardFlow/units/exceptions/shapesIndex'
-import { getVerbInternalChain } from './forwardFlow/units/verb/internalChainIndex'
 import { FORWARD_FLOW_FINDINGS } from './forwardFlowFindings.en.js'
 
 import { T, SLOT_COLORS } from './forwardFlow/theme'
-import { Section, SlotChip, FuturePhasePlaceholder } from './forwardFlow/primitives'
-import { EXCEPTION_LANE_LABELS } from './forwardFlow/units/exceptions/dispatch'
-import { FRAME_LIBRARY } from './forwardFlow/units/verb/frameLibrary'
+import { Section, FuturePhasePlaceholder } from './forwardFlow/primitives'
 import { SlotRoleCard } from './forwardFlow/SlotRoleCard'
 import { useParsedSentence } from './forwardFlow/useParsedSentence'
+import { LiveDetectionPanel } from './forwardFlow/LiveDetectionPanel'
 
-// Per-unit fragments — each unit's UI lives in its own folder.
-import { SubjectStatusBlock }     from './forwardFlow/units/subject/StatusBlock'
+// Per-route content components.
 import { SubjectSubTabContent }   from './forwardFlow/units/subject/SubTabContent'
-import { VerbStatusBlock }        from './forwardFlow/units/verb/StatusBlock'
-import { FrameSubTabContent }     from './forwardFlow/units/verb/FrameSubTabContent'
-import { InternalSubTabContent }  from './forwardFlow/units/verb/InternalSubTabContent'
-import { ConfigurationsSubTabContent } from './forwardFlow/units/verb/ConfigurationsSubTabContent'
-import { getAuxConfigurations }   from './forwardFlow/units/verb/auxConfigurationsIndex'
-import { ObjectStatusBlock }      from './forwardFlow/units/object/StatusBlock'
+import { VerbSubTabContent }      from './forwardFlow/units/verb/VerbSubTabContent'
 import { ObjectSubTabContent }    from './forwardFlow/units/object/SubTabContent'
-import { ComplementStatusBlock }  from './forwardFlow/units/complement/StatusBlock'
 import { ComplementSubTabContent }from './forwardFlow/units/complement/SubTabContent'
 import { COMPLEMENT_ACCEPTS }     from './forwardFlow/units/complement/acceptance.en.js'
-import { AdverbialStatusBlock }   from './forwardFlow/units/adverbial/StatusBlock'
 import { AdverbialSubTabContent } from './forwardFlow/units/adverbial/SubTabContent'
 import { ADVERBIAL_ACCEPTS }      from './forwardFlow/units/adverbial/acceptance.en.js'
-import { ExceptionStatusBlock }   from './forwardFlow/units/exceptions/StatusBlock'
 import { ExceptionSubTabContent } from './forwardFlow/units/exceptions/SubTabContent'
+import { WordCategoriesSubTabContent } from './forwardFlow/library/WordCategoriesSubTab'
+import { FindingsSubTabContent }  from './forwardFlow/findings/FindingsSubTabContent'
 
-const SLOT_ROLES = getSlotRoles('en')
+const SLOT_ROLES         = getSlotRoles('en')
 const SUBJECT_STRUCTURES = STRUCTURES.filter(s => SUBJECT_ACCEPTS.includes(s.id))
 const OBJECT_STRUCTURES  = STRUCTURES.filter(s => OBJECT_ACCEPTS.includes(s.id))
-const EXCEPTION_SHAPES = getExceptionShapes('en')
-const VERB_CHAIN = getVerbInternalChain('en')
-const AUX_CONFIGURATIONS = getAuxConfigurations('en')
+const EXCEPTION_SHAPES   = getExceptionShapes('en')
 
 export default function GrammarBreakerForwardFlowTab() {
   const [expanded, setExpanded] = useState({})
   const [typedSentence, setTypedSentence] = useState('')
-  const [subTab, setSubTab] = useState('roles')
+  // Path-style IDs: 'slots/subject', 'library/wordcats', etc.
+  // Top-level-only paths ('findings', 'roadmap') for tabs with no children.
+  const [subTab, setSubTab] = useState('slots/overview')
 
   // Per-catalog search queries. State stays in the orchestrator so search
-  // persists across sub-tab switches (UX preserved from pre-split version).
+  // persists across sub-tab switches.
   const [subjectSearch,    setSubjectSearch]    = useState('')
   const [frameSearch,      setFrameSearch]      = useState('')
   const [vchainSearch,     setVchainSearch]     = useState('')
@@ -74,26 +69,14 @@ export default function GrammarBreakerForwardFlowTab() {
   const [complementSearch, setComplementSearch] = useState('')
   const [adverbialSearch,  setAdverbialSearch]  = useState('')
   const [exceptionSearch,  setExceptionSearch]  = useState('')
-  const [findingsSearch,   setFindingsSearch]   = useState('')
 
-  // Hierarchical grouping. Skeleton wired to Findings; pattern extends as
-  // catalogs scale.
-  const [findingsGroupBy, setFindingsGroupBy] = useState('status') // 'status' | 'priority' | 'none'
-
-  // Tiered live status — which accordion sections are open
-  const [statusOpen, setStatusOpen] = useState({})
-  const toggleStatus = (id) => setStatusOpen(curr => ({ ...curr, [id]: !curr[id] }))
-
-  // Live parse of the typed sentence — feeds the status panel and the
-  // catalog highlights.
+  const parsed = useParsedSentence(typedSentence)
   const {
-    lane, exceptionType, matchedVerb, matchedVerbForm, subjectText,
-    subjectShape, nounNumber, articleWarning,
-    subjectFeatures, expectedAgreement, agreementCheck,
-    auxChain, matchedChainIds, auxConfiguration,
+    lane, exceptionType, matchedVerb, subjectShape,
+    matchedChainIds, auxConfiguration,
     objectAnalysis, complementAnalysis, adverbialAnalysis,
     activeRoles,
-  } = useParsedSentence(typedSentence)
+  } = parsed
 
   function toggle(id) {
     setExpanded(curr => ({ ...curr, [id]: !curr[id] }))
@@ -109,21 +92,39 @@ export default function GrammarBreakerForwardFlowTab() {
     })
   }
 
-  // Sub-tab definitions. The live detection panel sits above these and
-  // stays visible regardless of which sub-tab is active.
-  const SUB_TABS = [
-    { id: 'roles',     label: 'Slot Roles',          group: 'shared',    count: SLOT_ROLES.length },
-    { id: 'subjects',  label: 'Subject',             group: 'core',      count: SUBJECT_STRUCTURES.length },
-    { id: 'frames',    label: 'Frame Library',       group: 'core',      count: FRAME_LIBRARY.length },
-    { id: 'vchain',    label: 'Verb Internal',       group: 'core',      count: VERB_CHAIN.filter(e => e.kind === 'chain_position').length },
-    { id: 'configs',   label: 'Aux Configurations',  group: 'core',      count: AUX_CONFIGURATIONS.length },
-    { id: 'objects',   label: 'Object',              group: 'core',      count: OBJECT_STRUCTURES.length },
-    { id: 'complements',label: 'Complement',         group: 'core',      count: COMPLEMENT_ACCEPTS.length },
-    { id: 'adverbials',label: 'Adverbial',           group: 'core',      count: ADVERBIAL_ACCEPTS.length },
-    { id: 'exceptions',label: 'Exception Shapes',    group: 'exception', count: EXCEPTION_SHAPES.length },
-    { id: 'findings',  label: 'Findings',            group: 'shared',    count: FORWARD_FLOW_FINDINGS.filter(f => f.status === 'open').length },
-    { id: 'future',    label: 'Future phases',       group: 'shared',    count: 4 },
+  // Two-axis nav: top-level views grouped by what kind of thing they show,
+  // sub-strip per top-tab for the children of the active view.
+  const TOP_TABS = [
+    { id: 'slots',      label: 'Slots' },
+    { id: 'library',    label: 'Library' },
+    { id: 'operations', label: 'Operations' },
+    { id: 'findings',   label: 'Findings', count: FORWARD_FLOW_FINDINGS.filter(f => f.status === 'open').length },
+    { id: 'roadmap',    label: 'Roadmap' },
   ]
+  const SUB_TABS_BY_TOP = {
+    slots: [
+      { id: 'overview',   label: 'Overview',   count: SLOT_ROLES.length },
+      { id: 'subject',    label: 'Subject',    count: SUBJECT_STRUCTURES.length },
+      { id: 'verb',       label: 'Verb' },
+      { id: 'object',     label: 'Object',     count: OBJECT_STRUCTURES.length },
+      { id: 'complement', label: 'Complement', count: COMPLEMENT_ACCEPTS.length },
+      { id: 'adverbial',  label: 'Adverbial',  count: ADVERBIAL_ACCEPTS.length },
+    ],
+    library: [
+      { id: 'wordcats', label: 'Word Categories' },
+    ],
+    operations: [
+      { id: 'exceptions', label: 'Exception Shapes', count: EXCEPTION_SHAPES.length },
+    ],
+    findings: [],
+    roadmap:  [],
+  }
+  const [topTabId] = subTab.split('/')
+  const subTabsForTop = SUB_TABS_BY_TOP[topTabId] ?? []
+  function selectTop(id) {
+    const subs = SUB_TABS_BY_TOP[id] ?? []
+    setSubTab(subs.length > 0 ? `${id}/${subs[0].id}` : id)
+  }
 
   return (
     <div>
@@ -140,363 +141,170 @@ export default function GrammarBreakerForwardFlowTab() {
         Design principle: <b>forward momentum</b>. A macro shape is the right primitive only if it can be detected from what's already been typed (left-to-right), constrains what can come next, and composes naturally with the next shape. See <code style={{ background: '#fff', padding: '1px 5px', borderRadius: 3 }}>notes/macro-layer-sketch.md</code> for the full architecture.
       </div>
 
-      {/* Live forward-flow detection — phase 3a. */}
-      <div style={{
-        background: '#fff', border: `1px solid ${T.border}`, borderRadius: 6,
-        padding: '12px 14px', marginBottom: 24,
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: T.label, textTransform: 'uppercase', marginBottom: 8 }}>
-          Live forward-flow detection
-        </div>
-        <input type="text" value={typedSentence} onChange={e => setTypedSentence(e.target.value)}
-          placeholder="Type a sentence — e.g. 'I gave him a book' or 'Did you eat?'"
-          style={{
-            width: '100%', padding: '8px 12px', fontSize: 15, color: T.text,
-            border: `1px solid ${T.border}`, borderRadius: 4, background: T.page,
-            boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif',
-          }} />
+      {/* Live forward-flow detection panel — owns its own statusOpen state. */}
+      <LiveDetectionPanel
+        typedSentence={typedSentence} setTypedSentence={setTypedSentence}
+        parsed={parsed} />
 
-        {/* Tiered status panel — one-line summary always visible; per-unit
-            sections below expand on click. */}
-        <div style={{ marginTop: 10, fontSize: 12, color: T.textSub }}>
-
-          {/* ── One-line summary ── */}
-          {lane === 'empty' && (
-            <div style={{ fontStyle: 'italic', color: T.textDim }}>waiting for input</div>
-          )}
-          {lane === 'fundamental' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{
-                padding: '2px 8px', background: T.greenBg, border: `1px solid ${T.greenBord}`, borderRadius: 4,
-                fontSize: 11, fontWeight: 700, color: T.green, letterSpacing: '0.04em', textTransform: 'uppercase',
-              }}>fundamental</span>
-              {subjectText && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <SlotChip shortLabel="S" />
-                  <span style={{ fontFamily: 'monospace', color: T.text, fontWeight: 700 }}>{subjectText}</span>
-                  {subjectShape && (
-                    <span style={{ color: T.textDim }}>
-                      ({getStructure(subjectShape)?.label ?? subjectShape}
-                      {subjectFeatures && `, ${subjectFeatures.person} ${subjectFeatures.number}`})
-                    </span>
-                  )}
-                </span>
-              )}
-              {matchedVerb && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <SlotChip shortLabel="V" />
-                  <span style={{
-                    padding: '1px 6px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 3,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: T.amber,
-                  }}>{matchedVerb.baseForm}</span>
-                </span>
-              )}
-              {!matchedVerb && subjectText && (
-                <span style={{ color: T.textDim, fontStyle: 'italic' }}>looking for a known verb…</span>
-              )}
-            </div>
-          )}
-          {lane === 'exception' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{
-                padding: '2px 8px', background: T.violetBg, border: `1px solid ${T.violetBord}`, borderRadius: 4,
-                fontSize: 11, fontWeight: 700, color: T.violet, letterSpacing: '0.04em', textTransform: 'uppercase',
-              }}>exception</span>
-              <span style={{ color: T.violet, fontWeight: 700 }}>{EXCEPTION_LANE_LABELS[exceptionType] ?? exceptionType}</span>
-              {matchedVerb && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <SlotChip shortLabel="V" />
-                  <span style={{
-                    padding: '1px 6px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 3,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: T.amber,
-                  }}>{matchedVerb.baseForm}</span>
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* ── Per-unit detail sections (default-collapsed; click to expand) ── */}
-
-          <SubjectStatusBlock
-            lane={lane}
-            subjectText={subjectText} subjectShape={subjectShape}
-            nounNumber={nounNumber} articleWarning={articleWarning}
-            subjectFeatures={subjectFeatures}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-
-          <VerbStatusBlock
-            lane={lane} exceptionType={exceptionType}
-            matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm}
-            auxChain={auxChain} auxConfiguration={auxConfiguration}
-            expectedAgreement={expectedAgreement}
-            agreementCheck={agreementCheck}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-
-          <ObjectStatusBlock
-            lane={lane} objectAnalysis={objectAnalysis}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-
-          <ComplementStatusBlock
-            lane={lane} complementAnalysis={complementAnalysis}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-
-          <AdverbialStatusBlock
-            lane={lane} adverbialAnalysis={adverbialAnalysis}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-
-          <ExceptionStatusBlock
-            lane={lane} exceptionType={exceptionType}
-            statusOpen={statusOpen} toggleStatus={toggleStatus} />
-        </div>
-
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}`, fontSize: 10, color: T.textDim, fontStyle: 'italic' }}>
-          Detection covers base forms + inflected surface forms via formsMap (irregulars seeded from the morphology table; regulars resolve once their base is in the word registry).
-        </div>
-      </div>
-
-      {/* Sub-tab navigation */}
+      {/* Two-row sub-tab navigation: top tabs (5) + sub-strip (children of active top). */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 5,
         background: T.page, paddingTop: 8, paddingBottom: 0,
         borderBottom: `1px solid ${T.border}`, marginBottom: 16,
       }}>
+        {/* Top-level tabs */}
         <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap' }}>
-          {SUB_TABS.map(t => {
-            const isActive = subTab === t.id
-            const groupColor = t.group === 'core' ? T.green : t.group === 'exception' ? T.violet : T.textDim
+          {TOP_TABS.map(t => {
+            const isActive = topTabId === t.id
             return (
-              <button key={t.id} onClick={() => setSubTab(t.id)}
+              <button key={t.id} onClick={() => selectTop(t.id)}
                 style={{
                   padding: '8px 14px',
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 13, fontWeight: 700,
                   border: 'none',
-                  borderBottom: isActive ? `2px solid ${groupColor}` : '2px solid transparent',
+                  borderBottom: isActive ? `2px solid ${T.text}` : '2px solid transparent',
                   marginBottom: -1,
                   background: 'transparent',
                   color: isActive ? T.text : T.textDim,
                   cursor: 'pointer',
+                  letterSpacing: '0.02em',
                 }}>
                 {t.label}
-                {t.count != null && <span style={{ color: groupColor, marginLeft: 4, fontWeight: 400 }}>({t.count})</span>}
+                {t.count != null && <span style={{ color: T.textDim, marginLeft: 4, fontWeight: 400 }}>({t.count})</span>}
               </button>
             )
           })}
         </div>
+        {/* Sub-strip — only shown when active top has children */}
+        {subTabsForTop.length > 0 && (
+          <div style={{
+            display: 'flex', gap: 0, flexWrap: 'wrap',
+            paddingTop: 6, paddingLeft: 4,
+            borderTop: `1px solid ${T.border}`,
+          }}>
+            {subTabsForTop.map(s => {
+              const path = `${topTabId}/${s.id}`
+              const isActive = subTab === path
+              return (
+                <button key={s.id} onClick={() => setSubTab(path)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: 12, fontWeight: 600,
+                    border: 'none',
+                    borderBottom: isActive ? `2px solid ${T.textDim}` : '2px solid transparent',
+                    marginBottom: -1,
+                    background: 'transparent',
+                    color: isActive ? T.text : T.textDim,
+                    cursor: 'pointer',
+                  }}>
+                  {s.label}
+                  {s.count != null && <span style={{ color: T.textDim, marginLeft: 4, fontWeight: 400 }}>({s.count})</span>}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── Slot Roles sub-tab (cross-unit) ────────────────────────────────── */}
-      {subTab === 'roles' && (<>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Section>Slot Roles ({SLOT_ROLES.length}) — the macro primitives</Section>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={expandAllRoles}
-            style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-            expand all
-          </button>
-          <button onClick={collapseAllRoles}
-            style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-            collapse all
-          </button>
+      {/* ── Slots / Overview (the 5 macro primitives) ──────────────────────── */}
+      {subTab === 'slots/overview' && (<>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+          <Section>Slot Roles ({SLOT_ROLES.length}) — the macro primitives</Section>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={expandAllRoles}
+              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
+              expand all
+            </button>
+            <button onClick={collapseAllRoles}
+              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
+              collapse all
+            </button>
+          </div>
         </div>
-      </div>
-      <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-        These five are the alphabet, not the words. They compose (per a verb's argument structure) to produce any compositional sentence — never enumerated as fixed shapes.
-      </div>
-      <div>
-        {SLOT_ROLES.map(role => {
-          const isActive = activeRoles.has(role.id)
-          const c = SLOT_COLORS[role.shortLabel] ?? { border: T.border }
-          return (
-            <div key={role.id}
-              style={{
-                outline: isActive ? `3px solid ${c.border}` : 'none',
-                outlineOffset: '3px',
-                borderRadius: 6,
-                transition: 'outline 200ms',
-              }}>
-              <SlotRoleCard role={role} expanded={!!expanded[role.id]} onToggle={() => toggle(role.id)} />
-            </div>
-          )
-        })}
-      </div>
+        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
+          These five are the alphabet, not the words. They compose (per a verb's argument structure) to produce any compositional sentence — never enumerated as fixed shapes.
+        </div>
+        <div>
+          {SLOT_ROLES.map(role => {
+            const isActive = activeRoles.has(role.id)
+            const c = SLOT_COLORS[role.shortLabel] ?? { border: T.border }
+            return (
+              <div key={role.id}
+                style={{
+                  outline: isActive ? `3px solid ${c.border}` : 'none',
+                  outlineOffset: '3px',
+                  borderRadius: 6,
+                  transition: 'outline 200ms',
+                }}>
+                <SlotRoleCard role={role} expanded={!!expanded[role.id]} onToggle={() => toggle(role.id)} />
+              </div>
+            )
+          })}
+        </div>
       </>)}
 
-      {/* ── Subject Shapes sub-tab ─────────────────────────────────────────── */}
-      {subTab === 'subjects' && (
+      {/* ── Slots / Subject ────────────────────────────────────────────────── */}
+      {subTab === 'slots/subject' && (
         <SubjectSubTabContent
           lane={lane} subjectShape={subjectShape}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={subjectSearch} setSearch={setSubjectSearch} />
       )}
 
-      {/* ── Frame Library sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'frames' && (
-        <FrameSubTabContent
+      {/* ── Slots / Verb (3-view internal nav lives in VerbSubTabContent) ──── */}
+      {subTab === 'slots/verb' && (
+        <VerbSubTabContent
           matchedVerb={matchedVerb}
-          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
-          search={frameSearch} setSearch={setFrameSearch} />
-      )}
-
-      {/* ── Verb Internal sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'vchain' && (
-        <InternalSubTabContent
           matchedChainIds={matchedChainIds}
-          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
-          search={vchainSearch} setSearch={setVchainSearch} />
-      )}
-
-      {/* ── Aux Configurations sub-tab ─────────────────────────────────────── */}
-      {subTab === 'configs' && (
-        <ConfigurationsSubTabContent
           auxConfiguration={auxConfiguration}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
-          search={configSearch} setSearch={setConfigSearch} />
+          frameSearch={frameSearch}   setFrameSearch={setFrameSearch}
+          vchainSearch={vchainSearch} setVchainSearch={setVchainSearch}
+          configSearch={configSearch} setConfigSearch={setConfigSearch} />
       )}
 
-      {/* ── Object Shapes sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'objects' && (
+      {/* ── Slots / Object ─────────────────────────────────────────────────── */}
+      {subTab === 'slots/object' && (
         <ObjectSubTabContent
           lane={lane} objectAnalysis={objectAnalysis}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={objectSearch} setSearch={setObjectSearch} />
       )}
 
-      {/* ── Complement sub-tab ─────────────────────────────────────────────── */}
-      {subTab === 'complements' && (
+      {/* ── Slots / Complement ─────────────────────────────────────────────── */}
+      {subTab === 'slots/complement' && (
         <ComplementSubTabContent
           complementAnalysis={complementAnalysis}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={complementSearch} setSearch={setComplementSearch} />
       )}
 
-      {/* ── Adverbial sub-tab ──────────────────────────────────────────────── */}
-      {subTab === 'adverbials' && (
+      {/* ── Slots / Adverbial ──────────────────────────────────────────────── */}
+      {subTab === 'slots/adverbial' && (
         <AdverbialSubTabContent
           adverbialAnalysis={adverbialAnalysis}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={adverbialSearch} setSearch={setAdverbialSearch} />
       )}
 
-      {/* ── Exception Shapes sub-tab ───────────────────────────────────────── */}
-      {subTab === 'exceptions' && (
+      {/* ── Library / Word Categories (schema view) ────────────────────────── */}
+      {subTab === 'library/wordcats' && (
+        <WordCategoriesSubTabContent />
+      )}
+
+      {/* ── Operations / Exception Shapes ──────────────────────────────────── */}
+      {subTab === 'operations/exceptions' && (
         <ExceptionSubTabContent
           lane={lane} exceptionType={exceptionType}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={exceptionSearch} setSearch={setExceptionSearch} />
       )}
 
-      {/* ── Findings sub-tab (cross-unit) ──────────────────────────────────── */}
-      {subTab === 'findings' && (<>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.textDim, textTransform: 'uppercase', marginBottom: 8 }}>
-          Forward Flow as discovery surface · gap log
-        </div>
-        <Section>Findings ({FORWARD_FLOW_FINDINGS.filter(f => f.status === 'open').length} open · {FORWARD_FLOW_FINDINGS.filter(f => f.status === 'resolved').length} resolved)</Section>
-        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          As Forward Flow grows, it surfaces gaps in the broader system — things this dev surface can detect that the rest of the app can&apos;t yet handle. Each finding names what surfaced it, what&apos;s missing, the current workaround (if any), and where the fix lives. Mirror of notes/forward-flow-findings.md.
-        </div>
+      {/* ── Findings (top-level — gap log) ─────────────────────────────────── */}
+      {subTab === 'findings' && <FindingsSubTabContent />}
 
-        {/* Search + group-by controls */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input type="text" placeholder="search findings…" value={findingsSearch} onChange={e => setFindingsSearch(e.target.value)}
-            style={{ flex: 1, minWidth: 200, padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, boxSizing: 'border-box' }} />
-          <span style={{ fontSize: 10, color: T.textDim, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>group by</span>
-          {['status', 'priority', 'none'].map(g => (
-            <button key={g} onClick={() => setFindingsGroupBy(g)}
-              style={{
-                padding: '4px 10px', fontSize: 11, fontWeight: 600,
-                border: `1px solid ${findingsGroupBy === g ? T.text : T.border}`, borderRadius: 4,
-                background: findingsGroupBy === g ? T.text : '#fff',
-                color:      findingsGroupBy === g ? T.page : T.textDim,
-                cursor: 'pointer',
-              }}>{g}</button>
-          ))}
-        </div>
-
-        {(() => {
-          const filtered = FORWARD_FLOW_FINDINGS.filter(f => {
-            const q = findingsSearch.toLowerCase().trim()
-            if (!q) return true
-            return [f.title, f.surfacedBy, f.missing, f.workaround, f.fix].some(s => (s ?? '').toLowerCase().includes(q))
-          })
-
-          let groups
-          if (findingsGroupBy === 'status') {
-            groups = [
-              { label: 'Open',     items: filtered.filter(f => f.status === 'open') },
-              { label: 'Resolved', items: filtered.filter(f => f.status === 'resolved') },
-            ]
-          } else if (findingsGroupBy === 'priority') {
-            groups = [
-              { label: 'Important', items: filtered.filter(f => f.priority === 'important') },
-              { label: 'Can wait',  items: filtered.filter(f => f.priority === 'can wait') },
-              { label: 'Resolved',  items: filtered.filter(f => f.status === 'resolved') },
-            ]
-          } else {
-            groups = [{ label: null, items: filtered }]
-          }
-
-          return groups.map((group, gi) => group.items.length === 0 ? null : (
-            <div key={gi} style={{ marginBottom: 16 }}>
-              {group.label && (
-                <div style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: T.label, textTransform: 'uppercase',
-                  marginBottom: 6, paddingBottom: 4, borderBottom: `1px solid ${T.border}`,
-                }}>
-                  {group.label} ({group.items.length})
-                </div>
-              )}
-              {group.items.map(f => {
-                const isResolved = f.status === 'resolved'
-                const priorityColor =
-                  f.priority === 'critical'  ? T.red    :
-                  f.priority === 'important' ? T.amber  :
-                  T.textDim
-                return (
-                  <div key={f.id} style={{
-                    background: isResolved ? T.greenBg : T.card,
-                    border: `1px solid ${isResolved ? T.greenBord : T.border}`,
-                    borderRadius: 6, padding: '12px 14px', marginBottom: 8,
-                    opacity: isResolved ? 0.75 : 1,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: T.textDim, fontFamily: 'monospace', minWidth: 28,
-                      }}>#{f.id}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.text, flex: 1 }}>
-                        {isResolved && <span style={{ textDecoration: 'line-through' }}>{f.title}</span>}
-                        {!isResolved && f.title}
-                      </span>
-                      <span style={{
-                        padding: '1px 7px', background: '#fff', border: `1px solid ${priorityColor}`, color: priorityColor,
-                        borderRadius: 3, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
-                      }}>{f.priority}</span>
-                      <span style={{
-                        padding: '1px 7px', background: isResolved ? T.greenBg : '#fff', border: `1px solid ${isResolved ? T.greenBord : T.border}`,
-                        color: isResolved ? T.green : T.textDim, borderRadius: 3, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
-                      }}>{f.status}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.55, marginBottom: 4 }}>
-                      <b style={{ color: T.label }}>Surfaced by:</b> {f.surfacedBy}
-                    </div>
-                    <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.55, marginBottom: 4 }}>
-                      <b style={{ color: T.label }}>What&apos;s missing:</b> {f.missing}
-                    </div>
-                    <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.55, marginBottom: 4 }}>
-                      <b style={{ color: T.label }}>Workaround:</b> {f.workaround}
-                    </div>
-                    <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.55 }}>
-                      <b style={{ color: T.label }}>Fix:</b> {f.fix}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ))
-        })()}
-      </>)}
-
-      {/* ── Future phases sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'future' && (<>
+      {/* ── Roadmap (top-level — phase placeholders) ───────────────────────── */}
+      {subTab === 'roadmap' && (<>
         <Section>Future phases — coming online as built</Section>
         <FuturePhasePlaceholder phase={3} title="Forward-trajectory predictor"
           description="As a sentence is typed, the predictor announces what slot is wanted next, which canonicals are still in play, and which next-words would break the trajectory." />

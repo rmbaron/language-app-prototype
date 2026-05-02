@@ -13,6 +13,7 @@ export const L2_FIELDS = [
   // Universal
   'colloquial',
   'lemmaFamily',
+  'derivedForms',
 
   // Noun-specific
   'countability',

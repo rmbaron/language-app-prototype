@@ -191,6 +191,7 @@ function LevelGroup({ level, words, onEnrich, onClearL2, onClearL3, freshSince }
                         ['gender', l2.gender],
                         ['colloquial', l2.colloquial],
                         ['lemmaFamily', l2.lemmaFamily],
+                        ['derivedForms', l2.derivedForms],
                       ]
                       const present = rows.filter(([, v]) => v !== undefined)
                       const missing = rows.filter(([, v]) => v === undefined).map(([k]) => k)

@@ -13,7 +13,87 @@ import { WORD_SEED } from './wordSeed.en'
 import { getLayerOne, hasLayerOne } from './wordLayerOne'
 import { setLayerTwo, hasLayerTwo, hasRealLayerTwo } from './wordLayerTwo'
 import { addWordToIndex, findWordInIndex, updateWordInIndex, rebuildAtomIndex } from './atomIndex'
+import {
+  addWordToFeatureIndex,
+  findWordInFeatureIndex,
+  removeWordFromFeatureIndex,
+  rebuildFeatureIndex,
+} from './featureIndex'
+import { getBucketableFeatures } from './vocabularies.en'
+import {
+  addDerivedFormsToFamily,
+  rebuildDerivedFormsIndex,
+} from './derivedFormsIndex'
 import { markFormsMapStale } from './formsMap'
+
+// Compute a wordId from a baseForm — matches seedWordAdder's id rule.
+function idFromBaseForm(baseForm) {
+  return String(baseForm ?? '').trim().toLowerCase().replace(/\s+/g, '_')
+}
+
+// Auto-seeder: for each derived form on the L2 record, POST to
+// /__add-seed-word if the form isn't already in WORD_SEED. The endpoint
+// dedupes server-side; we still skip already-known IDs to avoid a noisy
+// round-trip per existing word.
+//
+// Fire-and-forget — failures log but don't block the rest of enrichment.
+async function autoSeedDerivedForms(derivedForms, lang) {
+  if (!Array.isArray(derivedForms) || derivedForms.length === 0) return
+  const known = new Set(WORD_SEED.filter(w => w.language === lang).map(w => w.id))
+  for (const { form } of derivedForms) {
+    if (!form) continue
+    const id = idFromBaseForm(form)
+    if (known.has(id)) continue
+    try {
+      const res = await fetch('/__add-seed-word', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseForm: form, language: lang }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.ok) {
+          console.log(`[auto-seed] added "${form}" (id: ${data.id}) from derivedForms`)
+        } else if (data.error && !/already exists/i.test(data.error)) {
+          console.warn(`[auto-seed] could not add "${form}":`, data.error)
+        }
+      }
+    } catch (err) {
+      console.warn(`[auto-seed] failed for "${form}":`, err.message)
+    }
+  }
+}
+
+// Convert an L2 record into the flat { feature: value } map featureIndex buckets.
+// Compound L2 fields are flattened: properNoun → { properNoun, properNounType, takesArticle }.
+function extractFeatures(l2Record) {
+  if (!l2Record) return {}
+  const features = {}
+  for (const feat of getBucketableFeatures()) {
+    if (feat === 'properNoun') {
+      features.properNoun = l2Record.properNoun != null
+    } else if (feat === 'properNounType') {
+      features.properNounType = l2Record.properNoun?.type ?? null
+    } else if (feat === 'takesArticle') {
+      features.takesArticle = l2Record.properNoun?.takesArticle ?? null
+    } else {
+      features[feat] = l2Record[feat] ?? null
+    }
+  }
+  return features
+}
+
+// Reads the word's current featureIndex positions, removes them, adds the new ones.
+// Equivalent to atomIndex's findWordInIndex → updateWordInIndex flow, packaged.
+function coatFeatureIndex(wordId, newL2, lang) {
+  const oldPositions = findWordInFeatureIndex(wordId, lang)
+  const oldFeatures = {}
+  for (const { feature, value } of oldPositions) oldFeatures[feature] = value
+  if (Object.keys(oldFeatures).length > 0) {
+    removeWordFromFeatureIndex(wordId, oldFeatures, lang)
+  }
+  addWordToFeatureIndex(wordId, extractFeatures(newL2), lang)
+}
 
 const BATCH_LIMIT = 5
 
@@ -56,6 +136,9 @@ export async function enrichWordL2(wordId, lang = 'en') {
         addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
       }
     }
+    coatFeatureIndex(word.id, result, lang)
+    addDerivedFormsToFamily(result.lemmaFamily, result.derivedForms, lang)
+    autoSeedDerivedForms(result.derivedForms, lang)
   }
 }
 
@@ -82,6 +165,9 @@ export async function runLayerTwoBatch(lang = 'en', batchLimit = BATCH_LIMIT) {
             addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
           }
         }
+        coatFeatureIndex(word.id, result, lang)
+        addDerivedFormsToFamily(result.lemmaFamily, result.derivedForms, lang)
+        autoSeedDerivedForms(result.derivedForms, lang)
         console.log(`[enrichment-l2] enriched "${word.baseForm}"`)
       }
     } catch (err) {
@@ -146,6 +232,9 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
             addWordToIndex(word.id, result.grammaticalAtom, result.cefrLevel, lang)
           }
         }
+        coatFeatureIndex(word.id, result, lang)
+        addDerivedFormsToFamily(result.lemmaFamily, result.derivedForms, lang)
+        autoSeedDerivedForms(result.derivedForms, lang)
         enriched.push(word.baseForm)
         console.log(`[enrichment-l2] re-enriched "${word.baseForm}"`)
       } else {
@@ -159,17 +248,20 @@ export async function forceReEnrichAllL2(lang = 'en', batchLimit = BATCH_LIMIT, 
 
   onProgress?.({ done: total, total, current: null, enriched: [...enriched], failed: [...failed] })
 
-  // Rebuild atom index from all currently-enriched words
+  // Rebuild atom index + feature index from all currently-enriched words
   const allWithL1 = WORD_SEED.filter(w => w.language === lang && hasLayerOne(w.id, lang))
-  const enrichedWords = allWithL1
-    .map(w => {
-      const l2 = getLayerTwo(w.id, lang)
-      return l2?.grammaticalAtom && l2?.cefrLevel
-        ? { id: w.id, atomId: l2.grammaticalAtom, cefrLevel: l2.cefrLevel }
-        : null
-    })
-    .filter(Boolean)
+  const allL2 = allWithL1
+    .map(w => ({ id: w.id, l2: getLayerTwo(w.id, lang) }))
+    .filter(e => e.l2)
+  const enrichedWords = allL2
+    .filter(e => e.l2.grammaticalAtom && e.l2.cefrLevel)
+    .map(e => ({ id: e.id, atomId: e.l2.grammaticalAtom, cefrLevel: e.l2.cefrLevel }))
   rebuildAtomIndex(lang, enrichedWords)
+  rebuildFeatureIndex(lang, allL2.map(e => ({ id: e.id, features: extractFeatures(e.l2) })))
+  rebuildDerivedFormsIndex(lang, allL2.map(e => ({
+    familyRoot:   e.l2.lemmaFamily,
+    derivedForms: e.l2.derivedForms,
+  })))
 
   const remaining = eligible.length - batch.length
   console.log(`[enrichment-l2] done. ${enriched.length} enriched, ${failed.length} failed${remaining > 0 ? `, ${remaining} still eligible` : ''}.`)

@@ -45,6 +45,12 @@ Return a JSON object with these fields:
   For auxiliary, modal, and copula verbs always include contracted negatives (don't, can't, isn't, etc.) and subject contractions where natural (I'm, you're, he's). Empty forms array if the word does not inflect.
 - colloquial: boolean — true ONLY for words that are clearly informal/casual register (wanna, gonna, gimme, ain't, dunno, kinda, yeah). False for everything else, including most everyday words. When in doubt, false.
 - lemmaFamily: string — a stable identifier shared by all words in the same derivational family. Use the most basic root form of the family as the ID. Example: "happy", "happiness", "happily" all get lemmaFamily: "happy". "act", "action", "actor", "active", "activate" all get lemmaFamily: "act". For irregular families ("good", "better", "best") use the base of the lemma even though the words look different — lemmaFamily: "good". When a word stands alone with no derivational family, use the word's own baseForm as its lemmaFamily.
+- derivedForms: array of { form, category } — every well-known derivational sibling of THIS word in standard contemporary English. "form" is the surface form (lowercase unless a proper noun); "category" is one of: noun, verb, adjective, adverb. List the canonical sibling for each category that exists. Examples:
+    "happy" (adjective)  → [{ form: "happily",  category: "adverb" }, { form: "happiness", category: "noun" }]
+    "happily" (adverb)   → [{ form: "happy",    category: "adjective" }, { form: "happiness", category: "noun" }]
+    "act" (verb)         → [{ form: "action",   category: "noun" }, { form: "actor", category: "noun" }, { form: "active", category: "adjective" }]
+    "the" (determiner)   → []
+  Empty array if the word has no productive derivational siblings (most function words, irregulars without -ly, etc.). Do NOT include inflectional forms (plurals, past tense, comparative) — those go in "forms". Only derivational siblings that are different lemmas in their own right.
 - contentReady: false
 
 Word-class-specific fields — populate the ones that apply to this word's grammaticalCategory; set the others to null:

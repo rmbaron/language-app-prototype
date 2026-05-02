@@ -80,6 +80,7 @@ export function getResolvedWord(wordId, lang = 'en') {
     // L2 — universal
     colloquial:         l2?.colloquial         ?? false,
     lemmaFamily:        l2?.lemmaFamily        ?? null,
+    derivedForms:       l2?.derivedForms       ?? null,
 
     // L3 fields (future — content layer)
     contentReady:     l2?.contentReady     ?? false,
