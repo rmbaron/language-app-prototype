@@ -1,23 +1,15 @@
 // Subject Acceptance — English
 //
-// What structures the S slot accepts. The cross-unit structure registry
-// (src/forwardFlow/structures.en.js) is the single source of truth; this
-// file is a thin filter declaring which apply to S.
+// What structures the S slot accepts. Now a one-line derivation from the
+// shared registry's Wire G — `structuresForFunction('S')` returns every
+// phrase whose `functions` array includes 'S'. Single source of truth lives
+// in src/forwardFlow/structures.en.js.
 //
 // Pronoun case (subject I/he/she vs object me/him/her) is an atom-level
 // concern — same shape (bare_pronominal) for both, with case validation
 // happening separately when atoms are wired up. The detector currently
 // accepts both because learners sometimes type either at first.
 
-export const SUBJECT_ACCEPTS = [
-  'bare_pronominal',
-  'proper_noun',
-  'np_basic',
-  'np_with_postmodifier',
-  'coordinated',
-  'partitive',
-  'gerund_phrase',
-  'infinitive_phrase',
-  'for_to_infinitive',
-  'clausal',
-]
+import { structuresForFunction } from '../../structures.en.js'
+
+export const SUBJECT_ACCEPTS = structuresForFunction('S').map(s => s.id)

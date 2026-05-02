@@ -1,9 +1,9 @@
 // Complement Acceptance — English
 //
-// What structures the C slot accepts. The cross-unit structure registry
-// (src/forwardFlow/structures.en.js) is the single source of truth for the
-// structures themselves; this file is a thin filter declaring which apply
-// to C and (eventually) per-frame restrictions.
+// What structures the C slot accepts. Now a one-line derivation from the
+// shared registry's Wire G — `structuresForFunction('C')` returns every
+// phrase whose `functions` array includes 'C'. Single source of truth lives
+// in src/forwardFlow/structures.en.js.
 //
 // Two C subtypes, frame-driven:
 //   • Cs (Subject Complement) — after copular verbs (SVC frame)
@@ -15,23 +15,9 @@
 // terminology maps directly onto this — Cs and Co are the same role
 // realized differently.
 
-export const COMPLEMENT_ACCEPTS = [
-  // Bare/atomic — informal "It's me", proper-noun copular ("This is John")
-  'bare_pronominal',
-  'proper_noun',
-  // NP — "She is a teacher", "She called him a fool"
-  'np_basic',
-  // AdjP — "She is happy", "She makes him happy" (most common Cs/Co)
-  'adjp_basic',
-  // PP — "She is in the garden"
-  'pp_basic',
-  // Gerund — "Her job is reading manuscripts" (catalog-only in v1)
-  'gerund_phrase',
-  // Infinitive — "Her plan is to leave" (catalog-only)
-  'infinitive_phrase',
-  // Clausal — "The truth is that she left" (catalog-only)
-  'clausal',
-]
+import { structuresForFunction } from '../../structures.en.js'
+
+export const COMPLEMENT_ACCEPTS = structuresForFunction('C').map(s => s.id)
 
 // Per-frame role assignment. The verb's frame supplies SVC or SVOC; this
 // map labels the resulting complement.
