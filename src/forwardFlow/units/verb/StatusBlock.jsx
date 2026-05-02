@@ -24,10 +24,28 @@ function formTypeLabel(type) {
 
 export function VerbStatusBlock({
   lane, matchedVerb, matchedVerbForm, auxChain, expectedAgreement,
+  agreementCheck,
   statusOpen, toggleStatus,
 }) {
   return (
     <>
+      {agreementCheck && (
+        <StatusAccordionSection title="Agreement issue"
+          accent={T.red}
+          preview={`${agreementCheck.issue} — got "${agreementCheck.got}", expected ${agreementCheck.expected}`}
+          open={!!statusOpen.agreementIssue} onToggle={() => toggleStatus('agreementIssue')}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11 }}>
+            <div style={{ color: T.red, fontWeight: 700 }}>{agreementCheck.issue}</div>
+            <div style={{ color: T.textSub }}>
+              Got:&nbsp;<span style={{ fontFamily: 'monospace', color: T.text, fontWeight: 700 }}>{agreementCheck.got}</span>
+            </div>
+            <div style={{ color: T.textSub }}>
+              Expected: <span style={{ color: T.text }}>{agreementCheck.expected}</span>
+            </div>
+          </div>
+        </StatusAccordionSection>
+      )}
+
       {matchedVerb && matchedVerbForm && (
         <StatusAccordionSection title="Verb matched"
           accent={T.green}

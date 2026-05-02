@@ -71,7 +71,8 @@ export default function GrammarBreakerForwardFlowTab() {
   const {
     lane, exceptionType, matchedVerb, matchedVerbForm, subjectText,
     subjectShape, nounNumber, articleWarning,
-    subjectFeatures, expectedAgreement, auxChain, matchedChainIds,
+    subjectFeatures, expectedAgreement, agreementCheck,
+    auxChain, matchedChainIds,
     activeRoles,
   } = useParsedSentence(typedSentence)
 
@@ -204,6 +205,7 @@ export default function GrammarBreakerForwardFlowTab() {
             lane={lane}
             matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm}
             auxChain={auxChain} expectedAgreement={expectedAgreement}
+            agreementCheck={agreementCheck}
             statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
           <ExceptionStatusBlock

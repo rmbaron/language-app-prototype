@@ -24,6 +24,7 @@ import {
 import { classifyLane } from './units/exceptions/dispatch'
 import { classifyAuxToken, ALL_AUX_AND_NEG } from './units/verb/auxChain'
 import { matchVerb } from './units/verb/detector'
+import { checkAgreement } from './units/verb/agreement'
 
 export function useParsedSentence(typedSentence) {
   const parsed = useMemo(() => {
@@ -34,7 +35,7 @@ export function useParsedSentence(typedSentence) {
         verbIndex: -1, matchedVerb: null, matchedVerbForm: null,
         subjectText: '',
         subjectShape: null, nounNumber: 'unknown', articleWarning: null,
-        subjectFeatures: null, expectedAgreement: null,
+        subjectFeatures: null, expectedAgreement: null, agreementCheck: null,
         auxChain: [], matchedChainIds: new Set(),
       }
     }
@@ -113,10 +114,16 @@ export function useParsedSentence(typedSentence) {
     }
     if (matchedVerb) matchedChainIds.add('lexical')
 
+    // Cross-unit composition: subject features → expected pattern → verb-side check.
+    const agreementCheck = (lane === 'fundamental' && matchedVerbForm && expectedAgreement)
+      ? checkAgreement(matchedVerbForm, expectedAgreement.pattern, auxChain.length > 0)
+      : null
+
     return {
       tokens, lane, exceptionType, verbIndex, matchedVerb, matchedVerbForm,
       subjectText, subjectShape, nounNumber, articleWarning,
-      subjectFeatures, expectedAgreement, auxChain, matchedChainIds,
+      subjectFeatures, expectedAgreement, agreementCheck,
+      auxChain, matchedChainIds,
     }
   }, [typedSentence])
 
