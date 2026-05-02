@@ -84,7 +84,7 @@ export const STRUCTURES = [
       { sentence: 'I met the woman who left.',        highlight: 'the woman who left' },
       { sentence: 'The dog barking outside is loud.', highlight: 'The dog barking outside' },
     ],
-    detected:    false,
+    detected:    true,
   },
 
   // ── Cross-family operations (pending operations layer) ────────────────
@@ -111,7 +111,7 @@ export const STRUCTURES = [
       { sentence: 'Some of the water is gone.',    highlight: 'Some of the water' },
       { sentence: 'She drank some of the water.',  highlight: 'some of the water' },
     ],
-    detected:    false,
+    detected:    true,
   },
 
   // ── AdjP family ────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ export const STRUCTURES = [
       { sentence: 'For her to leave now would be a mistake.', highlight: 'For her to leave now' },
       { sentence: 'For us to win seems unlikely.',            highlight: 'For us to win' },
     ],
-    detected:    false,
+    detected:    true,
   },
 
   // ── Clausal family ─────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ export const STRUCTURES = [
       { sentence: 'I think that she is happy.',         highlight: 'that she is happy' },
       { sentence: 'The truth is that she left.',        highlight: 'that she left' },
     ],
-    detected:    false,
+    detected:    true,
   },
 ]
 

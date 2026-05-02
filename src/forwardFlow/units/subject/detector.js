@@ -14,7 +14,7 @@
 //
 // Returns: a shape id from SUBJECT_SHAPES, or null if no shape matched.
 
-import { matchNPShape } from '../../np/match'
+import { matchNPShape, findNPBoundary } from '../../np/match'
 import { getCategory, looksLikeProperNoun } from '../../categoryLookup'
 
 // getWordCategory kept as the local alias — existing call sites use it.
@@ -27,11 +27,59 @@ function looksLikeGerund(token) {
   return t.length > 4 && t.endsWith('ing')
 }
 
+const cleanLower = (tok) => (tok ?? '').toLowerCase().replace(/[^\w]/g, '')
+
+// ── Catalog branches now wired (was catalog-only) ─────────────────────────
+// Heuristic v1; tighten as the operations layer lands.
+
+// partitive: [quantifier] of [NP] — "some of the water"
+function isPartitive(rawTokens, cats) {
+  if (rawTokens.length < 3) return false
+  if (cats[0] !== 'quantifier') return false
+  if (cleanLower(rawTokens[1]) !== 'of') return false
+  return matchNPShape(rawTokens.slice(2), getWordCategory, looksLikeProperNoun) != null
+}
+
+// for_to_infinitive: for [NP] to [verb] (...) — "for her to leave now"
+function isForToInfinitive(rawTokens) {
+  if (rawTokens.length < 4) return false
+  if (cleanLower(rawTokens[0]) !== 'for') return false
+  const toIdx = rawTokens.findIndex((t, i) => i > 1 && cleanLower(t) === 'to')
+  if (toIdx < 0 || toIdx >= rawTokens.length - 1) return false
+  const npTokens = rawTokens.slice(1, toIdx)
+  if (!matchNPShape(npTokens, getWordCategory, looksLikeProperNoun)) return false
+  return /^[a-z]+$/.test(cleanLower(rawTokens[toIdx + 1]))
+}
+
+// clausal: that / wh-word + clause — "That she left ...", "What she said ..."
+const CLAUSAL_OPENERS = ['that', 'what', 'who', 'which', 'where', 'when', 'why', 'how']
+function isClausal(rawTokens) {
+  if (rawTokens.length < 2) return false
+  return CLAUSAL_OPENERS.includes(cleanLower(rawTokens[0]))
+}
+
+// np_with_postmodifier: [NP] [PP | relative-pronoun | participle]
+//   "the man on the corner", "the woman who left", "the dog barking outside"
+const RELATIVE_PRONOUNS = ['who', 'whom', 'which', 'that', 'whose']
+function isNPWithPostmodifier(rawTokens, cats) {
+  const npEnd = findNPBoundary(rawTokens, 0, getWordCategory, looksLikeProperNoun)
+  if (npEnd == null || npEnd >= rawTokens.length) return false
+  const postCat = cats[npEnd]
+  const postTok = cleanLower(rawTokens[npEnd])
+  if (postCat === 'preposition') {
+    return findNPBoundary(rawTokens, npEnd + 1, getWordCategory, looksLikeProperNoun) != null
+  }
+  if (RELATIVE_PRONOUNS.includes(postTok)) return true
+  if (/(ing|ed)$/.test(postTok)) return true
+  return false
+}
+
 // Returns: shape id (string) or null
 export function detectSubjectShape(subjectText) {
   if (!subjectText || !subjectText.trim()) return null
   const rawTokens = subjectText.trim().split(/\s+/).filter(Boolean)
   if (rawTokens.length === 0) return null
+  const cats = rawTokens.map(getWordCategory)
 
   // Subject-only single-token pre-checks: standalone demonstratives and
   // gerund (-ing) forms. These run BEFORE the shared NP classifier because:
@@ -40,7 +88,7 @@ export function detectSubjectShape(subjectText) {
   //   • capitalized -ing form ("Swimming") would be misclassified as a
   //     proper noun by the form-based check
   if (rawTokens.length === 1) {
-    const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
+    const t0 = cleanLower(rawTokens[0])
     if (t0 === 'this' || t0 === 'that' || t0 === 'these' || t0 === 'those') return 'bare_pronominal'
     if (looksLikeGerund(rawTokens[0])) return 'gerund_phrase'
   }
@@ -50,21 +98,24 @@ export function detectSubjectShape(subjectText) {
   const npShape = matchNPShape(rawTokens, getWordCategory, looksLikeProperNoun)
   if (npShape) return npShape
 
-  // Subject-only fallback: infinitive ("To err is human"). Validating that
-  // the word after "to" is actually a verb is future work.
-  if (rawTokens.length >= 2) {
-    const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
-    if (t0 === 'to') {
-      const t1 = rawTokens[1].toLowerCase().replace(/[^\w'-]/g, '')
-      if (t1.length > 0 && /^[a-z]+$/.test(t1)) {
-        return 'infinitive_phrase'
-      }
-    }
+  // np_with_postmodifier — runs right after np_basic fails. Postmodified NPs
+  // have content past the noun head that breaks np_basic's [det? adj* noun].
+  if (isNPWithPostmodifier(rawTokens, cats)) return 'np_with_postmodifier'
+
+  // partitive — [quantifier] of [NP].
+  if (isPartitive(rawTokens, cats)) return 'partitive'
+
+  // Subject-only fallback: infinitive ("To err is human").
+  if (rawTokens.length >= 2 && cleanLower(rawTokens[0]) === 'to') {
+    const t1 = rawTokens[1].toLowerCase().replace(/[^\w'-]/g, '')
+    if (t1.length > 0 && /^[a-z]+$/.test(t1)) return 'infinitive_phrase'
   }
 
-  // np_with_postmodifier, partitive, for_to_infinitive, clausal_subject —
-  // catalog-only in v1. Detection branches land alongside the operations
-  // layer + clausal-subject infrastructure.
+  // for_to_infinitive — "for her to leave now would be a mistake."
+  if (isForToInfinitive(rawTokens)) return 'for_to_infinitive'
+
+  // clausal subject — "That she left surprised us."
+  if (isClausal(rawTokens)) return 'clausal'
 
   return null
 }
@@ -147,7 +198,7 @@ export function computeSubjectFeatures(subjectText, shape) {
     case 'gerund_phrase':
     case 'infinitive_phrase':
     case 'for_to_infinitive':
-    case 'clausal_subject':
+    case 'clausal':
       return { person: '3rd', number: 'singular' }
     case 'coordinated': {
       // "and" → plural; "or" → nearer-conjunct (placeholder: singular).
@@ -206,6 +257,105 @@ export function expectedVerbAgreement(features) {
     examples: ['run', 'eat', 'are', 'have', 'do'],
     hint:     'present-tense verb is base form; for be/have/do use are/have/do.',
   }
+}
+
+// Live hypothesis tracking — what shapes are still in play for the current
+// prefix, beyond the one detectSubjectShape commits to. Returns:
+//   [] when input empty
+//   [{ shape, state: 'matched' | 'forming' | 'extends-with', hint }]
+// Forming = waiting for more tokens to commit. Extends-with = a fully-formed
+// shape that could grow into another shape if next tokens fit.
+export function liveSubjectHypotheses(subjectText) {
+  if (!subjectText || !subjectText.trim()) return []
+  const rawTokens = subjectText.trim().split(/\s+/).filter(Boolean)
+  if (rawTokens.length === 0) return []
+  const cats = rawTokens.map(getWordCategory)
+  const matched = detectSubjectShape(subjectText)
+  const out = []
+
+  if (matched) out.push({ shape: matched, state: 'matched', hint: null })
+
+  // Coordinated extension: any matched non-coordinated shape can grow.
+  if (matched && matched !== 'coordinated') {
+    out.push({ shape: 'coordinated', state: 'extends-with', hint: 'add "and" / "or" + another' })
+  }
+
+  // np_basic forming: opener present, no noun head yet.
+  const hasNoun = cats.some(c => c === 'noun' || (c && c.startsWith('noun')))
+  const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
+  if (!matched && (cats[0] === 'determiner' || cats[0] === 'quantifier') && !hasNoun) {
+    out.push({ shape: 'np_basic', state: 'forming', hint: 'waiting for noun head' })
+  }
+  if (!matched && cats[0] === 'adjective' && !hasNoun) {
+    out.push({ shape: 'np_basic', state: 'forming', hint: 'adjective-led, waiting for noun head' })
+  }
+
+  // infinitive_phrase forming: just "to" alone.
+  if (!matched && rawTokens.length === 1 && t0 === 'to') {
+    out.push({ shape: 'infinitive_phrase', state: 'forming', hint: 'waiting for bare verb' })
+  }
+
+  // for_to_infinitive forming: starts with "for".
+  if (!matched && t0 === 'for') {
+    out.push({ shape: 'for_to_infinitive', state: 'forming', hint: 'waiting for [NP] to [verb]' })
+  }
+
+  // clausal forming: starts with that / wh-word.
+  const WH_WORDS = ['that', 'what', 'who', 'which', 'where', 'when', 'why', 'how']
+  if (!matched && WH_WORDS.includes(t0) && rawTokens.length === 1) {
+    out.push({ shape: 'clausal', state: 'forming', hint: 'waiting for embedded clause [S V ...]' })
+  }
+
+  // partitive forming: quantifier alone, or quantifier + "of" without NP yet.
+  if (!matched && cats[0] === 'quantifier') {
+    if (rawTokens.length === 1) {
+      out.push({ shape: 'partitive', state: 'forming', hint: 'add "of" + NP to form partitive' })
+    } else if (rawTokens.length === 2 && rawTokens[1].toLowerCase() === 'of') {
+      out.push({ shape: 'partitive', state: 'forming', hint: 'waiting for NP after "of"' })
+    }
+  }
+
+  return out
+}
+
+// When detectSubjectShape returns null, name the categorical reason. Lives
+// next to the detector so the failure cases stay in sync with the detection
+// branches. Returns a short string or null when input matched.
+export function diagnoseSubjectFailure(subjectText) {
+  if (!subjectText || !subjectText.trim()) return null
+  if (detectSubjectShape(subjectText)) return null
+
+  const rawTokens = subjectText.trim().split(/\s+/).filter(Boolean)
+  if (rawTokens.length === 0) return null
+  const cats = rawTokens.map(getWordCategory)
+
+  // All tokens unknown — registry/function-word-map gap.
+  if (cats.every(c => c == null)) {
+    return rawTokens.length === 1
+      ? `"${rawTokens[0]}" not in function-word map or word registry`
+      : `no token recognized — none in function-word map or word registry`
+  }
+
+  // Some tokens unknown — usually the upstream verb / unknown noun.
+  const unknownToks = rawTokens.filter((_, i) => cats[i] == null)
+  if (unknownToks.length > 0) {
+    return `unknown token${unknownToks.length === 1 ? '' : 's'}: ${unknownToks.map(t => `"${t}"`).join(', ')} — needs a registry entry or upstream verb match`
+  }
+
+  // All categorized; multi-token didn't form an NP.
+  const lastTok = rawTokens[rawTokens.length - 1]
+  const lastCat = cats[cats.length - 1]
+  if (rawTokens.length > 1 && lastCat !== 'noun' && !(lastCat && lastCat.startsWith('noun'))) {
+    return `last token "${lastTok}" is "${lastCat}" — NP shape needs a noun head at the end`
+  }
+
+  // Single token, categorized but not a subject head.
+  if (rawTokens.length === 1) {
+    return `single token "${rawTokens[0]}" categorized as "${cats[0]}" — not a subject head (subject accepts pronoun, proper noun, bare noun, gerund, demonstrative)`
+  }
+
+  // Catch-all: last is noun but middle/opener doesn't fit np_basic pattern.
+  return `category sequence [${cats.join(', ')}] doesn't fit [determiner|quantifier]? [adjective(s)]? [noun] or any other subject shape`
 }
 
 // Heuristic: is the noun in a candidate Subject plural?
