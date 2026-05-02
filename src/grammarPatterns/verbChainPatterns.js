@@ -1,124 +1,25 @@
-// Verb-chain patterns — modal + verb chains, do-support negation, and
-// infinitive constructions. All involve multiple verb-class tokens.
+// Verb-chain patterns — RETIRED.
+//
+// All patterns in this file (modal_verb, subject_modal_verb_chain,
+// subject_auxiliary, do_support_negation, verb_infinitive_verb) were
+// retired during the Floor 2 alignment. They duplicated System B detection
+// already done by the verb unit:
+//
+//   • modal_verb / subject_modal_verb_chain → covered by
+//     auxConfigurations.modal_led + the verb unit's chain detector
+//     (src/forwardFlow/units/verb/detector.js).
+//   • subject_auxiliary / do_support_negation → covered by the do-support
+//     auxConfiguration + the verb unit's chain detector.
+//   • verb_infinitive_verb → covered by the frame system (verb takes
+//     infinitive complement is a frame property, not a separate pattern).
+//
+// Result: this file exports an empty array. The validator's coverage check
+// on modal/negation/infinitive constructions is intentionally a known gap
+// pending the grammar-circuit rebuild — see project_unified_system_alignment
+// memory and the next-Claude letter for the path forward.
+//
+// File kept (rather than deleted) so that the import in grammarBreakerPatterns.js
+// continues to work without a same-session edit to that aggregator file.
+// When the grammar circuit is rebuilt, delete this file and remove the import.
 
-import { hasAtom, hasAnyAtom } from './_helpers'
-
-export default [
-  // ─── Modal patterns ───────────────────────────────────────────────────────
-  {
-    id:          'modal_verb',
-    group:       'modal',
-    description: 'Modal followed by a bare verb (lexical or copula). e.g. "I can help", "she will be".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        // modal + bare lexical-verb-or-copula. NOT a verb-umbrella case —
-        // modal + auxiliary ("can do") is a real shape but a different pattern,
-        // and modal + modal isn't licensed. Keep the explicit list here.
-        if (hasAtom(tokens[i], 'modal_auxiliary') &&
-            hasAnyAtom(tokens[i + 1], ['lexical_verb', 'copula'])) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['modal_auxiliary'] },
-    coupling: 'modal_verb_chain',
-  },
-
-  // ─── Subject + Modal + (lexical verb | copula) — slot-style, single rule ─
-  // ONE pattern that covers both the lexical-verb and copula cases. Per-match
-  // license carries the actual verb-class atom, so [pronoun, modal, lex_verb]
-  // and [pronoun, modal, copula] each gate independently — same semantics as
-  // the original two-pattern enumeration.
-  //
-  // Replaces subject_modal_verb and subject_modal_copula.
-  {
-    id:          'subject_modal_verb_chain',
-    group:       'modal',
-    description: 'Pronoun subject + modal + bare verb (lexical or copula). e.g. "I can help", "she will eat", "I can be", "she will be". Per-match license preserves the atom-by-atom gating of the legacy two-pattern split.',
-    type:        'trigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
-        if (!hasAtom(tokens[i], 'personal_pronoun')) continue
-        if (!hasAtom(tokens[i + 1], 'modal_auxiliary')) continue
-        const verbAtom = hasAtom(tokens[i + 2], 'lexical_verb') ? 'lexical_verb'
-                       : hasAtom(tokens[i + 2], 'copula')       ? 'copula'
-                       : null
-        if (!verbAtom) continue
-        out.push({
-          span:    [i, i + 2],
-          license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary', verbAtom] },
-          info:    { verbAtom },
-        })
-      }
-      return out
-    },
-    // Pattern-level fallback (the looser of the two original requires lists).
-    // Real licenses come from per-match overrides above.
-    license: { requiresAtoms: ['personal_pronoun', 'modal_auxiliary'] },
-    coupling: 'modal_verb_chain',
-  },
-
-  // ─── Negation patterns ────────────────────────────────────────────────────
-  {
-    id:          'subject_auxiliary',
-    group:       'negation',
-    description: 'Pronoun subject directly followed by a do-support auxiliary. e.g. "I do", "she does".',
-    type:        'bigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (hasAtom(tokens[i], 'personal_pronoun') && hasAtom(tokens[i + 1], 'auxiliary')) {
-          out.push({ span: [i, i + 1] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['personal_pronoun', 'auxiliary'] },
-    coupling: 'negation_chain',
-  },
-
-  {
-    id:          'do_support_negation',
-    group:       'negation',
-    description: 'Do-support auxiliary + negation marker + lexical verb. e.g. "do not eat", "does not like".',
-    type:        'trigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
-        if (hasAtom(tokens[i], 'auxiliary') &&
-            hasAtom(tokens[i + 1], 'negation_marker') &&
-            hasAtom(tokens[i + 2], 'lexical_verb')) {
-          out.push({ span: [i, i + 2] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['auxiliary', 'negation_marker', 'lexical_verb'] },
-    coupling: 'negation_chain',
-  },
-
-  // ─── Infinitive ──────────────────────────────────────────────────────────
-  {
-    id:          'verb_infinitive_verb',
-    group:       'infinitive',
-    description: 'Verb + "to" + bare lexical verb. e.g. "I want to go", "She likes to eat", "We need to sleep". The "to" carries the infinitive_marker atom on the word "to".',
-    type:        'trigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 2; i++) {
-        if (!hasAtom(tokens[i], 'lexical_verb')) continue
-        if (!hasAtom(tokens[i + 1], 'infinitive_marker')) continue
-        if (hasAtom(tokens[i + 2], 'lexical_verb')) {
-          out.push({ span: [i, i + 2] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['lexical_verb', 'infinitive_marker'] },
-    coupling: 'infinitive',
-  },
-]
+export default []

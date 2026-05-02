@@ -1,7 +1,18 @@
-// Adverbial patterns — adverb position by type, plus prepositional phrases.
-// Both fill the adverbial slot at the clause level.
+// Adverbial patterns — adverb position rules.
+//
+// Wire P metadata: `adverbial_position` patterns are placement rules (where
+// adverbs go relative to other constituents), not phrase-composition rules.
+// They keep their `coupling: 'adverbial_position'` tag because the validator
+// still needs it, but the tag's true status is Wire P metadata, not a
+// clause-internal relation.
+//
+// (The `prepositional_phrase` pattern that used to live here was retired —
+// it was a duplicate of `pp_basic` in src/forwardFlow/structures.en.js.
+// The forward-flow PP detector at src/forwardFlow/pp/match.js is the
+// canonical home; the validator's coverage check on PP is now a known gap
+// pending the grammar-circuit rebuild.)
 
-import { hasAtom, hasDeterminerClass } from './_helpers'
+import { hasAtom } from './_helpers'
 
 // ── Adverb position dispatch table ─────────────────────────────────────────
 // Each adverbType (an L2-enriched field on the adverb token) declares its
@@ -99,28 +110,4 @@ export default [
     consumesL2Fields: ['adverbType'],
   },
 
-  {
-    id:          'prepositional_phrase',
-    group:       'pp',
-    description: 'Preposition + (determiner) + noun. e.g. "in school", "at the park".',
-    type:        'trigram',
-    detector(tokens) {
-      const out = []
-      for (let i = 0; i < tokens.length - 1; i++) {
-        if (!hasAtom(tokens[i], 'preposition')) continue
-        if (hasAtom(tokens[i + 1], 'noun')) {
-          out.push({ span: [i, i + 1] })
-          continue
-        }
-        if (i + 2 < tokens.length &&
-            hasDeterminerClass(tokens[i + 1]) &&
-            hasAtom(tokens[i + 2], 'noun')) {
-          out.push({ span: [i, i + 2] })
-        }
-      }
-      return out
-    },
-    license: { requiresAtoms: ['preposition', 'noun'] },
-    coupling: 'prepositional_phrase',
-  },
 ]

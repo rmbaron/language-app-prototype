@@ -1,6 +1,13 @@
 // Noun-phrase internal patterns — modifiers attaching to a head noun within
 // a noun phrase: determiners, demonstratives, possessive determiners,
 // attributive adjectives.
+//
+// Wire P into Floor 2: every pattern here licenses some flavor of NP
+// composition. The `phrase` field on each pattern points at the Floor 2
+// phrase id it licenses (np_basic). The legacy `coupling: 'noun_phrase_internal'`
+// tag is retained while the validator still requires it; once the grammar
+// circuit is rebuilt, the coupling tag can retire and `phrase` becomes the
+// canonical Wire P link.
 
 import { hasAtom, hasFormType, hasDeterminerClass } from './_helpers'
 
@@ -20,6 +27,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['determiner', 'noun'] },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
   },
 
@@ -38,6 +46,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['demonstrative', 'noun'] },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
   },
 
@@ -56,6 +65,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['possessive_determiner', 'noun'] },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
   },
 
@@ -74,6 +84,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['adjective', 'noun'] },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
   },
 
@@ -97,6 +108,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['indefinite_article', 'noun', 'adjective'],
   },
@@ -121,6 +133,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['indefinite_article', 'noun', 'adjective'],
     consumesL2Fields: ['countability'],
@@ -151,6 +164,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['determiner', 'noun', 'adjective'],
     consumesL2Fields: ['properNoun'],
@@ -188,6 +202,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['noun', 'adjective'],
     consumesL2Fields: ['countability', 'properNoun'],
@@ -223,6 +238,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    phrase:   'np_basic',
     coupling: 'noun_phrase_internal',
     detectsAtoms: ['demonstrative', 'noun'],
     consumesL2Fields: ['number'],
