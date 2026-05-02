@@ -13,18 +13,17 @@
 //   For the fundamental lane: split tokens into Subject / aux-chain / Verb.
 //   For exception lanes: detection only; full handling comes in later phases.
 //
-// Match on baseForm, lowercased, punctuation stripped. No morphology yet.
+// Cross-unit composition only. Per-slot detectors (matchVerb, detectSubjectShape,
+// classifyLane, …) live in their unit folders; this file orchestrates them.
 
 import { useMemo } from 'react'
-import { getArgumentStructures } from './units/verb/framesIndex'
 import {
   detectSubjectShape, detectNounNumber, checkArticleAgreement,
   computeSubjectFeatures, expectedVerbAgreement,
 } from './units/subject/detector'
 import { classifyLane } from './units/exceptions/dispatch'
 import { classifyAuxToken, ALL_AUX_AND_NEG } from './units/verb/auxChain'
-
-const VERB_STRUCTURES = getArgumentStructures('en')
+import { matchVerb } from './units/verb/detector'
 
 export function useParsedSentence(typedSentence) {
   const parsed = useMemo(() => {
@@ -32,7 +31,8 @@ export function useParsedSentence(typedSentence) {
     if (!trimmed) {
       return {
         tokens: [], lane: 'empty', exceptionType: null,
-        verbIndex: -1, matchedVerb: null, subjectText: '',
+        verbIndex: -1, matchedVerb: null, matchedVerbForm: null,
+        subjectText: '',
         subjectShape: null, nounNumber: 'unknown', articleWarning: null,
         subjectFeatures: null, expectedAgreement: null,
         auxChain: [], matchedChainIds: new Set(),
@@ -43,12 +43,13 @@ export function useParsedSentence(typedSentence) {
 
     let verbIndex = -1
     let matchedVerb = null
+    let matchedVerbForm = null
     for (let i = 0; i < tokens.length; i++) {
-      const cleaned = tokens[i].toLowerCase().replace(/[^\w]/g, '')
-      const match = VERB_STRUCTURES.find(v => v.baseForm === cleaned)
-      if (match) {
+      const hit = matchVerb(tokens[i])
+      if (hit) {
         verbIndex = i
-        matchedVerb = match
+        matchedVerb = hit.frame
+        matchedVerbForm = { surface: hit.surface, base: hit.base, type: hit.type }
         break
       }
     }
@@ -113,7 +114,7 @@ export function useParsedSentence(typedSentence) {
     if (matchedVerb) matchedChainIds.add('lexical')
 
     return {
-      tokens, lane, exceptionType, verbIndex, matchedVerb,
+      tokens, lane, exceptionType, verbIndex, matchedVerb, matchedVerbForm,
       subjectText, subjectShape, nounNumber, articleWarning,
       subjectFeatures, expectedAgreement, auxChain, matchedChainIds,
     }

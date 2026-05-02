@@ -69,7 +69,7 @@ export default function GrammarBreakerForwardFlowTab() {
   // Live parse of the typed sentence — feeds the status panel and the
   // catalog highlights.
   const {
-    lane, exceptionType, matchedVerb, subjectText,
+    lane, exceptionType, matchedVerb, matchedVerbForm, subjectText,
     subjectShape, nounNumber, articleWarning,
     subjectFeatures, expectedAgreement, auxChain, matchedChainIds,
     activeRoles,
@@ -202,6 +202,7 @@ export default function GrammarBreakerForwardFlowTab() {
 
           <VerbStatusBlock
             lane={lane}
+            matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm}
             auxChain={auxChain} expectedAgreement={expectedAgreement}
             statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
@@ -211,7 +212,7 @@ export default function GrammarBreakerForwardFlowTab() {
         </div>
 
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}`, fontSize: 10, color: T.textDim, fontStyle: 'italic' }}>
-          Detection currently matches base forms only (eat, give, run, live, put, make, be). Inflected forms ("ate", "gave") will match later when morphology is wired in.
+          Detection covers base forms + inflected surface forms via formsMap (irregulars seeded from the morphology table; regulars resolve once their base is in the word registry).
         </div>
       </div>
 
