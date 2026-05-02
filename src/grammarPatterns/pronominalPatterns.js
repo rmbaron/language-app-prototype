@@ -1,5 +1,10 @@
 // Pronominal patterns — reflexive objects and indefinite-pronoun positions.
 // Both depend on pronoun atoms beyond the basic personal/object pair.
+//
+// ── Wire P into Floor 3 ───────────────────────────────────────────────────
+// All three patterns license slots inside an svo_clause: a reflexive in O,
+// an indefinite pronoun in S, an indefinite pronoun in O. Source of truth
+// for clauseShape ids: src/forwardFlow/clauseShapes.en.js.
 
 import { hasAtom, hasVerbClass } from './_helpers'
 
@@ -21,6 +26,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['lexical_verb', 'reflexive_pronoun'] },
+    clauseShape: 'svo_clause',
     coupling: 'reflexive_object',
   },
 
@@ -41,6 +47,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['indefinite_pronoun'] },
+    clauseShape: 'svo_clause',
     coupling: 'indefinite_subject_object',
   },
 
@@ -60,6 +67,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['lexical_verb', 'indefinite_pronoun'] },
+    clauseShape: 'svo_clause',
     coupling: 'indefinite_subject_object',
   },
 ]

@@ -1,6 +1,13 @@
 // Clause-internal patterns — Subject-Verb, Verb-Object, and Copula-Complement
 // relationships. The bulk of micro-patterns live here because the clause is
 // where most A1 grammar action happens.
+//
+// ── Wire P into Floor 3 ───────────────────────────────────────────────────
+// Each pattern declares the clause shape it licenses via `clauseShape:`.
+// 'svo_clause' covers the SV-spine and V-O patterns; 'copular_clause' covers
+// S-Cop and Cop-C. The forbidden intransitive_verb_with_direct_object pattern
+// targets the same svo_clause shape — it's the unlicensed variant. Source of
+// truth for clauseShape ids: src/forwardFlow/clauseShapes.en.js.
 
 import { hasAtom, hasAnyAtom, hasFormType, hasDeterminerClass, matchNounPhrase } from './_helpers'
 
@@ -21,6 +28,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['personal_pronoun', 'lexical_verb'] },
+    clauseShape: 'svo_clause',
     coupling: 'subject_verb',
   },
 
@@ -57,6 +65,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['lexical_verb'] },
+    clauseShape: 'svo_clause',
     coupling: 'subject_verb',
     consumesL2Fields: ['countability', 'properNoun'],
   },
@@ -97,6 +106,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['lexical_verb'] },
+    clauseShape: 'svo_clause',
     coupling: 'verb_object',
     consumesL2Fields: ['countability', 'properNoun'],
   },
@@ -122,6 +132,7 @@ export default [
       return out
     },
     license: { alwaysForbidden: true },
+    clauseShape: 'svo_clause',
     coupling: 'verb_object',
     detectsAtoms: ['lexical_verb', 'noun', 'object_pronoun'],
     consumesL2Fields: ['transitivity'],
@@ -143,6 +154,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['personal_pronoun', 'copula'] },
+    clauseShape: 'copular_clause',
     coupling: 'subject_copula',
   },
 
@@ -175,6 +187,7 @@ export default [
       return out
     },
     license: { requiresAtoms: ['copula'] },
+    clauseShape: 'copular_clause',
     coupling: 'copula_complement',
     consumesL2Fields: ['countability', 'properNoun'],
   },
