@@ -1,14 +1,17 @@
-// Forward Flow — Subject Shapes sub-tab content.
-// Sourced from the shared structure registry (no per-unit catalog).
-// Highlights the structure the live parser currently matches.
+// Forward Flow — Complement sub-tab content.
+//
+// First unit built against the shared structure registry. Renders only the
+// structures C accepts, sourced from src/forwardFlow/structures.en.js (NOT
+// from a per-unit catalog). Highlights the matched structure when the live
+// parser is on a complement-licensing frame.
 
 import { T, matchesSearch } from '../../theme'
 import { Section } from '../../primitives'
 import { STRUCTURES } from '../../structures.en.js'
 import { SHAPE_FAMILIES } from '../../shapeFamilies.en.js'
-import { SUBJECT_ACCEPTS } from './acceptance.en.js'
+import { COMPLEMENT_ACCEPTS } from './acceptance.en.js'
 
-const ACCEPTED_STRUCTURES = STRUCTURES.filter(s => SUBJECT_ACCEPTS.includes(s.id))
+const ACCEPTED_STRUCTURES = STRUCTURES.filter(s => COMPLEMENT_ACCEPTS.includes(s.id))
 
 function groupByFamily(structures) {
   return SHAPE_FAMILIES
@@ -16,35 +19,38 @@ function groupByFamily(structures) {
     .filter(g => g.structures.length > 0)
 }
 
-export function SubjectSubTabContent({
-  lane, subjectShape,
+export function ComplementSubTabContent({
+  complementAnalysis,
   expanded, setExpanded, toggle,
   search, setSearch,
 }) {
+  const matchedId = complementAnalysis?.structure ?? null
   const filtered = ACCEPTED_STRUCTURES.filter(s => matchesSearch(s, search, ['label', 'description', 'pattern']))
   const groups = groupByFamily(filtered)
   const detectedCount = ACCEPTED_STRUCTURES.filter(s => s.detected !== false).length
 
   return (
     <>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.blue, textTransform: 'uppercase', marginBottom: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.amber, textTransform: 'uppercase', marginBottom: 8 }}>
         Slot acceptance · sourced from shared structure registry
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Section>Subject accepts ({ACCEPTED_STRUCTURES.length}) — {detectedCount} detected, {ACCEPTED_STRUCTURES.length - detectedCount} catalog-only</Section>
+        <Section>Complement accepts ({ACCEPTED_STRUCTURES.length}) — {detectedCount} detected, {ACCEPTED_STRUCTURES.length - detectedCount} catalog-only</Section>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(ACCEPTED_STRUCTURES.map(s => [`subj-${s.id}`, true])) }))}
+          <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(ACCEPTED_STRUCTURES.map(s => [`comp-${s.id}`, true])) }))}
             style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
             expand all
           </button>
-          <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of ACCEPTED_STRUCTURES) delete n[`subj-${s.id}`]; return n })}
+          <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of ACCEPTED_STRUCTURES) delete n[`comp-${s.id}`]; return n })}
             style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
             collapse all
           </button>
         </div>
       </div>
       <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-        Subject's per-unit shape catalog has been retired — the structures shown here come from the shared registry. Pronoun case (subject I/he/she vs object me/him/her) is an atom-level concern, not a structure concern.
+        C is the first unit built without its own catalog. The structures shown here are pulled from the shared registry (<code>src/forwardFlow/structures.en.js</code>) — defined once, referenced by C's acceptance declaration. Subject and Object will eventually migrate to this same pattern.
+        <br /><br />
+        Cs (Subject Complement) appears in SVC frames; Co (Object Complement) in SVOC frames. Both accept the same structure set; the difference is what they predicate over.
       </div>
       <input type="text" placeholder="search structures…" value={search} onChange={e => setSearch(e.target.value)}
         style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
@@ -56,8 +62,8 @@ export function SubjectSubTabContent({
             marginBottom: 6, paddingBottom: 4, borderBottom: `1px solid ${T.border}`,
           }}>
             <span style={{
-              padding: '2px 8px', background: T.blueBg, border: `1px solid ${T.blueBord}`,
-              borderRadius: 3, fontSize: 10, fontWeight: 700, color: T.blue,
+              padding: '2px 8px', background: T.amberBg, border: `1px solid ${T.amberBord}`,
+              borderRadius: 3, fontSize: 10, fontWeight: 700, color: T.amber,
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>{family.label}</span>
             <span style={{ fontSize: 11, color: T.textDim }}>({structures.length})</span>
@@ -66,9 +72,9 @@ export function SubjectSubTabContent({
           {structures.map(struct => (
             <StructureCard key={struct.id}
               structure={struct}
-              isMatch={lane === 'fundamental' && subjectShape === struct.id}
-              expanded={!!expanded[`subj-${struct.id}`]}
-              onToggle={() => toggle(`subj-${struct.id}`)} />
+              isMatch={matchedId === struct.id}
+              expanded={!!expanded[`comp-${struct.id}`]}
+              onToggle={() => toggle(`comp-${struct.id}`)} />
           ))}
         </div>
       ))}
@@ -81,11 +87,14 @@ export function SubjectSubTabContent({
   )
 }
 
+// Inline structure card — renders directly from the shared registry record.
+// When S/O migrate to the structure registry, this component (or a shared
+// version) replaces their per-unit ShapeCard files.
 function StructureCard({ structure, isMatch, expanded, onToggle }) {
   const dim = structure.detected === false
   return (
     <div style={{
-      outline: isMatch ? `3px solid ${T.blueBord}` : 'none',
+      outline: isMatch ? `3px solid ${T.amberBord}` : 'none',
       outlineOffset: '3px',
       borderRadius: 6,
       transition: 'outline 200ms',
@@ -97,9 +106,9 @@ function StructureCard({ structure, isMatch, expanded, onToggle }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
           <span style={{
-            padding: '3px 9px', background: T.blueBg, border: `1px solid ${T.blueBord}`, borderRadius: 4,
-            fontSize: 12, fontWeight: 700, color: T.blue, fontFamily: 'monospace',
-          }}>S</span>
+            padding: '3px 9px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 4,
+            fontSize: 12, fontWeight: 700, color: T.amber, fontFamily: 'monospace',
+          }}>C</span>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{structure.label}</span>
@@ -125,7 +134,7 @@ function StructureCard({ structure, isMatch, expanded, onToggle }) {
             {structure.examples.map((ex, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
                 <span style={{ color: T.text, fontStyle: 'italic' }}>"{ex.sentence}"</span>
-                <span style={{ color: T.blue, fontWeight: 600, fontFamily: 'monospace' }}>→ {ex.highlight}</span>
+                <span style={{ color: T.amber, fontWeight: 600, fontFamily: 'monospace' }}>→ {ex.highlight}</span>
               </div>
             ))}
           </div>

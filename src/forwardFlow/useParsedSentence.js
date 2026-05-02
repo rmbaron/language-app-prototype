@@ -22,9 +22,12 @@ import {
   computeSubjectFeatures, expectedVerbAgreement,
 } from './units/subject/detector'
 import { classifyLane } from './units/exceptions/dispatch'
-import { classifyAuxToken, ALL_AUX_AND_NEG } from './units/verb/auxChain'
+import { classifyAuxToken, ALL_AUX_AND_NEG, detectAuxConfiguration } from './units/verb/auxChain'
 import { matchVerb } from './units/verb/detector'
 import { checkAgreement } from './units/verb/agreement'
+import { detectObjectShape } from './units/object/detector'
+import { detectComplementShape } from './units/complement/detector'
+import { detectAdverbialShape } from './units/adverbial/detector'
 
 export function useParsedSentence(typedSentence) {
   const parsed = useMemo(() => {
@@ -37,6 +40,10 @@ export function useParsedSentence(typedSentence) {
         subjectShape: null, nounNumber: 'unknown', articleWarning: null,
         subjectFeatures: null, expectedAgreement: null, agreementCheck: null,
         auxChain: [], matchedChainIds: new Set(),
+        auxConfiguration: null,
+        objectAnalysis: null,
+        complementAnalysis: null,
+        adverbialAnalysis: null,
       }
     }
     const tokens = trimmed.split(/\s+/).filter(Boolean)
@@ -119,24 +126,87 @@ export function useParsedSentence(typedSentence) {
       ? checkAgreement(matchedVerbForm, expectedAgreement.pattern, auxChain.length > 0)
       : null
 
+    // Aux cluster configuration: which of the 6 named configurations the
+    // current chain is in (Bare / Modal-led / Perfect-led / Progressive-led
+    // / Passive-led / Do-support), or 'be_led_ambiguous' when BE leads but
+    // the lexical form can't disambiguate Prog vs Pass.
+    const auxConfiguration = matchedVerb
+      ? detectAuxConfiguration(auxChain, matchedVerbForm)
+      : null
+
+    // Object analysis: route post-verb tokens through each of the verb's
+    // permitted frames; pick the frame that best fits what's typed.
+    // Heuristic: prefer no mismatch + non-empty objects, then no mismatch,
+    // then first available. Multi-hypothesis frame tracking comes later.
+    let objectAnalysis = null
+    if (lane === 'fundamental' && matchedVerb && verbIndex >= 0) {
+      const postVerbTokens = tokens.slice(verbIndex + 1)
+      const candidates = (matchedVerb.frames ?? [])
+        .map(f => detectObjectShape(postVerbTokens, f))
+        .filter(Boolean)
+      objectAnalysis =
+        candidates.find(a => !a.mismatch && a.objects.length > 0) ??
+        candidates.find(a => !a.mismatch) ??
+        candidates[0] ??
+        null
+    }
+
+    // Complement analysis: only on frames that license a complement (SVC or
+    // SVOC). C-region tokens come from objectAnalysis.remainder — for SVC
+    // that's everything post-verb; for SVOC it's everything past the Object.
+    let complementAnalysis = null
+    if (lane === 'fundamental' && matchedVerb && objectAnalysis) {
+      const frameKey = objectAnalysis.frame
+      if (frameKey === 'SVC' || frameKey === 'SVOC') {
+        const frame = matchedVerb.frames?.find(f => f.slots.join('') === frameKey)
+        if (frame) {
+          const cTokens = objectAnalysis.remainder?.tokens ?? []
+          complementAnalysis = detectComplementShape(cTokens, frame)
+        }
+      }
+    }
+
+    // Adverbial analysis: A-region = objectAnalysis.remainder for non-C
+    // frames. For C-frames (SVC/SVOC), the remainder is consumed by C; A
+    // would compete and v1 doesn't try. Argument vs adjunct labeling:
+    // SVA/SVOA → argument; everything else → adjunct.
+    let adverbialAnalysis = null
+    if (lane === 'fundamental' && matchedVerb && objectAnalysis) {
+      const frameKey = objectAnalysis.frame
+      const isCFrame = frameKey === 'SVC' || frameKey === 'SVOC'
+      if (!isCFrame) {
+        const aTokens = objectAnalysis.remainder?.tokens ?? []
+        const frame = matchedVerb.frames?.find(f => f.slots.join('') === frameKey)
+        if (frame && (aTokens.length > 0 || frameKey === 'SVA' || frameKey === 'SVOA')) {
+          adverbialAnalysis = detectAdverbialShape(aTokens, frame)
+        }
+      }
+    }
+
     return {
       tokens, lane, exceptionType, verbIndex, matchedVerb, matchedVerbForm,
       subjectText, subjectShape, nounNumber, articleWarning,
       subjectFeatures, expectedAgreement, agreementCheck,
-      auxChain, matchedChainIds,
+      auxChain, matchedChainIds, auxConfiguration,
+      objectAnalysis, complementAnalysis, adverbialAnalysis,
     }
   }, [typedSentence])
 
   // Which slot-role cards should light up?
-  //   • Subject — only on the fundamental lane, and only when pre-verb text exists
-  //   • Verb    — whenever a verb is matched (regardless of lane; even imperatives have a verb)
-  // Object, Complement, Adverbial come online in Phase 3c.
+  //   • Subject    — fundamental lane, pre-verb text exists
+  //   • Verb       — whenever a verb is matched (even imperatives have a verb)
+  //   • Object     — fundamental lane, detector found at least one object
+  //   • Complement — fundamental lane, frame is SVC or SVOC, structure matched
+  //   • Adverbial  — fundamental lane, A-region matched (argument or adjunct)
   const activeRoles = useMemo(() => {
     const set = new Set()
     if (parsed.lane === 'fundamental' && parsed.subjectText) set.add('subject')
     if (parsed.matchedVerb) set.add('verb')
+    if (parsed.objectAnalysis?.objects?.length > 0) set.add('object')
+    if (parsed.complementAnalysis?.structure) set.add('complement')
+    if (parsed.adverbialAnalysis?.structure) set.add('adverbial')
     return set
-  }, [parsed.lane, parsed.subjectText, parsed.matchedVerb])
+  }, [parsed.lane, parsed.subjectText, parsed.matchedVerb, parsed.objectAnalysis, parsed.complementAnalysis, parsed.adverbialAnalysis])
 
   return { ...parsed, activeRoles }
 }

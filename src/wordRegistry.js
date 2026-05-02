@@ -60,6 +60,12 @@ export function getResolvedWord(wordId, lang = 'en') {
     transitivity:       l2?.transitivity       ?? null,
     verbAspectClass:    l2?.verbAspectClass    ?? null,
     commonCollocations: l2?.commonCollocations ?? null,
+    // Argument structure: per-verb compact frame assignments.
+    // Shape: [{ id: 'transitive', example: '...', notes: '...' }, ...]
+    // Frame template metadata (label, slots, slotNotes) lives in
+    // forwardFlow/units/verb/frames.en.js; the reader composes them.
+    // Pre-API verbs fall back to verbFramesBootstrap.en.js for now.
+    frames:             l2?.frames             ?? null,
 
     // L2 — adjective / adverb / numeral specifics
     adjectivePosition:  l2?.adjectivePosition  ?? null,

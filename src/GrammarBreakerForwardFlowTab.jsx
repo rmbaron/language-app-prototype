@@ -19,7 +19,9 @@
 
 import { useState } from 'react'
 import { getSlotRoles } from './slotRoles'
-import { getSubjectShapes, getSubjectShape } from './forwardFlow/units/subject/shapesIndex'
+import { STRUCTURES, getStructure } from './forwardFlow/structures.en.js'
+import { SUBJECT_ACCEPTS } from './forwardFlow/units/subject/acceptance.en.js'
+import { OBJECT_ACCEPTS } from './forwardFlow/units/object/acceptance.en.js'
 import { getExceptionShapes } from './forwardFlow/units/exceptions/shapesIndex'
 import { getVerbInternalChain } from './forwardFlow/units/verb/internalChainIndex'
 import { FORWARD_FLOW_FINDINGS } from './forwardFlowFindings.en.js'
@@ -37,13 +39,25 @@ import { SubjectSubTabContent }   from './forwardFlow/units/subject/SubTabConten
 import { VerbStatusBlock }        from './forwardFlow/units/verb/StatusBlock'
 import { FrameSubTabContent }     from './forwardFlow/units/verb/FrameSubTabContent'
 import { InternalSubTabContent }  from './forwardFlow/units/verb/InternalSubTabContent'
+import { ConfigurationsSubTabContent } from './forwardFlow/units/verb/ConfigurationsSubTabContent'
+import { getAuxConfigurations }   from './forwardFlow/units/verb/auxConfigurationsIndex'
+import { ObjectStatusBlock }      from './forwardFlow/units/object/StatusBlock'
+import { ObjectSubTabContent }    from './forwardFlow/units/object/SubTabContent'
+import { ComplementStatusBlock }  from './forwardFlow/units/complement/StatusBlock'
+import { ComplementSubTabContent }from './forwardFlow/units/complement/SubTabContent'
+import { COMPLEMENT_ACCEPTS }     from './forwardFlow/units/complement/acceptance.en.js'
+import { AdverbialStatusBlock }   from './forwardFlow/units/adverbial/StatusBlock'
+import { AdverbialSubTabContent } from './forwardFlow/units/adverbial/SubTabContent'
+import { ADVERBIAL_ACCEPTS }      from './forwardFlow/units/adverbial/acceptance.en.js'
 import { ExceptionStatusBlock }   from './forwardFlow/units/exceptions/StatusBlock'
 import { ExceptionSubTabContent } from './forwardFlow/units/exceptions/SubTabContent'
 
 const SLOT_ROLES = getSlotRoles('en')
-const SUBJECT_SHAPES = getSubjectShapes('en')
+const SUBJECT_STRUCTURES = STRUCTURES.filter(s => SUBJECT_ACCEPTS.includes(s.id))
+const OBJECT_STRUCTURES  = STRUCTURES.filter(s => OBJECT_ACCEPTS.includes(s.id))
 const EXCEPTION_SHAPES = getExceptionShapes('en')
 const VERB_CHAIN = getVerbInternalChain('en')
+const AUX_CONFIGURATIONS = getAuxConfigurations('en')
 
 export default function GrammarBreakerForwardFlowTab() {
   const [expanded, setExpanded] = useState({})
@@ -52,11 +66,15 @@ export default function GrammarBreakerForwardFlowTab() {
 
   // Per-catalog search queries. State stays in the orchestrator so search
   // persists across sub-tab switches (UX preserved from pre-split version).
-  const [subjectSearch,   setSubjectSearch]   = useState('')
-  const [frameSearch,     setFrameSearch]     = useState('')
-  const [vchainSearch,    setVchainSearch]    = useState('')
-  const [exceptionSearch, setExceptionSearch] = useState('')
-  const [findingsSearch,  setFindingsSearch]  = useState('')
+  const [subjectSearch,    setSubjectSearch]    = useState('')
+  const [frameSearch,      setFrameSearch]      = useState('')
+  const [vchainSearch,     setVchainSearch]     = useState('')
+  const [configSearch,     setConfigSearch]     = useState('')
+  const [objectSearch,     setObjectSearch]     = useState('')
+  const [complementSearch, setComplementSearch] = useState('')
+  const [adverbialSearch,  setAdverbialSearch]  = useState('')
+  const [exceptionSearch,  setExceptionSearch]  = useState('')
+  const [findingsSearch,   setFindingsSearch]   = useState('')
 
   // Hierarchical grouping. Skeleton wired to Findings; pattern extends as
   // catalogs scale.
@@ -72,7 +90,8 @@ export default function GrammarBreakerForwardFlowTab() {
     lane, exceptionType, matchedVerb, matchedVerbForm, subjectText,
     subjectShape, nounNumber, articleWarning,
     subjectFeatures, expectedAgreement, agreementCheck,
-    auxChain, matchedChainIds,
+    auxChain, matchedChainIds, auxConfiguration,
+    objectAnalysis, complementAnalysis, adverbialAnalysis,
     activeRoles,
   } = useParsedSentence(typedSentence)
 
@@ -94,9 +113,13 @@ export default function GrammarBreakerForwardFlowTab() {
   // stays visible regardless of which sub-tab is active.
   const SUB_TABS = [
     { id: 'roles',     label: 'Slot Roles',          group: 'shared',    count: SLOT_ROLES.length },
-    { id: 'subjects',  label: 'Subject Shapes',      group: 'core',      count: SUBJECT_SHAPES.length },
+    { id: 'subjects',  label: 'Subject',             group: 'core',      count: SUBJECT_STRUCTURES.length },
     { id: 'frames',    label: 'Frame Library',       group: 'core',      count: FRAME_LIBRARY.length },
     { id: 'vchain',    label: 'Verb Internal',       group: 'core',      count: VERB_CHAIN.filter(e => e.kind === 'chain_position').length },
+    { id: 'configs',   label: 'Aux Configurations',  group: 'core',      count: AUX_CONFIGURATIONS.length },
+    { id: 'objects',   label: 'Object',              group: 'core',      count: OBJECT_STRUCTURES.length },
+    { id: 'complements',label: 'Complement',         group: 'core',      count: COMPLEMENT_ACCEPTS.length },
+    { id: 'adverbials',label: 'Adverbial',           group: 'core',      count: ADVERBIAL_ACCEPTS.length },
     { id: 'exceptions',label: 'Exception Shapes',    group: 'exception', count: EXCEPTION_SHAPES.length },
     { id: 'findings',  label: 'Findings',            group: 'shared',    count: FORWARD_FLOW_FINDINGS.filter(f => f.status === 'open').length },
     { id: 'future',    label: 'Future phases',       group: 'shared',    count: 4 },
@@ -153,7 +176,7 @@ export default function GrammarBreakerForwardFlowTab() {
                   <span style={{ fontFamily: 'monospace', color: T.text, fontWeight: 700 }}>{subjectText}</span>
                   {subjectShape && (
                     <span style={{ color: T.textDim }}>
-                      ({getSubjectShape(subjectShape, 'en')?.label ?? subjectShape}
+                      ({getStructure(subjectShape)?.label ?? subjectShape}
                       {subjectFeatures && `, ${subjectFeatures.person} ${subjectFeatures.number}`})
                     </span>
                   )}
@@ -202,10 +225,23 @@ export default function GrammarBreakerForwardFlowTab() {
             statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
           <VerbStatusBlock
-            lane={lane}
+            lane={lane} exceptionType={exceptionType}
             matchedVerb={matchedVerb} matchedVerbForm={matchedVerbForm}
-            auxChain={auxChain} expectedAgreement={expectedAgreement}
+            auxChain={auxChain} auxConfiguration={auxConfiguration}
+            expectedAgreement={expectedAgreement}
             agreementCheck={agreementCheck}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
+
+          <ObjectStatusBlock
+            lane={lane} objectAnalysis={objectAnalysis}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
+
+          <ComplementStatusBlock
+            lane={lane} complementAnalysis={complementAnalysis}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
+
+          <AdverbialStatusBlock
+            lane={lane} adverbialAnalysis={adverbialAnalysis}
             statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
           <ExceptionStatusBlock
@@ -307,6 +343,38 @@ export default function GrammarBreakerForwardFlowTab() {
           matchedChainIds={matchedChainIds}
           expanded={expanded} setExpanded={setExpanded} toggle={toggle}
           search={vchainSearch} setSearch={setVchainSearch} />
+      )}
+
+      {/* ── Aux Configurations sub-tab ─────────────────────────────────────── */}
+      {subTab === 'configs' && (
+        <ConfigurationsSubTabContent
+          auxConfiguration={auxConfiguration}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={configSearch} setSearch={setConfigSearch} />
+      )}
+
+      {/* ── Object Shapes sub-tab ──────────────────────────────────────────── */}
+      {subTab === 'objects' && (
+        <ObjectSubTabContent
+          lane={lane} objectAnalysis={objectAnalysis}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={objectSearch} setSearch={setObjectSearch} />
+      )}
+
+      {/* ── Complement sub-tab ─────────────────────────────────────────────── */}
+      {subTab === 'complements' && (
+        <ComplementSubTabContent
+          complementAnalysis={complementAnalysis}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={complementSearch} setSearch={setComplementSearch} />
+      )}
+
+      {/* ── Adverbial sub-tab ──────────────────────────────────────────────── */}
+      {subTab === 'adverbials' && (
+        <AdverbialSubTabContent
+          adverbialAnalysis={adverbialAnalysis}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={adverbialSearch} setSearch={setAdverbialSearch} />
       )}
 
       {/* ── Exception Shapes sub-tab ───────────────────────────────────────── */}

@@ -32,7 +32,7 @@ export const SLOT_ROLES = [
     description: 'The thing the clause is about. Typically the doer of the action, the bearer of a property, or the topic. Almost always present, except in imperatives where it is elided.',
     polymorphic: false,
     polymorphismNote: null,
-    typicalFillers: ['NP', 'pronoun', 'gerund_clause', 'infinitive_clause', 'that_clause', 'wh_clause'],
+    typicalFillers: ['NP', 'pronoun', 'gerund', 'infinitive', 'clausal'],
     relations: [
       'Almost always the leftmost element of a declarative clause',
       'Agrees with the verb in number and person',
@@ -74,7 +74,7 @@ export const SLOT_ROLES = [
     description: 'What the verb acts on. Polymorphic: a clause can have one Object (direct), or two (indirect + direct). Some verbs require an Object; some allow but don\'t require one; some never take one.',
     polymorphic: true,
     polymorphismNote: 'Can fire once (direct object) or twice (indirect + direct, in ditransitive clauses). The function distinction (Od vs. Oi) is encoded in the verb\'s argument structure, not in the role itself.',
-    typicalFillers: ['NP', 'pronoun', 'gerund_clause', 'infinitive_clause', 'that_clause', 'wh_clause', 'bare_infinitive_clause'],
+    typicalFillers: ['NP', 'pronoun', 'gerund', 'infinitive', 'clausal', 'bare_infinitive_clause'],
     relations: [
       'Verbs declare per-slot accepted filler types — "I want to eat" works because want.O.fillers includes infinitive_clause; "I think to eat" fails because think.O.fillers excludes it',
       'In ditransitive clauses, Indirect Object precedes Direct Object: "He gave [me] [a book]"',
@@ -95,7 +95,7 @@ export const SLOT_ROLES = [
     description: 'Predicates a property over the Subject or the Object. Polymorphic: a Subject Complement (Cs) describes the Subject ("She is happy"); an Object Complement (Co) describes the Object ("She painted the wall red"). Distinguished by which element it attaches to, not by being a different role.',
     polymorphic: true,
     polymorphismNote: 'Subject Complement (Cs) attaches to Subject — used after copular verbs (be, seem, become, etc.). Object Complement (Co) attaches to Object — used after verbs like paint, call, consider, make. Same role; attachment determined by clause structure.',
-    typicalFillers: ['NP', 'AdjP', 'PP', 'gerund_clause', 'infinitive_clause'],
+    typicalFillers: ['NP', 'AdjP', 'PP', 'gerund', 'infinitive'],
     relations: [
       'After a copular verb, Cs predicates over Subject',
       'After verbs like paint, call, consider, make, Co predicates over Object',

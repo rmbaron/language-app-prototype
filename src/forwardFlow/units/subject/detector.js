@@ -14,114 +14,17 @@
 //
 // Returns: a shape id from SUBJECT_SHAPES, or null if no shape matched.
 
-import { getAllWords } from '../../../wordRegistry'
+import { matchNPShape } from '../../np/match'
+import { getCategory, looksLikeProperNoun } from '../../categoryLookup'
 
-// Closed-class function words — hardcoded so the detector works even before
-// these have been L1-enriched. The language never adds new pronouns or
-// determiners, so this list is stable.
-const HARDCODED_CATEGORY = {
-  // Pronouns (subject + object, since people sometimes type either at first)
-  i: 'pronoun', you: 'pronoun', he: 'pronoun', she: 'pronoun', we: 'pronoun', they: 'pronoun', it: 'pronoun',
-  me: 'pronoun_object', him: 'pronoun_object', her: 'pronoun_object', us: 'pronoun_object', them: 'pronoun_object',
-
-  // Determiners (articles, demonstratives, possessives)
-  a: 'determiner', an: 'determiner', the: 'determiner',
-  this: 'determiner', that: 'determiner', these: 'determiner', those: 'determiner',
-  my: 'determiner', your: 'determiner', his: 'determiner', our: 'determiner', their: 'determiner',
-  // "her" is ambiguous (object pronoun OR possessive determiner) — resolved by context, default pronoun_object
-
-  // Quantifiers
-  some: 'quantifier', every: 'quantifier', each: 'quantifier', all: 'quantifier',
-  no: 'quantifier', any: 'quantifier', many: 'quantifier', few: 'quantifier',
-  several: 'quantifier', most: 'quantifier', both: 'quantifier',
-
-  // Coordinators
-  and: 'coordinator', or: 'coordinator', nor: 'coordinator',
-
-  // Common nouns — hardcoded so the detector works for testing without
-  // needing every word to be L1-enriched first. The wordRegistry remains
-  // the canonical source once enrichment runs; this is a fallback.
-  dog: 'noun', dogs: 'noun', cat: 'noun', cats: 'noun',
-  food: 'noun', water: 'noun', tea: 'noun', coffee: 'noun', juice: 'noun',
-  milk: 'noun', bread: 'noun', rice: 'noun', apple: 'noun', apples: 'noun',
-  egg: 'noun', eggs: 'noun', book: 'noun', books: 'noun',
-  car: 'noun', cars: 'noun', bike: 'noun', phone: 'noun',
-  house: 'noun', houses: 'noun', room: 'noun', school: 'noun',
-  work: 'noun', music: 'noun', name: 'noun', help: 'noun',
-  ticket: 'noun', tickets: 'noun', bag: 'noun', money: 'noun',
-  family: 'noun', friend: 'noun', friends: 'noun',
-  man: 'noun', woman: 'noun', men: 'noun', women: 'noun',
-  boy: 'noun', boys: 'noun', girl: 'noun', girls: 'noun',
-  child: 'noun', children: 'noun', baby: 'noun', babies: 'noun',
-  mother: 'noun', father: 'noun', person: 'noun', people: 'noun',
-  fish: 'noun', bird: 'noun', birds: 'noun',
-  home: 'noun', city: 'noun', street: 'noun', country: 'noun',
-  morning: 'noun', night: 'noun',
-
-  // Common adjectives — same fallback rationale.
-  good: 'adjective', bad: 'adjective', big: 'adjective', small: 'adjective',
-  happy: 'adjective', sad: 'adjective', hot: 'adjective', cold: 'adjective',
-  new: 'adjective', old: 'adjective', long: 'adjective', short: 'adjective',
-  young: 'adjective', warm: 'adjective', easy: 'adjective',
-  fast: 'adjective', slow: 'adjective', angry: 'adjective', tired: 'adjective',
-  hungry: 'adjective', sick: 'adjective', busy: 'adjective',
-  right: 'adjective', wrong: 'adjective', nice: 'adjective', beautiful: 'adjective',
-  red: 'adjective', blue: 'adjective', green: 'adjective', yellow: 'adjective',
-  black: 'adjective', white: 'adjective', gray: 'adjective', brown: 'adjective',
-  orange: 'adjective', pink: 'adjective', purple: 'adjective',
-}
-
-// Build a lookup of seeded/enriched words → category.
-// Memoized at module load so subsequent calls are cheap.
-let registryByForm = null
-function buildRegistry() {
-  if (registryByForm) return registryByForm
-  registryByForm = new Map()
-  try {
-    const all = getAllWords('en')
-    for (const w of all) {
-      if (!w?.baseForm) continue
-      registryByForm.set(w.baseForm.toLowerCase(), w)
-    }
-  } catch {
-    // Registry not available — detector falls back to hardcoded only
-  }
-  return registryByForm
-}
-
-function getWordCategory(token) {
-  const t = token.toLowerCase().replace(/[^\w'-]/g, '')
-  if (!t) return null
-  if (HARDCODED_CATEGORY[t]) return HARDCODED_CATEGORY[t]
-  const w = buildRegistry().get(t)
-  if (!w) return null
-  // The registry's category field might be grammaticalAtom or grammaticalCategory;
-  // try both. Atom is more specific (e.g., "noun_person"); category is broader.
-  return w.grammaticalAtom ?? w.grammaticalCategory ?? null
-}
+// getWordCategory kept as the local alias — existing call sites use it.
+const getWordCategory = getCategory
 
 // Heuristic: is this token an -ing form (potential gerund)?
+// Subject-specific (the only unit that detects gerund forms today).
 function looksLikeGerund(token) {
   const t = token.toLowerCase()
   return t.length > 4 && t.endsWith('ing')
-}
-
-// Heuristic: is this token a proper noun? (capitalized non-pronoun-non-determiner)
-function looksLikeProperNoun(rawToken) {
-  if (!rawToken) return false
-  const cleaned = rawToken.replace(/[^\w'-]/g, '')
-  if (!cleaned) return false
-  // Capitalized + not in our hardcoded function-word list
-  if (cleaned[0] !== cleaned[0].toUpperCase()) return false
-  if (cleaned[0] === cleaned[0].toLowerCase()) return false  // non-letter
-  if (HARDCODED_CATEGORY[cleaned.toLowerCase()]) return false
-  // If the registry has it as a known noun, prefer that classification
-  const reg = buildRegistry().get(cleaned.toLowerCase())
-  if (reg && reg.grammaticalCategory && reg.grammaticalCategory !== 'noun_person') {
-    // If registry already classifies it as a non-name, trust that
-    return false
-  }
-  return true
 }
 
 // Returns: shape id (string) or null
@@ -130,83 +33,38 @@ export function detectSubjectShape(subjectText) {
   const rawTokens = subjectText.trim().split(/\s+/).filter(Boolean)
   if (rawTokens.length === 0) return null
 
-  const categories = rawTokens.map(getWordCategory)
-
-  // ── Single-token shapes ────────────────────────────────────────────────
+  // Subject-only single-token pre-checks: standalone demonstratives and
+  // gerund (-ing) forms. These run BEFORE the shared NP classifier because:
+  //   • this/that/these/those carry 'determiner' in HARDCODED_CATEGORY
+  //     (more often determiners) but are pronominal when standalone
+  //   • capitalized -ing form ("Swimming") would be misclassified as a
+  //     proper noun by the form-based check
   if (rawTokens.length === 1) {
-    const c = categories[0]
-    if (c === 'pronoun' || c === 'pronoun_object') return 'pronoun'
-    // Gerund (-ing form) checked BEFORE proper noun heuristic — a capitalized
-    // -ing form ("Swimming") at sentence start would otherwise be misclassified
-    // as a proper noun. The -ing suffix is a stronger signal than capitalization.
-    if (looksLikeGerund(rawTokens[0])) return 'gerund'
-    if (looksLikeProperNoun(rawTokens[0])) return 'proper_noun'
-    if (c === 'noun' || (c && c.startsWith('noun'))) return 'bare_noun'
-    return null
+    const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
+    if (t0 === 'this' || t0 === 'that' || t0 === 'these' || t0 === 'those') return 'bare_pronominal'
+    if (looksLikeGerund(rawTokens[0])) return 'gerund_phrase'
   }
 
-  // ── Multi-token shapes ─────────────────────────────────────────────────
+  // Shared NP classifier — handles bare_pronominal, proper_noun, np_basic,
+  // coordinated. Same logic Object's detector uses.
+  const npShape = matchNPShape(rawTokens, getWordCategory, looksLikeProperNoun)
+  if (npShape) return npShape
 
-  // Coordinated: contains a coordinator somewhere in the middle
-  const coordIdx = categories.findIndex(c => c === 'coordinator')
-  if (coordIdx > 0 && coordIdx < categories.length - 1) {
-    return 'coordinated'
-  }
-
-  // Helper: is the category-string a noun-ish category?
-  const isNoun = (c) => c === 'noun' || (c && c.startsWith('noun'))
-
-  // Quantifier-led: starts with quantifier, ends with noun, middle (if any)
-  // are adjectives. So "some people", "some happy dogs", "all small fish".
-  if (categories[0] === 'quantifier') {
-    if (categories.length === 1) return null  // bare "some" — incomplete
-    const last = categories[categories.length - 1]
-    const middle = categories.slice(1, -1)
-    const middleAreAdj = middle.length === 0 || middle.every(c => c === 'adjective')
-    if (isNoun(last) && middleAreAdj) {
-      return 'quantifier_led'
-    }
-  }
-
-  // Determiner-led: starts with determiner
-  if (categories[0] === 'determiner') {
-    if (categories.length === 2 && isNoun(categories[1])) {
-      return 'det_noun'
-    }
-    const last = categories[categories.length - 1]
-    const middle = categories.slice(1, -1)
-    const middleAreAdj = middle.length > 0 && middle.every(c => c === 'adjective')
-    if (isNoun(last) && middleAreAdj) {
-      return 'det_adj_noun'
-    }
-  }
-
-  // Bare noun (no opener): adjective(s) followed by a noun.
-  // The single-token noun case ("Water", "Dogs") is handled in the
-  // single-token branch above. This handles "Cold water", "Tired children".
-  if (categories.length >= 2) {
-    const last = categories[categories.length - 1]
-    const allButLast = categories.slice(0, -1)
-    const allButLastAreAdj = allButLast.length > 0 && allButLast.every(c => c === 'adjective')
-    if (isNoun(last) && allButLastAreAdj) {
-      return 'bare_noun'
-    }
-  }
-
-  // Infinitive: word 0 is "to", word 1 is a verb-like base form.
-  // E.g. "To err is human" — subject "To err".
-  // We don't have an exhaustive verb list here; any word after "to" makes
-  // this an infinitive subject. Refinement (validating the word is actually
-  // a verb) is future work.
+  // Subject-only fallback: infinitive ("To err is human"). Validating that
+  // the word after "to" is actually a verb is future work.
   if (rawTokens.length >= 2) {
     const t0 = rawTokens[0].toLowerCase().replace(/[^\w]/g, '')
     if (t0 === 'to') {
       const t1 = rawTokens[1].toLowerCase().replace(/[^\w'-]/g, '')
       if (t1.length > 0 && /^[a-z]+$/.test(t1)) {
-        return 'infinitive'
+        return 'infinitive_phrase'
       }
     }
   }
+
+  // np_with_postmodifier, partitive, for_to_infinitive, clausal_subject —
+  // catalog-only in v1. Detection branches land alongside the operations
+  // layer + clausal-subject infrastructure.
 
   return null
 }
@@ -277,33 +135,41 @@ export function computeSubjectFeatures(subjectText, shape) {
   const tokens = normalized.split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w'-]/g, ''))
 
   switch (shape) {
-    case 'pronoun': {
+    case 'bare_pronominal': {
       const lookup = PRONOUN_FEATURES[tokens[0]]
-      return lookup ?? { person: '3rd', number: 'unknown' }
+      if (lookup) return lookup
+      // Demonstrative pronominals: this/that → singular, these/those → plural.
+      if (tokens[0] === 'this' || tokens[0] === 'that')   return { person: '3rd', number: 'singular' }
+      if (tokens[0] === 'these' || tokens[0] === 'those') return { person: '3rd', number: 'plural'   }
+      return { person: '3rd', number: 'unknown' }
     }
     case 'proper_noun':
-    case 'gerund':
-    case 'infinitive':
+    case 'gerund_phrase':
+    case 'infinitive_phrase':
+    case 'for_to_infinitive':
+    case 'clausal_subject':
       return { person: '3rd', number: 'singular' }
     case 'coordinated': {
-      // "and" → plural; "or" → match nearer (default to singular as a placeholder)
+      // "and" → plural; "or" → nearer-conjunct (placeholder: singular).
       const hasAnd = tokens.includes('and')
       return { person: '3rd', number: hasAnd ? 'plural' : 'singular' }
     }
-    case 'bare_noun':
-    case 'det_noun':
-    case 'det_adj_noun': {
-      const num = detectNounNumber(subjectText)
-      return { person: '3rd', number: num }
-    }
-    case 'quantifier_led': {
-      const q = tokens[0]
-      const qNum = QUANTIFIER_HEAD_NUMBER[q]
+    case 'np_basic': {
+      // Quantifier-led NP carries agreement nuance: "every child" singular,
+      // "all dogs" plural. Plural noun overrides the quantifier default.
+      const first = tokens[0]
+      const qNum = QUANTIFIER_HEAD_NUMBER[first]
       const nounNum = detectNounNumber(subjectText)
-      // Plural noun overrides the quantifier; otherwise use the quantifier default.
-      const number = nounNum === 'plural' ? 'plural' : (qNum ?? 'unknown')
-      return { person: '3rd', number }
+      if (qNum) {
+        const number = nounNum === 'plural' ? 'plural' : qNum
+        return { person: '3rd', number }
+      }
+      return { person: '3rd', number: nounNum }
     }
+    case 'np_with_postmodifier':
+    case 'partitive':
+      // Catalog-only shapes; agreement falls back to the head/post-of NP.
+      return { person: '3rd', number: detectNounNumber(subjectText) }
     default:
       return null
   }

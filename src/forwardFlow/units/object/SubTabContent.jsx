@@ -1,14 +1,14 @@
-// Forward Flow — Subject Shapes sub-tab content.
+// Forward Flow — Object Shapes sub-tab content.
 // Sourced from the shared structure registry (no per-unit catalog).
-// Highlights the structure the live parser currently matches.
+// Highlights structures the live parser currently matches.
 
 import { T, matchesSearch } from '../../theme'
 import { Section } from '../../primitives'
 import { STRUCTURES } from '../../structures.en.js'
 import { SHAPE_FAMILIES } from '../../shapeFamilies.en.js'
-import { SUBJECT_ACCEPTS } from './acceptance.en.js'
+import { OBJECT_ACCEPTS } from './acceptance.en.js'
 
-const ACCEPTED_STRUCTURES = STRUCTURES.filter(s => SUBJECT_ACCEPTS.includes(s.id))
+const ACCEPTED_STRUCTURES = STRUCTURES.filter(s => OBJECT_ACCEPTS.includes(s.id))
 
 function groupByFamily(structures) {
   return SHAPE_FAMILIES
@@ -16,35 +16,39 @@ function groupByFamily(structures) {
     .filter(g => g.structures.length > 0)
 }
 
-export function SubjectSubTabContent({
-  lane, subjectShape,
+export function ObjectSubTabContent({
+  lane, objectAnalysis,
   expanded, setExpanded, toggle,
   search, setSearch,
 }) {
+  // Highlight: any structure id present in objectAnalysis.objects[].shape.
+  const matchedIds = new Set(
+    (objectAnalysis?.objects ?? []).map(o => o.shape).filter(Boolean)
+  )
   const filtered = ACCEPTED_STRUCTURES.filter(s => matchesSearch(s, search, ['label', 'description', 'pattern']))
   const groups = groupByFamily(filtered)
   const detectedCount = ACCEPTED_STRUCTURES.filter(s => s.detected !== false).length
 
   return (
     <>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.blue, textTransform: 'uppercase', marginBottom: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.green, textTransform: 'uppercase', marginBottom: 8 }}>
         Slot acceptance · sourced from shared structure registry
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Section>Subject accepts ({ACCEPTED_STRUCTURES.length}) — {detectedCount} detected, {ACCEPTED_STRUCTURES.length - detectedCount} catalog-only</Section>
+        <Section>Object accepts ({ACCEPTED_STRUCTURES.length}) — {detectedCount} detected, {ACCEPTED_STRUCTURES.length - detectedCount} catalog-only</Section>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(ACCEPTED_STRUCTURES.map(s => [`subj-${s.id}`, true])) }))}
+          <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(ACCEPTED_STRUCTURES.map(s => [`obj-${s.id}`, true])) }))}
             style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
             expand all
           </button>
-          <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of ACCEPTED_STRUCTURES) delete n[`subj-${s.id}`]; return n })}
+          <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of ACCEPTED_STRUCTURES) delete n[`obj-${s.id}`]; return n })}
             style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
             collapse all
           </button>
         </div>
       </div>
       <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-        Subject's per-unit shape catalog has been retired — the structures shown here come from the shared registry. Pronoun case (subject I/he/she vs object me/him/her) is an atom-level concern, not a structure concern.
+        Object's per-unit shape catalog has been retired — the structures shown here come from the shared registry, just like Subject. Object's acceptance overlaps Subject's almost entirely; "shapes shared across units" empirically confirmed.
       </div>
       <input type="text" placeholder="search structures…" value={search} onChange={e => setSearch(e.target.value)}
         style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
@@ -56,8 +60,8 @@ export function SubjectSubTabContent({
             marginBottom: 6, paddingBottom: 4, borderBottom: `1px solid ${T.border}`,
           }}>
             <span style={{
-              padding: '2px 8px', background: T.blueBg, border: `1px solid ${T.blueBord}`,
-              borderRadius: 3, fontSize: 10, fontWeight: 700, color: T.blue,
+              padding: '2px 8px', background: T.greenBg, border: `1px solid ${T.greenBord}`,
+              borderRadius: 3, fontSize: 10, fontWeight: 700, color: T.green,
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>{family.label}</span>
             <span style={{ fontSize: 11, color: T.textDim }}>({structures.length})</span>
@@ -66,9 +70,9 @@ export function SubjectSubTabContent({
           {structures.map(struct => (
             <StructureCard key={struct.id}
               structure={struct}
-              isMatch={lane === 'fundamental' && subjectShape === struct.id}
-              expanded={!!expanded[`subj-${struct.id}`]}
-              onToggle={() => toggle(`subj-${struct.id}`)} />
+              isMatch={lane === 'fundamental' && matchedIds.has(struct.id)}
+              expanded={!!expanded[`obj-${struct.id}`]}
+              onToggle={() => toggle(`obj-${struct.id}`)} />
           ))}
         </div>
       ))}
@@ -85,7 +89,7 @@ function StructureCard({ structure, isMatch, expanded, onToggle }) {
   const dim = structure.detected === false
   return (
     <div style={{
-      outline: isMatch ? `3px solid ${T.blueBord}` : 'none',
+      outline: isMatch ? `3px solid ${T.greenBord}` : 'none',
       outlineOffset: '3px',
       borderRadius: 6,
       transition: 'outline 200ms',
@@ -97,9 +101,9 @@ function StructureCard({ structure, isMatch, expanded, onToggle }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
           <span style={{
-            padding: '3px 9px', background: T.blueBg, border: `1px solid ${T.blueBord}`, borderRadius: 4,
-            fontSize: 12, fontWeight: 700, color: T.blue, fontFamily: 'monospace',
-          }}>S</span>
+            padding: '3px 9px', background: T.greenBg, border: `1px solid ${T.greenBord}`, borderRadius: 4,
+            fontSize: 12, fontWeight: 700, color: T.green, fontFamily: 'monospace',
+          }}>O</span>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{structure.label}</span>
@@ -125,7 +129,7 @@ function StructureCard({ structure, isMatch, expanded, onToggle }) {
             {structure.examples.map((ex, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
                 <span style={{ color: T.text, fontStyle: 'italic' }}>"{ex.sentence}"</span>
-                <span style={{ color: T.blue, fontWeight: 600, fontFamily: 'monospace' }}>→ {ex.highlight}</span>
+                <span style={{ color: T.green, fontWeight: 600, fontFamily: 'monospace' }}>→ {ex.highlight}</span>
               </div>
             ))}
           </div>

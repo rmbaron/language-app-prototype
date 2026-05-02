@@ -72,3 +72,60 @@ export function classifyAuxToken(token) {
   if (NEGATION.words.has(t)) return NEGATION
   return null
 }
+
+// ── Operator ────────────────────────────────────────────────────────────
+// The operator is the first element of the aux cluster. It bears the NICE
+// properties (Negation, Inversion, Code, Emphasis) — only the operator can
+// be negated, fronted in a question, replaced by a pro-form ("So do I"), or
+// stressed for emphasis. When no aux is otherwise present and a NICE function
+// is needed, do-support inserts a do-operator on demand.
+//
+// Returns the chain entry { token, slot } or null when the chain is bare.
+export function getOperator(auxChain) {
+  if (!auxChain || auxChain.length === 0) return null
+  return auxChain[0]
+}
+
+// Inversion (one of the NICE properties) is detected at the lane level: the
+// operator is fronted before the Subject in yes/no questions, wh-questions,
+// and quotative inversion. Imperative is NOT inversion — there's no operator
+// fronting; the subject is elided.
+const INVERTED_EXCEPTION_TYPES = new Set([
+  'yes_no_question',
+  'wh_question',
+  'quotative_inversion',
+])
+export function isInvertedExceptionType(exceptionType) {
+  return INVERTED_EXCEPTION_TYPES.has(exceptionType)
+}
+
+// ── Aux cluster configuration ───────────────────────────────────────────
+// Names which of the 6 cluster configurations the chain is in, based on
+// the leading aux. Catalog entries live in auxConfigurations.en.js.
+//
+// Returns one of:
+//   'bare' | 'modal_led' | 'perfect_led' | 'progressive_led' | 'passive_led'
+//   'do_support' | 'be_led_ambiguous' | null
+//
+// be_led_ambiguous: leading aux is BE but the lexical verb's form-type can't
+// disambiguate Progressive (-ing) from Passive (past participle). Resolved
+// later when the lexical verb form is known.
+export function detectAuxConfiguration(auxChain, matchedVerbForm) {
+  if (!auxChain || auxChain.length === 0) return 'bare'
+  const operator = auxChain[0]
+  if (!operator?.slot) return null
+
+  switch (operator.slot.id) {
+    case 'modal':       return 'modal_led'
+    case 'perfect':     return 'perfect_led'
+    case 'do_support':  return 'do_support'
+    case 'be_aux': {
+      const type = matchedVerbForm?.type
+      const has = (t) => type === t || (Array.isArray(type) && type.includes(t))
+      if (has('present_participle')) return 'progressive_led'
+      if (has('past_participle'))    return 'passive_led'
+      return 'be_led_ambiguous'
+    }
+    default: return null
+  }
+}
