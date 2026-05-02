@@ -18,7 +18,11 @@ import { useState, useMemo } from 'react'
 import { getAtoms } from './grammarAtoms'
 import { isOpenClass } from './atomGroups.en'
 import { PATTERNS } from './grammarBreakerPatterns'
-import { COUPLINGS, COMPOSITES } from './grammarBreakerCouplings'
+import { COUPLINGS } from './grammarBreakerCouplings'
+// CLAUSE_SHAPES (Floor 3) is the canonical name; aliased to COMPOSITES locally
+// to avoid a cascading rename through this 1500-line legacy tab. The legacy
+// tab is itself slated for retirement under the System A collapse.
+import { CLAUSE_SHAPES as COMPOSITES } from './forwardFlow/clauseShapes.en.js'
 import { getAllWords } from './wordRegistry'
 import { validateSentence } from './grammarBreaker'
 
@@ -776,9 +780,9 @@ export default function GrammarBreakerFlowTab({ activeAtoms = [] }) {
           </div>
         </div>
 
-        {/* Column 4 — Composites */}
+        {/* Column 4 — Clause Shapes (Floor 3) */}
         <div style={{ minWidth: 240, padding: '0 8px' }}>
-          <ColumnHeader level={4} title="Composites" subtitle="Bigger structural shapes built from multiple micro-structures." count={COMPOSITES.length} />
+          <ColumnHeader level={4} title="Clause Shapes" subtitle="Floor 3 — clause-level shapes built from clause-internal relationships." count={COMPOSITES.length} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sortedComposites.map(c => {
               const litThis = shouldShowFull('compositeSet', c.id)
