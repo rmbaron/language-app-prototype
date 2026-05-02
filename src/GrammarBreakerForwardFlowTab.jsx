@@ -7,13 +7,13 @@
 // still in play.
 //
 // This file is the orchestrator. The pieces it composes live in src/forwardFlow/:
-//   theme.js            — color constants + slot color map + matchesSearch
-//   primitives.jsx      — Section, SlotChip, SlotSignature, StatusAccordionSection, FuturePhasePlaceholder
-//   dispatch.js         — left-edge lane classification + auxiliary chain
-//   frameLibrary.js     — verb-frame inversion (verb-first → frame-first)
-//   useParsedSentence.js — typed-sentence → macro-layer parse
-//   SlotRoleCard.jsx, FrameCard.jsx, SubjectShapeCard.jsx,
-//   ExceptionShapeCard.jsx, VerbChainCard.jsx — per-catalog cards
+//   theme.js / primitives.jsx / SlotRoleCard.jsx — cross-unit shared bits
+//   useParsedSentence.js                         — cross-unit parsing pipeline
+//   units/<slot>/StatusBlock.jsx                 — per-unit live-status accordion
+//   units/<slot>/{SubTabContent,...}.jsx         — per-unit catalog sub-tab
+//
+// Adding a unit's UI now happens entirely inside its folder. The orchestrator
+// owns shared state (expanded, statusOpen, search queries) and passes it down.
 //
 // Source of truth for the macro-layer architecture: notes/macro-layer-sketch.md
 
@@ -24,16 +24,21 @@ import { getExceptionShapes } from './forwardFlow/units/exceptions/shapesIndex'
 import { getVerbInternalChain } from './forwardFlow/units/verb/internalChainIndex'
 import { FORWARD_FLOW_FINDINGS } from './forwardFlowFindings.en.js'
 
-import { T, SLOT_COLORS, matchesSearch } from './forwardFlow/theme'
-import { Section, SlotChip, StatusAccordionSection, FuturePhasePlaceholder } from './forwardFlow/primitives'
-import { EXCEPTION_LANE_LABELS, EXCEPTION_LANE_NOTES } from './forwardFlow/units/exceptions/dispatch'
+import { T, SLOT_COLORS } from './forwardFlow/theme'
+import { Section, SlotChip, FuturePhasePlaceholder } from './forwardFlow/primitives'
+import { EXCEPTION_LANE_LABELS } from './forwardFlow/units/exceptions/dispatch'
 import { FRAME_LIBRARY } from './forwardFlow/units/verb/frameLibrary'
 import { SlotRoleCard } from './forwardFlow/SlotRoleCard'
-import { FrameCard } from './forwardFlow/units/verb/FrameCard'
-import { SubjectShapeCard } from './forwardFlow/units/subject/ShapeCard'
-import { ExceptionShapeCard } from './forwardFlow/units/exceptions/ShapeCard'
-import { VerbChainCard } from './forwardFlow/units/verb/ChainCard'
 import { useParsedSentence } from './forwardFlow/useParsedSentence'
+
+// Per-unit fragments — each unit's UI lives in its own folder.
+import { SubjectStatusBlock }     from './forwardFlow/units/subject/StatusBlock'
+import { SubjectSubTabContent }   from './forwardFlow/units/subject/SubTabContent'
+import { VerbStatusBlock }        from './forwardFlow/units/verb/StatusBlock'
+import { FrameSubTabContent }     from './forwardFlow/units/verb/FrameSubTabContent'
+import { InternalSubTabContent }  from './forwardFlow/units/verb/InternalSubTabContent'
+import { ExceptionStatusBlock }   from './forwardFlow/units/exceptions/StatusBlock'
+import { ExceptionSubTabContent } from './forwardFlow/units/exceptions/SubTabContent'
 
 const SLOT_ROLES = getSlotRoles('en')
 const SUBJECT_SHAPES = getSubjectShapes('en')
@@ -45,7 +50,8 @@ export default function GrammarBreakerForwardFlowTab() {
   const [typedSentence, setTypedSentence] = useState('')
   const [subTab, setSubTab] = useState('roles')
 
-  // Per-catalog search queries. Each catalog has its own search box at top.
+  // Per-catalog search queries. State stays in the orchestrator so search
+  // persists across sub-tab switches (UX preserved from pre-split version).
   const [subjectSearch,   setSubjectSearch]   = useState('')
   const [frameSearch,     setFrameSearch]     = useState('')
   const [vchainSearch,    setVchainSearch]    = useState('')
@@ -126,8 +132,8 @@ export default function GrammarBreakerForwardFlowTab() {
             boxSizing: 'border-box', fontFamily: 'system-ui, sans-serif',
           }} />
 
-        {/* Tiered status panel — one-line summary always visible; click sections
-            below to expand each detail group. */}
+        {/* Tiered status panel — one-line summary always visible; per-unit
+            sections below expand on click. */}
         <div style={{ marginTop: 10, fontSize: 12, color: T.textSub }}>
 
           {/* ── One-line summary ── */}
@@ -185,112 +191,23 @@ export default function GrammarBreakerForwardFlowTab() {
             </div>
           )}
 
-          {/* ── Detail sections (default-collapsed; click to expand) ── */}
+          {/* ── Per-unit detail sections (default-collapsed; click to expand) ── */}
 
-          {/* Subject details — fundamental lane only */}
-          {lane === 'fundamental' && subjectText && (
-            <StatusAccordionSection title="Subject"
-              accent={T.blue}
-              preview={
-                subjectShape
-                  ? `${getSubjectShape(subjectShape, 'en')?.label ?? subjectShape}` +
-                    (nounNumber !== 'unknown' ? ` (${nounNumber})` : '') +
-                    (articleWarning ? ' · a/an warning' : '')
-                  : 'shape not yet recognized'
-              }
-              open={!!statusOpen.subject} onToggle={() => toggleStatus('subject')}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ fontSize: 11, color: T.textSub }}>
-                  candidate text: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: T.text }}>{subjectText}</span>
-                </div>
-                {subjectShape && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: T.label, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 60 }}>shape</span>
-                    <span style={{ padding: '1px 6px', background: T.blueBg, border: `1px solid ${T.blueBord}`, borderRadius: 3, fontSize: 11, fontWeight: 700, color: T.blue }}>
-                      {getSubjectShape(subjectShape, 'en')?.label ?? subjectShape}
-                    </span>
-                    {nounNumber !== 'unknown' && (
-                      <span style={{ padding: '1px 6px', background: '#fff', border: `1px solid ${T.border}`, borderRadius: 3, fontSize: 10, color: T.textDim, fontFamily: 'monospace' }}>
-                        {nounNumber}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {subjectFeatures && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: T.label, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 60 }}>features</span>
-                    <span style={{ padding: '1px 6px', background: '#fff', border: `1px solid ${T.border}`, borderRadius: 3, fontSize: 11, color: T.textSub, fontFamily: 'monospace' }}>{subjectFeatures.person}</span>
-                    <span style={{ padding: '1px 6px', background: '#fff', border: `1px solid ${T.border}`, borderRadius: 3, fontSize: 11, color: T.textSub, fontFamily: 'monospace' }}>{subjectFeatures.number}</span>
-                  </div>
-                )}
-                {articleWarning && (
-                  <div style={{ padding: '6px 10px', background: T.amberBg, border: `1px solid ${T.amberBord}`, borderRadius: 4, fontSize: 11, color: T.amber, lineHeight: 1.5 }}>
-                    <span style={{ fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: 9, marginRight: 6 }}>a/an</span>
-                    {articleWarning}
-                  </div>
-                )}
-              </div>
-            </StatusAccordionSection>
-          )}
+          <SubjectStatusBlock
+            lane={lane}
+            subjectText={subjectText} subjectShape={subjectShape}
+            nounNumber={nounNumber} articleWarning={articleWarning}
+            subjectFeatures={subjectFeatures}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
-          {/* Auxiliary chain — when chain has elements */}
-          {auxChain.length > 0 && (
-            <StatusAccordionSection title="Auxiliary chain"
-              accent={T.violet}
-              preview={`${auxChain.length} element${auxChain.length === 1 ? '' : 's'} between Subject and Verb: ${auxChain.map(({token}) => token).join(' ')}`}
-              open={!!statusOpen.chain} onToggle={() => toggleStatus('chain')}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {auxChain.map(({ token, slot }, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                    <span style={{ padding: '1px 8px', background: T.violetBg, border: `1px solid ${T.violetBord}`, borderRadius: 3, fontFamily: 'monospace', fontWeight: 700, color: T.violet }}>{token}</span>
-                    {slot ? (<>
-                      <span style={{ padding: '1px 6px', background: '#fff', border: `1px solid ${T.violetBord}`, borderRadius: 3, fontSize: 10, fontWeight: 700, color: T.violet, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{slot.label}</span>
-                      {slot.projects && (
-                        <span style={{ color: T.textSub }}>→ projects:&nbsp;<span style={{ fontFamily: 'monospace', color: T.text }}>{slot.projects}</span></span>
-                      )}
-                    </>) : <span style={{ color: T.textDim, fontStyle: 'italic' }}>unrecognized</span>}
-                  </div>
-                ))}
-                <div style={{ marginTop: 4, fontSize: 10, color: T.textDim, fontStyle: 'italic', lineHeight: 1.5 }}>
-                  Canonical order: Modal → Perfect → Progressive → Passive → Lexical. Agreement bears on the first element.
-                </div>
-              </div>
-            </StatusAccordionSection>
-          )}
+          <VerbStatusBlock
+            lane={lane}
+            auxChain={auxChain} expectedAgreement={expectedAgreement}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
 
-          {/* Verb agreement expected — fundamental lane only */}
-          {lane === 'fundamental' && expectedAgreement && (
-            <StatusAccordionSection title="Verb expected"
-              accent={T.green}
-              preview={`${expectedAgreement.pattern} (${expectedAgreement.label})`}
-              open={!!statusOpen.agreement} onToggle={() => toggleStatus('agreement')}>
-              <div>
-                <div style={{ fontSize: 12, color: T.green, fontWeight: 700, marginBottom: 4 }}>
-                  {expectedAgreement.pattern} <span style={{ fontWeight: 400, fontStyle: 'italic' }}>· {expectedAgreement.label}</span>
-                </div>
-                <div style={{ fontSize: 11, color: T.textSub, lineHeight: 1.5, marginBottom: 6 }}>
-                  {expectedAgreement.hint}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {expectedAgreement.examples.map((ex, i) => (
-                    <span key={i} style={{ padding: '1px 6px', background: '#fff', border: `1px solid ${T.greenBord}`, borderRadius: 3, fontSize: 10, color: T.green, fontFamily: 'monospace' }}>{ex}</span>
-                  ))}
-                </div>
-              </div>
-            </StatusAccordionSection>
-          )}
-
-          {/* Exception details — exception lane only */}
-          {lane === 'exception' && (
-            <StatusAccordionSection title="Exception details"
-              accent={T.violet}
-              preview={EXCEPTION_LANE_LABELS[exceptionType] ?? exceptionType}
-              open={!!statusOpen.exception} onToggle={() => toggleStatus('exception')}>
-              <div style={{ fontSize: 11, color: T.textDim, lineHeight: 1.55, fontStyle: 'italic' }}>
-                {EXCEPTION_LANE_NOTES[exceptionType] ?? 'Exception detected; full handling in later phases.'}
-              </div>
-            </StatusAccordionSection>
-          )}
+          <ExceptionStatusBlock
+            lane={lane} exceptionType={exceptionType}
+            statusOpen={statusOpen} toggleStatus={toggleStatus} />
         </div>
 
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}`, fontSize: 10, color: T.textDim, fontStyle: 'italic' }}>
@@ -328,7 +245,7 @@ export default function GrammarBreakerForwardFlowTab() {
         </div>
       </div>
 
-      {/* ── Slot Roles sub-tab ─────────────────────────────────────────────── */}
+      {/* ── Slot Roles sub-tab (cross-unit) ────────────────────────────────── */}
       {subTab === 'roles' && (<>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
         <Section>Slot Roles ({SLOT_ROLES.length}) — the macro primitives</Section>
@@ -366,189 +283,38 @@ export default function GrammarBreakerForwardFlowTab() {
       </>)}
 
       {/* ── Subject Shapes sub-tab ─────────────────────────────────────────── */}
-      {subTab === 'subjects' && (<>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.green, textTransform: 'uppercase', marginBottom: 8 }}>
-          Core group · alternative catalog
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <Section>Subject Shapes ({SUBJECT_SHAPES.length}) — alternative shapes that fill S</Section>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(SUBJECT_SHAPES.map(s => [`subj-${s.id}`, true])) }))}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              expand all
-            </button>
-            <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of SUBJECT_SHAPES) delete n[`subj-${s.id}`]; return n })}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              collapse all
-            </button>
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          {SUBJECT_SHAPES.length} ways an English Subject can be shaped. <b>Alternative catalog</b> — each Subject matches one of these shapes (or none yet), not a combination.
-        </div>
-        <input type="text" placeholder="search subject shapes…" value={subjectSearch} onChange={e => setSubjectSearch(e.target.value)}
-          style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
-        <div>
-          {SUBJECT_SHAPES.filter(s => matchesSearch(s, subjectSearch, ['label', 'description', 'pattern'])).map(shape => {
-            const isMatch = lane === 'fundamental' && subjectShape === shape.id
-            return (
-              <div key={shape.id}
-                style={{
-                  outline: isMatch ? `3px solid ${T.blueBord}` : 'none',
-                  outlineOffset: '3px',
-                  borderRadius: 6,
-                  transition: 'outline 200ms',
-                }}>
-                <SubjectShapeCard shape={shape}
-                  expanded={!!expanded[`subj-${shape.id}`]}
-                  onToggle={() => toggle(`subj-${shape.id}`)} />
-              </div>
-            )
-          })}
-        </div>
-      </>)}
+      {subTab === 'subjects' && (
+        <SubjectSubTabContent
+          lane={lane} subjectShape={subjectShape}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={subjectSearch} setSearch={setSubjectSearch} />
+      )}
 
       {/* ── Frame Library sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'frames' && (<>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.green, textTransform: 'uppercase', marginBottom: 8 }}>
-          Core group · per-verb catalog
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <Section>Frame Library ({FRAME_LIBRARY.length}) — verb argument structures</Section>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(FRAME_LIBRARY.map(f => [`frame-${f.signature}`, true])) }))}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              expand all
-            </button>
-            <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const f of FRAME_LIBRARY) delete n[`frame-${f.signature}`]; return n })}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              collapse all
-            </button>
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          The {FRAME_LIBRARY.length} frames an English clause's predicate can take. Frame is the structure (slot signature); the verbs that fit each frame are listed underneath. <b>Per-verb catalog</b> — each verb permits one or more of these frames. Free adjuncts (yesterday, in the kitchen) can attach to any frame without being declared.
-        </div>
-        <input type="text" placeholder="search frames or verbs…" value={frameSearch} onChange={e => setFrameSearch(e.target.value)}
-          style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
-        <div>
-          {FRAME_LIBRARY.filter(f => {
-            const q = frameSearch.toLowerCase().trim()
-            if (!q) return true
-            if (f.signature.toLowerCase().includes(q) || f.label.toLowerCase().includes(q) || f.description.toLowerCase().includes(q)) return true
-            return f.verbs.some(({ verb }) => verb.baseForm.toLowerCase().includes(q) || verb.verbId.toLowerCase().includes(q))
-          }).map(frame => {
-            const isFrameMatched = matchedVerb && frame.verbs.some(v => v.verb.verbId === matchedVerb.verbId)
-            return (
-              <div key={frame.signature}
-                style={{
-                  outline: isFrameMatched ? `3px solid ${T.amber}` : 'none',
-                  outlineOffset: '3px',
-                  borderRadius: 6,
-                  transition: 'outline 200ms',
-                }}>
-                <FrameCard frame={frame}
-                  matchedVerbId={matchedVerb?.verbId ?? null}
-                  expanded={!!expanded[`frame-${frame.signature}`]}
-                  onToggle={() => toggle(`frame-${frame.signature}`)} />
-              </div>
-            )
-          })}
-        </div>
-      </>)}
+      {subTab === 'frames' && (
+        <FrameSubTabContent
+          matchedVerb={matchedVerb}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={frameSearch} setSearch={setFrameSearch} />
+      )}
 
       {/* ── Verb Internal sub-tab ──────────────────────────────────────────── */}
-      {subTab === 'vchain' && (<>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.green, textTransform: 'uppercase', marginBottom: 8 }}>
-          Core group · sequenced catalog (V&apos;s internal structure)
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <Section>Verb Internal Structure ({VERB_CHAIN.filter(e => e.kind === 'chain_position').length}) — sequenced positions inside V</Section>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(VERB_CHAIN.map(e => [`vchain-${e.id}`, true])) }))}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              expand all
-            </button>
-            <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const e of VERB_CHAIN) delete n[`vchain-${e.id}`]; return n })}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              collapse all
-            </button>
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          The 5 canonical positions inside the verb cluster, in fixed order: Modal → Perfect → Progressive → Passive → Lexical. <b>Sequenced catalog</b> — multiple positions can fire at once and they appear in this order on the surface (e.g. <i>&quot;might have been running&quot;</i> fills 4 of 5). Plus 2 non-position entries: Negation (decoration on the chain) and Do-support (mechanism).
-        </div>
-        <input type="text" placeholder="search positions or words…" value={vchainSearch} onChange={e => setVchainSearch(e.target.value)}
-          style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
-        <div>
-          {VERB_CHAIN.filter(e => {
-            const q = vchainSearch.toLowerCase().trim()
-            if (!q) return true
-            if (e.label.toLowerCase().includes(q) || e.id.toLowerCase().includes(q)) return true
-            return (e.words ?? []).some(w => w.toLowerCase().includes(q))
-          }).map(entry => {
-            const isMatch = matchedChainIds.has(entry.id)
-            return (
-              <div key={entry.id}
-                style={{
-                  outline: isMatch ? `3px solid ${T.violetBord}` : 'none',
-                  outlineOffset: '3px',
-                  borderRadius: 6,
-                  transition: 'outline 200ms',
-                }}>
-                <VerbChainCard entry={entry}
-                  expanded={!!expanded[`vchain-${entry.id}`]}
-                  onToggle={() => toggle(`vchain-${entry.id}`)} />
-              </div>
-            )
-          })}
-        </div>
-      </>)}
+      {subTab === 'vchain' && (
+        <InternalSubTabContent
+          matchedChainIds={matchedChainIds}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={vchainSearch} setSearch={setVchainSearch} />
+      )}
 
       {/* ── Exception Shapes sub-tab ───────────────────────────────────────── */}
-      {subTab === 'exceptions' && (<>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.violet, textTransform: 'uppercase', marginBottom: 8 }}>
-          Exception group · marked openings
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <Section>Exception Shapes ({EXCEPTION_SHAPES.length}) — sentences that don&apos;t open with a Subject</Section>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setExpanded(curr => ({ ...curr, ...Object.fromEntries(EXCEPTION_SHAPES.map(s => [`exc-${s.id}`, true])) }))}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              expand all
-            </button>
-            <button onClick={() => setExpanded(curr => { const n = { ...curr }; for (const s of EXCEPTION_SHAPES) delete n[`exc-${s.id}`]; return n })}
-              style={{ padding: '3px 8px', fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 4, background: '#fff', color: T.textDim, cursor: 'pointer' }}>
-              collapse all
-            </button>
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: T.textDim, marginBottom: 14, lineHeight: 1.6, fontStyle: 'italic' }}>
-          The {EXCEPTION_SHAPES.length} marked openings — each announces a different sentence trajectory than the regular declarative. Each card shows whether detection is currently wired.
-        </div>
-        <input type="text" placeholder="search exception shapes…" value={exceptionSearch} onChange={e => setExceptionSearch(e.target.value)}
-          style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: `1px solid ${T.border}`, borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
-        <div>
-          {EXCEPTION_SHAPES.filter(s => matchesSearch(s, exceptionSearch, ['label', 'description', 'pattern', 'trigger'])).map(shape => {
-            const isMatch = lane === 'exception' && exceptionType === shape.id
-            return (
-              <div key={shape.id}
-                style={{
-                  outline: isMatch ? `3px solid ${T.violetBord}` : 'none',
-                  outlineOffset: '3px',
-                  borderRadius: 6,
-                  transition: 'outline 200ms',
-                }}>
-                <ExceptionShapeCard shape={shape}
-                  expanded={!!expanded[`exc-${shape.id}`]}
-                  onToggle={() => toggle(`exc-${shape.id}`)} />
-              </div>
-            )
-          })}
-        </div>
-      </>)}
+      {subTab === 'exceptions' && (
+        <ExceptionSubTabContent
+          lane={lane} exceptionType={exceptionType}
+          expanded={expanded} setExpanded={setExpanded} toggle={toggle}
+          search={exceptionSearch} setSearch={setExceptionSearch} />
+      )}
 
-      {/* ── Findings sub-tab ───────────────────────────────────────────────── */}
+      {/* ── Findings sub-tab (cross-unit) ──────────────────────────────────── */}
       {subTab === 'findings' && (<>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: T.textDim, textTransform: 'uppercase', marginBottom: 8 }}>
           Forward Flow as discovery surface · gap log
